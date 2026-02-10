@@ -6,13 +6,33 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D9208B1C2EB83AD20098AAC5 /* CoreMLPipelines in Frameworks */ = {isa = PBXBuildFile; productRef = D9208B1B2EB83AD20098AAC5 /* CoreMLPipelines */; };
+		D97396992EF2FFCA00072195 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = D97396982EF2FFCA00072195 /* ZIPFoundation */; };
+		D9F5263D2ED73B1E00DEC7BF /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = D9F5263C2ED73B1E00DEC7BF /* StableDiffusion */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		D9208ACB2EB839A60098AAC5 /* SemanticCompression-v2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SemanticCompression-v2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D9F5263F2ED73D6200DEC7BF /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = System/Library/Frameworks/FoundationModels.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D9D4532D2F2B9ED100A5E314 /* Exceptions for "SemanticCompression-v2" folder in "SemanticCompression-v2" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D9208ACA2EB839A60098AAC5 /* SemanticCompression-v2 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D9208ACD2EB839A60098AAC5 /* SemanticCompression-v2 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D9D4532D2F2B9ED100A5E314 /* Exceptions for "SemanticCompression-v2" folder in "SemanticCompression-v2" target */,
+			);
 			path = "SemanticCompression-v2";
 			sourceTree = "<group>";
 		};
@@ -23,6 +43,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D9208B1C2EB83AD20098AAC5 /* CoreMLPipelines in Frameworks */,
+				D9F5263D2ED73B1E00DEC7BF /* StableDiffusion in Frameworks */,
+				D97396992EF2FFCA00072195 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -33,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				D9208ACD2EB839A60098AAC5 /* SemanticCompression-v2 */,
+				D9F5263E2ED73D6200DEC7BF /* Frameworks */,
 				D9208ACC2EB839A60098AAC5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -45,6 +69,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		D9F5263E2ED73D6200DEC7BF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D9F5263F2ED73D6200DEC7BF /* FoundationModels.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -53,8 +85,8 @@
 			buildConfigurationList = D9208AD62EB839A90098AAC5 /* Build configuration list for PBXNativeTarget "SemanticCompression-v2" */;
 			buildPhases = (
 				D9208AC72EB839A60098AAC5 /* Sources */,
-				D9208AC82EB839A60098AAC5 /* Frameworks */,
 				D9208AC92EB839A60098AAC5 /* Resources */,
+				D9208AC82EB839A60098AAC5 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -65,6 +97,9 @@
 			);
 			name = "SemanticCompression-v2";
 			packageProductDependencies = (
+				D9208B1B2EB83AD20098AAC5 /* CoreMLPipelines */,
+				D9F5263C2ED73B1E00DEC7BF /* StableDiffusion */,
+				D97396982EF2FFCA00072195 /* ZIPFoundation */,
 			);
 			productName = "SemanticCompression-v2";
 			productReference = D9208ACB2EB839A60098AAC5 /* SemanticCompression-v2.app */;
@@ -94,6 +129,11 @@
 			);
 			mainGroup = D9208AC22EB839A60098AAC5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D9208B1A2EB83AD20098AAC5 /* XCRemoteSwiftPackageReference "CoreMLPipelines" */,
+				D9F5263B2ED73B1E00DEC7BF /* XCRemoteSwiftPackageReference "ml-stable-diffusion" */,
+				D97396972EF2FFCA00072195 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D9208ACC2EB839A60098AAC5 /* Products */;
 			projectDirPath = "";
@@ -249,24 +289,31 @@
 		D9208AD72EB839A90098AAC5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = YY58VZMU56;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "SemanticCompression-v2/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Mim;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "投稿する画像を選択し、端末内のAIで解析・生成を行うために写真へのアクセスが必要です。画像はユーザーの操作なく外部に送信されません。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.demo.SemanticCompression-v2";
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = com.tasuku.mim;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -281,24 +328,31 @@
 		D9208AD82EB839A90098AAC5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = YY58VZMU56;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "SemanticCompression-v2/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Mim;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "投稿する画像を選択し、端末内のAIで解析・生成を行うために写真へのアクセスが必要です。画像はユーザーの操作なく外部に送信されません。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.demo.SemanticCompression-v2";
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = com.tasuku.mim;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -332,6 +386,51 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D9208B1A2EB83AD20098AAC5 /* XCRemoteSwiftPackageReference "CoreMLPipelines" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/finnvoor/CoreMLPipelines.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		D97396972EF2FFCA00072195 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.20;
+			};
+		};
+		D9F5263B2ED73B1E00DEC7BF /* XCRemoteSwiftPackageReference "ml-stable-diffusion" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/ml-stable-diffusion";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D9208B1B2EB83AD20098AAC5 /* CoreMLPipelines */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D9208B1A2EB83AD20098AAC5 /* XCRemoteSwiftPackageReference "CoreMLPipelines" */;
+			productName = CoreMLPipelines;
+		};
+		D97396982EF2FFCA00072195 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D97396972EF2FFCA00072195 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+		D9F5263C2ED73B1E00DEC7BF /* StableDiffusion */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D9F5263B2ED73B1E00DEC7BF /* XCRemoteSwiftPackageReference "ml-stable-diffusion" */;
+			productName = StableDiffusion;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D9208AC32EB839A60098AAC5 /* Project object */;
 }
