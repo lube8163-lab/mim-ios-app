@@ -9,7 +9,7 @@
 import Foundation
 
 enum AccountService {
-    static func deleteAccount(userId: String) async throws {
+    static func deleteAccount(userId: String, deleteToken: String) async throws {
         guard let url = URL(string: "https://semantic-feed.semantic-compression.workers.dev/deleteAccount")
         else { throw URLError(.badURL) }
 
@@ -17,7 +17,10 @@ enum AccountService {
         req.httpMethod = "POST"
         req.addValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(
-            withJSONObject: ["userId": userId]
+            withJSONObject: [
+                "userId": userId,
+                "deleteToken": deleteToken
+            ]
         )
 
         let (_, res) = try await URLSession.shared.data(for: req)

@@ -32,6 +32,7 @@ final class Post: Identifiable, ObservableObject, Codable {
     @Published var caption: String?
     @Published var semanticPrompt: String?
     @Published var regionTags: [RegionTag]?
+    let lowResGuide: LowResGuide?
 
     // User content
     let userText: String?
@@ -46,12 +47,14 @@ final class Post: Identifiable, ObservableObject, Codable {
 
     // Local image
     @Published var localImage: UIImage?
+    @Published var previewImage: UIImage?
 
     enum CodingKeys: String, CodingKey {
         case id, userId, displayName, avatarUrl
         case caption, semanticPrompt, regionTags
         case userText, hasImage, createdAt
         case status, likeCount, isLikedByCurrentUser
+        case lowResGuide
     }
 
     // MARK: - Decode
@@ -66,6 +69,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         caption = try c.decodeIfPresent(String.self, forKey: .caption)
         semanticPrompt = try c.decodeIfPresent(String.self, forKey: .semanticPrompt)
         regionTags = try c.decodeIfPresent([RegionTag].self, forKey: .regionTags)
+        lowResGuide = try c.decodeIfPresent(LowResGuide.self, forKey: .lowResGuide)
         userText = try c.decodeIfPresent(String.self, forKey: .userText)
 
         likeCount = try c.decodeIfPresent(Int.self, forKey: .likeCount)
@@ -99,6 +103,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         status = try c.decodeIfPresent(PostStatus.self, forKey: .status) ?? .normal
 
         localImage = nil
+        previewImage = nil
     }
 
     // MARK: - Create new
@@ -110,6 +115,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         caption: String? = nil,
         semanticPrompt: String? = nil,
         regionTags: [RegionTag]? = nil,
+        lowResGuide: LowResGuide? = nil,
         userText: String?,
         hasImage: Bool,
         status: PostStatus = .pending,
@@ -123,11 +129,13 @@ final class Post: Identifiable, ObservableObject, Codable {
         self.caption = caption
         self.semanticPrompt = semanticPrompt
         self.regionTags = regionTags
+        self.lowResGuide = lowResGuide
         self.userText = userText
         self.hasImage = hasImage
         self.status = status
         self.createdAt = createdAt
         self.localImage = localImage
+        self.previewImage = nil
         self.likeCount = 0
         self.isLikedByCurrentUser = false
     }

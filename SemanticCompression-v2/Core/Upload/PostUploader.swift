@@ -22,6 +22,7 @@ struct PostUploadPayload: Codable {
     let caption: String?
     let semanticPrompt: String?
     let regionTags: [RegionTag]?
+    let lowResGuide: LowResGuide?
     let userText: String?
     let hasImage: Bool
 
@@ -53,6 +54,7 @@ final class PostUploader {
             caption: post.caption,
             semanticPrompt: post.semanticPrompt,
             regionTags: post.regionTags,
+            lowResGuide: post.lowResGuide,
             userText: post.userText,
             hasImage: post.hasImage,
 

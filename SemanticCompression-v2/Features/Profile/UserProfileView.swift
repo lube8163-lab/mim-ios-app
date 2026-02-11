@@ -310,10 +310,13 @@ struct UserProfileView: View {
         isDeleting = true
         defer { isDeleting = false }
 
-        let userId = userManager.currentUser.id
+        let user = userManager.currentUser
 
         do {
-            try await AccountService.deleteAccount(userId: userId)
+            try await AccountService.deleteAccount(
+                userId: user.id,
+                deleteToken: user.deleteToken
+            )
             userManager.resetUser()
             dismiss()
             #if DEBUG

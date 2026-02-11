@@ -16,6 +16,7 @@ struct PostCardView: View {
     // 🚨 Report UI states
     @State private var showReportDialog = false
     @State private var showReportThanks = false
+    @State private var showReportError = false
     @State private var showBlockConfirm = false
 
     var body: some View {
@@ -28,21 +29,29 @@ struct PostCardView: View {
                 shareSheet
             }
             .confirmationDialog(
-                "この投稿を通報しますか？",
+                t(ja: "この投稿を通報しますか？", en: "Report this post?"),
                 isPresented: $showReportDialog,
                 titleVisibility: .visible
             ) {
                 ForEach(ReportReason.allCases) { reason in
-                    Button(reason.rawValue, role: .destructive) {
+                    Button(reason.label(languageCode: selectedLanguage), role: .destructive) {
                         submitReport(reason)
                     }
                 }
-                Button("キャンセル", role: .cancel) {}
+                Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
             }
-            .alert("通報を受け付けました", isPresented: $showReportThanks) {
+            .alert(t(ja: "通報を受け付けました", en: "Report submitted"), isPresented: $showReportThanks) {
                 Button("OK") {}
             } message: {
-                Text("内容を確認の上、必要に応じて対応します。")
+                Text(t(ja: "内容を確認の上、必要に応じて対応します。", en: "We will review the report and take appropriate action if needed."))
+            }
+            .alert(
+                t(ja: "通報に失敗しました", en: "Report failed"),
+                isPresented: $showReportError
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(t(ja: "時間をおいて再度お試しください。", en: "Please try again later."))
             }
             .confirmationDialog(
                 t(ja: "このユーザーをブロックしますか？", en: "Block this user?"),
@@ -65,6 +74,22 @@ struct PostCardView: View {
         case other = "その他"
 
         var id: String { rawValue }
+
+        func label(languageCode: String) -> String {
+            let isEnglish = languageCode.hasPrefix(AppLanguage.english.rawValue)
+            switch self {
+            case .inappropriate: return isEnglish ? "Inappropriate content" : "不適切な画像"
+            case .violence: return isEnglish ? "Violence or gore" : "暴力・残虐"
+            case .sexual: return isEnglish ? "Sexual content" : "性的コンテンツ"
+            case .hate: return isEnglish ? "Hate or discrimination" : "ヘイト・差別"
+            case .spam: return isEnglish ? "Spam" : "スパム"
+            case .other: return isEnglish ? "Other" : "その他"
+            }
+        }
+
+        func payload(languageCode: String) -> String {
+            label(languageCode: languageCode)
+        }
     }
 
     private var content: some View {
@@ -88,11 +113,16 @@ struct PostCardView: View {
         let reportedPostId = post.id
 
         Task {
-            await ReportService.submit(
-                postId: reportedPostId,
-                reason: reason.rawValue,
-                reporterUserId: userId
-            )
+            do {
+                try await ReportService.submit(
+                    postId: reportedPostId,
+                    reason: reason.payload(languageCode: selectedLanguage),
+                    reporterUserId: userId
+                )
+            } catch {
+                showReportError = true
+                return
+            }
         }
         onPostReported?(reportedPostId)
         showReportThanks = true
@@ -114,7 +144,7 @@ extension PostCardView {
             .clipShape(Circle())
 
             VStack(alignment: .leading) {
-                Text(post.displayName ?? "User")
+                Text(post.displayName ?? t(ja: "ユーザー", en: "User"))
                     .font(.subheadline)
                     .bold()
                 Text(post.createdAt.formatted())
@@ -129,7 +159,7 @@ extension PostCardView {
                 Button(role: .destructive) {
                     showReportDialog = true
                 } label: {
-                    Label("通報", systemImage: "flag")
+                    Label(t(ja: "通報", en: "Report"), systemImage: "flag")
                 }
                 if shouldShowBlockAction {
                     Button(role: .destructive) {
@@ -192,12 +222,29 @@ extension PostCardView {
                 .cornerRadius(12)
                 .transition(.opacity)
         }
+        else if let preview = post.previewImage {
+            ZStack {
+                Image(uiImage: preview)
+                    .resizable()
+                    .scaledToFit()
+                    .cornerRadius(12)
+                if isModelInstalled {
+                    VStack(spacing: 6) {
+                        RainbowAILoader()
+                            .shadow(color: .purple.opacity(0.6), radius: 8)
+                        Text(t(ja: "生成中…", en: "Generating..."))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
         else if !isModelInstalled {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.gray.opacity(0.1))
                 .frame(maxHeight: 260)
                 .overlay(
-                    Text("画像モデル未インストール")
+                    Text(t(ja: "画像モデル未インストール", en: "Image model not installed"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 )
@@ -270,7 +317,7 @@ extension PostCardView {
         } else if let text = post.caption {
             ActivityView(activityItems: [text])
         } else {
-            ActivityView(activityItems: ["Check out this post on SemanticCompression!"])
+            ActivityView(activityItems: [t(ja: "この投稿をチェックしてみてください！", en: "Check out this post on SemanticCompression!")])
         }
     }
 }

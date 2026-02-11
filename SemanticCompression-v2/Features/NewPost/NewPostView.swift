@@ -243,6 +243,8 @@ extension NewPostView {
             return
         }
 
+        let lowResGuide = selectedImage.flatMap { LowResGuide.encode(from: $0, size: 64) }
+
         // ① 即時表示用ローカルポスト
         let tempPost = Post(
             id: id,
@@ -252,6 +254,7 @@ extension NewPostView {
             caption: nil,
             semanticPrompt: nil,
             regionTags: nil,
+            lowResGuide: lowResGuide,
             userText: trimmed.isEmpty ? nil : trimmed,
             hasImage: selectedImage != nil,
             status: .pending,
@@ -261,7 +264,6 @@ extension NewPostView {
 
         await MainActor.run {
             posts.insert(tempPost, at: 0)
-            dismiss()
         }
 
         // ② Semantic Extraction（画像があるときだけ）
@@ -279,11 +281,15 @@ extension NewPostView {
         // ③ Upload
         do {
             try await uploader.upload(post: tempPost)
+            await MainActor.run {
+                dismiss()
+            }
         } catch {
             #if DEBUG
             print("⚠️ Upload failed:", error)
             #endif
             await MainActor.run {
+                posts.removeAll { $0.id == tempPost.id }
                 errorMessage = t(ja: "アップロードに失敗しました", en: "Upload failed")
             }
         }

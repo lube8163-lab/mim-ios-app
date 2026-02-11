@@ -74,6 +74,11 @@ final class BlockManager: ObservableObject {
         "blocked_users_\(UserManager.shared.currentUser.id)"
     }
 
+    func reloadForCurrentUser() {
+        blockedUserIDs.removeAll()
+        loadFromDefaults()
+    }
+
     private func saveToDefaults() {
         defaults.set(Array(blockedUserIDs), forKey: storageKey())
     }

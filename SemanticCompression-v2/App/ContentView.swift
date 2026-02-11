@@ -378,13 +378,12 @@ extension ContentView {
         isLoadingFeed = true
         do {
             let firstPage = try await FeedLoader.fetchPage(page: 0, pageSize: pageSize)
-            postList.items = blockManager.filterBlocked(from: firstPage)
+            let filtered = blockManager.filterBlocked(from: firstPage)
+            postList.items = filtered
             currentPage = 0
             isLoadingFeed = false
 
-            if modelManager.isModelInstalled {
-                enqueueImages(for: firstPage)
-            }
+            enqueueImages(for: filtered)
         } catch {
             genLog = t(ja: "❌ フィードの読み込みに失敗", en: "❌ Failed to load feed")
             isLoadingFeed = false
@@ -405,12 +404,11 @@ extension ContentView {
                 return
             }
 
-            postList.items.append(contentsOf: blockManager.filterBlocked(from: next))
+            let filtered = blockManager.filterBlocked(from: next)
+            postList.items.append(contentsOf: filtered)
             currentPage += 1
 
-            if modelManager.isModelInstalled {
-                enqueueImages(for: next)
-            }
+            enqueueImages(for: filtered)
         } catch {
             genLog = t(ja: "⚠️ ページ読み込みに失敗", en: "⚠️ Page load failed")
         }
@@ -428,9 +426,7 @@ extension ContentView {
             guard !newPosts.isEmpty else { return }
             postList.items.insert(contentsOf: newPosts, at: 0)
 
-            if modelManager.isModelInstalled {
-                enqueueImages(for: newPosts)
-            }
+            enqueueImages(for: newPosts)
         } catch {
             genLog = t(ja: "⚠️ 更新に失敗", en: "⚠️ Refresh failed")
         }
@@ -449,12 +445,11 @@ extension ContentView {
                 page: 0,
                 pageSize: pageSize
             )
-            myPostList.items = blockManager.filterBlocked(from: first)
+            let filtered = filterMyPosts(blockManager.filterBlocked(from: first))
+            myPostList.items = filtered
             currentMyPage = 0
 
-            if modelManager.isModelInstalled {
-                enqueueImages(for: first)
-            }
+            enqueueImages(for: filtered)
         } catch {
             genLog = t(ja: "⚠️ 自分の投稿の読み込みに失敗", en: "⚠️ Failed to load my posts")
             let userId = UserManager.shared.currentUser.id
@@ -475,12 +470,11 @@ extension ContentView {
                 pageSize: pageSize
             )
             guard !next.isEmpty else { return }
-            myPostList.items.append(contentsOf: blockManager.filterBlocked(from: next))
+            let filtered = filterMyPosts(blockManager.filterBlocked(from: next))
+            myPostList.items.append(contentsOf: filtered)
             currentMyPage += 1
 
-            if modelManager.isModelInstalled {
-                enqueueImages(for: next)
-            }
+            enqueueImages(for: filtered)
         } catch {
             genLog = t(ja: "⚠️ 自分の投稿ページ読み込みに失敗", en: "⚠️ Failed to load my posts page")
         }
@@ -499,12 +493,11 @@ extension ContentView {
                 page: 0,
                 pageSize: pageSize
             )
-            likedPostList.items = blockManager.filterBlocked(from: first)
+            let filtered = blockManager.filterBlocked(from: first)
+            likedPostList.items = filtered
             currentLikedPage = 0
 
-            if modelManager.isModelInstalled {
-                enqueueImages(for: first)
-            }
+            enqueueImages(for: filtered)
         } catch {
             genLog = t(ja: "⚠️ いいね投稿の読み込みに失敗", en: "⚠️ Failed to load liked posts")
             likedPostList.items = blockManager.filterBlocked(from: postList.items.filter { $0.isLikedByCurrentUser == true })
@@ -524,12 +517,11 @@ extension ContentView {
                 pageSize: pageSize
             )
             guard !next.isEmpty else { return }
-            likedPostList.items.append(contentsOf: blockManager.filterBlocked(from: next))
+            let filtered = blockManager.filterBlocked(from: next)
+            likedPostList.items.append(contentsOf: filtered)
             currentLikedPage += 1
 
-            if modelManager.isModelInstalled {
-                enqueueImages(for: next)
-            }
+            enqueueImages(for: filtered)
         } catch {
             genLog = t(ja: "⚠️ いいね投稿ページ読み込みに失敗", en: "⚠️ Failed to load liked posts page")
         }
@@ -537,17 +529,25 @@ extension ContentView {
 
     @MainActor
     func enqueueImages(for posts: [Post]) {
+        let canGenerate = modelManager.isModelInstalled
         for post in posts {
             if let prompt = post.semanticPrompt,
                let cached = ImageCacheManager.shared.load(for: prompt) {
                 post.localImage = cached
             } else {
-                if !generationQueue.contains(where: { $0.id == post.id }) {
+                if post.previewImage == nil, let guide = post.lowResGuide {
+                    post.previewImage = guide.makePreviewImage(
+                        targetSize: CGSize(width: 32, height: 32),
+                        blurRadius: 3.0
+                    )
+                }
+                if canGenerate, !generationQueue.contains(where: { $0.id == post.id }) {
                     generationQueue.append(post)
                 }
             }
         }
 
+        guard canGenerate else { return }
         guard !isGenerating else { return }
         isGenerating = true
         Task { await processQueue() }
@@ -563,15 +563,42 @@ extension ContentView {
         while !generationQueue.isEmpty {
             let post = generationQueue.removeFirst()
             guard let prompt = post.semanticPrompt else { continue }
+            let enhancedPrompt = post.lowResGuide == nil
+                ? prompt
+                : "\(prompt), sharp focus, fine detail, highly detailed, crisp texture, high clarity"
+            let negativePrompt = post.lowResGuide == nil
+                ? ""
+                : "blurry, soft focus, low detail, lowres, out of focus"
 
             do {
-                let img = try await generator.generateImage(from: prompt)
+                let initImage = post.lowResGuide?.makeInitImage()
+                let img = try await generator.generateImage(
+                    from: enhancedPrompt,
+                    negativePrompt: negativePrompt,
+                    initImage: initImage
+                )
                 post.localImage = img
+                post.previewImage = nil
                 ImageCacheManager.shared.save(img, for: prompt)
             } catch {
                 #if DEBUG
                 print("⚠️ Image generation failed:", error)
                 #endif
+                do {
+                    let fallback = try await generator.generateImage(
+                        from: enhancedPrompt,
+                        negativePrompt: negativePrompt,
+                        initImage: nil
+                    )
+                    post.localImage = fallback
+                    post.previewImage = nil
+                    ImageCacheManager.shared.save(fallback, for: prompt)
+                } catch {
+                    #if DEBUG
+                    print("⚠️ Fallback generation failed:", error)
+                    #endif
+                    post.previewImage = nil
+                }
             }
 
             try? await Task.sleep(nanoseconds: 400_000_000)
@@ -601,6 +628,18 @@ extension ContentView {
                 genLog = t(ja: pair.ja, en: pair.en)
                 break
             }
+        }
+    }
+
+    private func filterMyPosts(_ posts: [Post]) -> [Post] {
+        posts.filter { post in
+            if post.hasImage {
+                let promptEmpty = (post.semanticPrompt?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+                if post.status != .completed && promptEmpty {
+                    return false
+                }
+            }
+            return true
         }
     }
 }

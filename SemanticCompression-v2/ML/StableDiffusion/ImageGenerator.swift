@@ -23,7 +23,7 @@ actor ImageGenerator {
         let pipe = try StableDiffusionPipeline(
             resourcesAt: modelsDirectory,
             controlNet: [],
-            reduceMemory: true   // メモリ削減モード
+            reduceMemory: false   // メモリ削減モード
         )
 
         try pipe.loadResources()
@@ -38,8 +38,12 @@ actor ImageGenerator {
 
     func generateImage(
         from prompt: String,
-        steps: Int = 15,
-        guidance: Float = 7.5
+        negativePrompt: String = "",
+        initImage: UIImage? = nil,
+        strength: Float = 0.6,
+        steps: Int = 25,
+        guidance: Float = 8.5,
+        seed: UInt32? = nil
     ) async throws -> UIImage {
 
         guard let pipeline = self.pipeline else {
@@ -51,9 +55,26 @@ actor ImageGenerator {
         }
 
         var config = StableDiffusionPipeline.Configuration(prompt: prompt)
+        config.negativePrompt = negativePrompt
         config.stepCount = steps
         config.guidanceScale = guidance
-        config.seed = UInt32.random(in: 0...UInt32.max)
+        config.seed = seed ?? UInt32.random(in: 0...UInt32.max)
+        if let initImage, let cg = initImage.cgImage {
+            let w = cg.width
+            let h = cg.height
+            let isValidSize = (w % 64 == 0) && (h % 64 == 0)
+            if isValidSize {
+                config.startingImage = cg
+                config.strength = max(0.0, min(1.0, strength))
+                #if DEBUG
+                print("🖼️ initImage size:", w, "x", h, "strength:", config.strength)
+                #endif
+            } else {
+                #if DEBUG
+                print("⚠️ initImage size not supported:", w, "x", h)
+                #endif
+            }
+        }
 
         #if DEBUG
         print("🎨 Generating image with prompt:", prompt)

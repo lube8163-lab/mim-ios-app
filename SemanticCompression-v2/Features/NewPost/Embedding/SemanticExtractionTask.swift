@@ -11,6 +11,13 @@ actor SemanticExtractionTask {
     static let shared = SemanticExtractionTask()
     init() {}
 
+    private static let bannedTokens: Set<String> = [
+        "seductive", "intimate", "intimacy", "lover", "lust",
+        "nude", "naked", "porn", "porno", "sex", "sexual", "erotic", "nsfw",
+        "breast", "breasts", "nipple", "nipples", "genital", "genitals",
+        "motherfucker", "motherfuckers"
+    ]
+
     // MARK: - Entry point
 
     func process(post: Post, taggers: TaggerHolder) {
@@ -33,12 +40,13 @@ actor SemanticExtractionTask {
                     from: image,
                     tagger: taggers.objectTagger
                 )
+                let safeRegionTags = Self.sanitizeRegionTags(regionTags)
 
                 // 2️⃣ caption（人向け：regionTagsから）
                 let caption: String
                 do {
                     caption = try await VisionLanguageCaptioner.shared
-                        .generateCaption(from: regionTags)
+                        .generateCaption(from: safeRegionTags)
                 } catch {
                     #if DEBUG
                     print("⚠️ VisionLanguageCaptioner failed:", error)
@@ -60,7 +68,7 @@ actor SemanticExtractionTask {
 */
                 
                 // 3️⃣ object / phrase tags（修飾用：複数）
-                let objectFlatTags = regionTags.flatMap { $0.tags }
+                let objectFlatTags = safeRegionTags.flatMap { $0.tags }
 
                 let cleanedObjects = objectFlatTags
                     .map { $0.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -84,8 +92,12 @@ actor SemanticExtractionTask {
 
                 let globalVec = try await SigLIP2Service.shared.embed(image: cgImage)
 
-                let styleTags = taggers.styleTagger.tags(from: globalVec, topK: 3)
-                let captionTags = taggers.captionTagger.tags(from: globalVec, topK: 1)
+                let styleTags = Self.sanitizeTags(
+                    taggers.styleTagger.tags(from: globalVec, topK: 3)
+                )
+                let captionTags = Self.sanitizeTags(
+                    taggers.captionTagger.tags(from: globalVec, topK: 1)
+                )
 
                 // 5️⃣ Final SD prompt 合成
 /*                let finalPrompt = (styleTags + [basePrompt] + captionTags)
@@ -97,7 +109,7 @@ actor SemanticExtractionTask {
 
                 // 6️⃣ Post 更新（UI反映）
                 await MainActor.run {
-                    post.regionTags = regionTags
+                    post.regionTags = safeRegionTags
                     post.caption = caption
                     post.semanticPrompt = finalPrompt
                     post.status = .completed
@@ -247,6 +259,31 @@ actor SemanticExtractionTask {
             return "indoor room, simple scene"
         }
         return "simple scene"
+    }
+
+    private static func sanitizeTags(_ tags: [String]) -> [String] {
+        tags.filter { isSafeTag($0) }
+    }
+
+    private static func sanitizeRegionTags(_ regionTags: [RegionTag]) -> [RegionTag] {
+        regionTags.compactMap { regionTag in
+            let safe = sanitizeTags(regionTag.tags)
+            if safe.isEmpty { return nil }
+            return RegionTag(region: regionTag.region, tags: safe)
+        }
+    }
+
+    private static func isSafeTag(_ tag: String) -> Bool {
+        let tokens = tag
+            .lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+        for token in tokens {
+            if bannedTokens.contains(token) {
+                return false
+            }
+        }
+        return true
     }
 
     // MARK: - Upload to server

@@ -28,11 +28,24 @@ enum UserService {
         request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 
         do {
-            _ = try await URLSession.shared.data(for: request)
+            let (data, _) = try await URLSession.shared.data(for: request)
+            if let response = try? JSONDecoder().decode(RegisterUserResponse.self, from: data),
+               !response.deleteToken.isEmpty {
+                var updated = UserManager.shared.currentUser
+                if updated.deleteToken != response.deleteToken {
+                    updated.deleteToken = response.deleteToken
+                    UserManager.shared.saveUser(updated)
+                }
+            }
         } catch {
             #if DEBUG
             print("❌ registerUser failed:", error)
             #endif
         }
     }
+}
+
+private struct RegisterUserResponse: Decodable {
+    let ok: Bool?
+    let deleteToken: String
 }

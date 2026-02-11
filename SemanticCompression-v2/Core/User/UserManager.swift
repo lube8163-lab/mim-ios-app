@@ -11,7 +11,7 @@ struct LocalUser: Codable {
     var displayName: String     // UserDefaults
     var avatarUrl: String       // UserDefaults
     var email: String?
-    let deleteToken: String     // ← 追加
+    var deleteToken: String     // ← 追加
 }
 
 final class UserManager: ObservableObject {
@@ -24,6 +24,7 @@ final class UserManager: ObservableObject {
     private let key_displayName = "user_displayName"
     private let key_avatarUrl = "user_avatarUrl"
     private let key_email = "user_email"
+    private let key_deleteToken = "user_delete_token"
 
     private init() {
         let id = KeychainUserID.shared.getUserID()
@@ -31,13 +32,14 @@ final class UserManager: ObservableObject {
         let avatar = defaults.string(forKey: key_avatarUrl)
             ?? "https://example.com/avatar/default.png"
         let email = defaults.string(forKey: key_email)
+        let deleteToken = defaults.string(forKey: key_deleteToken) ?? ""
 
         self.currentUser = LocalUser(
             id: id,
             displayName: name,
             avatarUrl: avatar,
             email: email,
-            deleteToken: ""
+            deleteToken: deleteToken
         )
     }
 
@@ -46,12 +48,14 @@ final class UserManager: ObservableObject {
         defaults.set(user.displayName, forKey: key_displayName)
         defaults.set(user.avatarUrl, forKey: key_avatarUrl)
         defaults.set(user.email, forKey: key_email)
+        defaults.set(user.deleteToken, forKey: key_deleteToken)
     }
     
     func resetUser() {
         defaults.removeObject(forKey: key_displayName)
         defaults.removeObject(forKey: key_avatarUrl)
         defaults.removeObject(forKey: key_email)
+        defaults.removeObject(forKey: key_deleteToken)
 
         // ← ここが今有効になる
         KeychainUserID.shared.deleteUserID()
@@ -65,5 +69,6 @@ final class UserManager: ObservableObject {
             email: nil,
             deleteToken: ""   // ← ここも空でOK
         )
+        BlockManager.shared.reloadForCurrentUser()
     }
 }
