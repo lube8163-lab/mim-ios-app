@@ -9,16 +9,15 @@
 import Foundation
 
 enum AvatarUploader {
-    static func uploadAvatar(for userId: String, data: Data) async throws -> String {
+    static func uploadAvatar(data: Data) async throws -> String {
 
         let base64 = data.base64EncodedString()
-        let body = ["userId": userId, "imageBase64": base64]
+        let body = ["imageBase64": base64]
 
         guard let url = URL(string: "https://semantic-feed.semantic-compression.workers.dev/upload-avatar")
         else { throw URLError(.badURL) }
 
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
+        var req = try await AuthManager.shared.authorizedRequest(url: url, method: "POST")
         req.addValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
 
@@ -30,4 +29,3 @@ enum AvatarUploader {
         return urlString
     }
 }
-

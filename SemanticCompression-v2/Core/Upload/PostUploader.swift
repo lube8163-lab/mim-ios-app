@@ -13,11 +13,6 @@ import Foundation
 struct PostUploadPayload: Codable {
     let id: String
 
-    // --- 投稿者情報（D1 users テーブルと一致） ---
-    let userId: String
-    let displayName: String
-    let avatarUrl: String
-
     // --- 投稿内容 ---
     let caption: String?
     let semanticPrompt: String?
@@ -39,18 +34,9 @@ final class PostUploader {
     private let endpoint = "https://semantic-feed.semantic-compression.workers.dev/post"
 
     func upload(post: Post) async throws {
-
-        // 🔹 ローカルユーザー（UserManager が保持）
-        let localUser = UserManager.shared.currentUser
-
         // 🔹 Worker のフィールドに完全対応した payload
         let payload = PostUploadPayload(
             id: post.id,
-
-            userId: localUser.id,
-            displayName: localUser.displayName,
-            avatarUrl: localUser.avatarUrl,
-
             caption: post.caption,
             semanticPrompt: post.semanticPrompt,
             regionTags: post.regionTags,
@@ -65,8 +51,7 @@ final class PostUploader {
             throw URLError(.badURL)
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        var request = try await AuthManager.shared.authorizedRequest(url: url, method: "POST")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // 🔹 JSON へエンコード

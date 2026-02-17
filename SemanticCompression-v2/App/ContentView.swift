@@ -31,6 +31,7 @@ struct ContentView: View {
     @StateObject private var myPostList = PostList()
     @StateObject private var likedPostList = PostList()
     @StateObject private var blockManager = BlockManager.shared
+    @EnvironmentObject private var authManager: AuthManager
     @EnvironmentObject var modelManager: ModelManager
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
@@ -60,6 +61,7 @@ struct ContentView: View {
     @State private var isGenerating = false
     @State private var showReportToast = false
     @State private var showBlockToast = false
+    @State private var showLoginSheet = false
 
     // MARK: - Body
 
@@ -118,13 +120,22 @@ struct ContentView: View {
             .tag(HomeTab.timeline)
 
             NavigationStack {
-                postsListContent(
-                    posts: blockManager.filterBlocked(from: myPostList.items),
-                    isLoading: isLoadingMyPosts,
-                    emptyText: t(ja: "自分の投稿はまだありません", en: "No posts yet"),
-                    onRefresh: loadMyPosts,
-                    onLoadNext: loadNextMyPage
-                )
+                Group {
+                    if authManager.isAuthenticated {
+                        postsListContent(
+                            posts: blockManager.filterBlocked(from: myPostList.items),
+                            isLoading: isLoadingMyPosts,
+                            emptyText: t(ja: "自分の投稿はまだありません", en: "No posts yet"),
+                            onRefresh: loadMyPosts,
+                            onLoadNext: loadNextMyPage
+                        )
+                    } else {
+                        loginRequiredView(
+                            title: t(ja: "投稿履歴を見るにはログイン", en: "Sign in to see your posts"),
+                            description: t(ja: "この端末で投稿した履歴や下書きを管理できます。", en: "Manage your post history on this device.")
+                        )
+                    }
+                }
                 .navigationTitle(t(ja: "自分の投稿", en: "My Posts"))
                 .navigationBarTitleDisplayMode(.inline)
             }
@@ -138,13 +149,22 @@ struct ContentView: View {
             }
 
             NavigationStack {
-                postsListContent(
-                    posts: blockManager.filterBlocked(from: likedPostList.items),
-                    isLoading: isLoadingLikedPosts,
-                    emptyText: t(ja: "いいねした投稿はまだありません", en: "No liked posts yet"),
-                    onRefresh: loadLikedPosts,
-                    onLoadNext: loadNextLikedPage
-                )
+                Group {
+                    if authManager.isAuthenticated {
+                        postsListContent(
+                            posts: blockManager.filterBlocked(from: likedPostList.items),
+                            isLoading: isLoadingLikedPosts,
+                            emptyText: t(ja: "いいねした投稿はまだありません", en: "No liked posts yet"),
+                            onRefresh: loadLikedPosts,
+                            onLoadNext: loadNextLikedPage
+                        )
+                    } else {
+                        loginRequiredView(
+                            title: t(ja: "いいね履歴を見るにはログイン", en: "Sign in to see liked posts"),
+                            description: t(ja: "気になった投稿を後から見返せます。", en: "Save and revisit posts you liked.")
+                        )
+                    }
+                }
                 .navigationTitle(t(ja: "いいね", en: "Liked"))
                 .navigationBarTitleDisplayMode(.inline)
             }
@@ -167,6 +187,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showNewPost) {
             NewPostView(posts: $postList.items)
+        }
+        .sheet(isPresented: $showLoginSheet) {
+            OTPLoginView(allowsSkip: true)
         }
         .sheet(isPresented: $showInstallModels) {
             InstallModelsView(modelManager: modelManager)
@@ -191,8 +214,10 @@ extension ContentView {
 
         // ユーザー登録
         let user = UserManager.shared.currentUser
-        await UserService.register(user)
-        await blockManager.refreshFromServerIfPossible()
+        if !user.id.isEmpty {
+            await UserService.register(user)
+            await blockManager.refreshFromServerIfPossible()
+        }
 
         // モデル未インストールなら即 ready
         guard modelManager.isModelInstalled else {
@@ -229,7 +254,6 @@ extension ContentView {
     @ViewBuilder
     private var feedBody: some View {
         VStack(spacing: 0) {
-
             if postList.items.isEmpty && isLoadingFeed {
                 ProgressView(t(ja: "フィードを取得中...", en: "Fetching feed..."))
                     .padding(.top, 40)
@@ -237,6 +261,11 @@ extension ContentView {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 16) {
+                        if !authManager.isAuthenticated {
+                            guestLoginBanner
+                                .padding(.horizontal, 12)
+                                .padding(.top, 8)
+                        }
                         ForEach(postList.items) { post in
                             PostCardView(
                                 post: post,
@@ -285,12 +314,33 @@ extension ContentView {
             Spacer()
             HStack {
                 Spacer()
-                Button(action: { showNewPost = true }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 56))
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, Color.accentColor)
+                Button(action: {
+                    if authManager.isAuthenticated {
+                        showNewPost = true
+                    } else {
+                        showLoginSheet = true
+                    }
+                }) {
+                    if authManager.isAuthenticated {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 56))
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, Color.accentColor)
+                            .shadow(radius: 3)
+                    } else {
+                        HStack(spacing: 8) {
+                            Image(systemName: "lock.fill")
+                            Text(t(ja: "ログインして投稿", en: "Sign in to post"))
+                                .fontWeight(.semibold)
+                        }
+                        .font(.footnote)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
                         .shadow(radius: 3)
+                    }
                 }
                 .padding(.trailing, 20)
                 .padding(.bottom, 24)
@@ -298,6 +348,7 @@ extension ContentView {
         }
     }
 
+    @ToolbarContentBuilder
     private var timelineLogo: some ToolbarContent {
         ToolbarItem(placement: .principal) {
             Image("AppLogo")
@@ -306,6 +357,32 @@ extension ContentView {
                 .frame(height: 22)
                 .accessibilityHidden(true)
         }
+    }
+
+    private var guestLoginBanner: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(t(ja: "ゲスト閲覧中", en: "Browsing as Guest"))
+                .font(.subheadline.weight(.bold))
+            Text(
+                t(
+                    ja: "投稿・いいね・ブロックはログイン後に利用できます。",
+                    en: "Posting, likes, and block controls are available after sign-in."
+                )
+            )
+            .font(.caption)
+            .foregroundColor(.secondary)
+            Button {
+                showLoginSheet = true
+            } label: {
+                Text(t(ja: "メールでログイン", en: "Sign in with Email"))
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(12)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     @ViewBuilder
@@ -347,6 +424,30 @@ extension ContentView {
                 await onRefresh()
             }
         }
+    }
+
+    @ViewBuilder
+    private func loginRequiredView(title: String, description: String) -> some View {
+        VStack(spacing: 14) {
+            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                .font(.system(size: 44))
+                .foregroundColor(.secondary)
+            Text(title)
+                .font(.headline)
+            Text(description)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+            Button {
+                showLoginSheet = true
+            } label: {
+                Text(t(ja: "ログインする", en: "Sign In"))
+                    .frame(maxWidth: 240)
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func removeBlockedUserFromLists(_ blockedUserId: String) {
@@ -434,12 +535,17 @@ extension ContentView {
 
     func loadMyPosts() async {
         guard !isLoadingMyPosts else { return }
+        let userId = UserManager.shared.currentUser.id
+        guard !userId.isEmpty else {
+            myPostList.items = []
+            hasLoadedMyPosts = true
+            return
+        }
         isLoadingMyPosts = true
         defer { isLoadingMyPosts = false }
         hasLoadedMyPosts = true
 
         do {
-            let userId = UserManager.shared.currentUser.id
             let first = try await FeedLoader.fetchMyPosts(
                 userId: userId,
                 page: 0,
@@ -459,11 +565,12 @@ extension ContentView {
 
     func loadNextMyPage() async {
         guard !isLoadingMyPosts else { return }
+        let userId = UserManager.shared.currentUser.id
+        guard !userId.isEmpty else { return }
         isLoadingMyPosts = true
         defer { isLoadingMyPosts = false }
 
         do {
-            let userId = UserManager.shared.currentUser.id
             let next = try await FeedLoader.fetchMyPosts(
                 userId: userId,
                 page: currentMyPage + 1,
@@ -482,12 +589,17 @@ extension ContentView {
 
     func loadLikedPosts() async {
         guard !isLoadingLikedPosts else { return }
+        let userId = UserManager.shared.currentUser.id
+        guard !userId.isEmpty else {
+            likedPostList.items = []
+            hasLoadedLikedPosts = true
+            return
+        }
         isLoadingLikedPosts = true
         defer { isLoadingLikedPosts = false }
         hasLoadedLikedPosts = true
 
         do {
-            let userId = UserManager.shared.currentUser.id
             let first = try await FeedLoader.fetchLikedPosts(
                 userId: userId,
                 page: 0,
@@ -506,11 +618,12 @@ extension ContentView {
 
     func loadNextLikedPage() async {
         guard !isLoadingLikedPosts else { return }
+        let userId = UserManager.shared.currentUser.id
+        guard !userId.isEmpty else { return }
         isLoadingLikedPosts = true
         defer { isLoadingLikedPosts = false }
 
         do {
-            let userId = UserManager.shared.currentUser.id
             let next = try await FeedLoader.fetchLikedPosts(
                 userId: userId,
                 page: currentLikedPage + 1,

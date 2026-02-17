@@ -19,9 +19,8 @@ final class BlockManager: ObservableObject {
     }
 
     func refreshFromServerIfPossible() async {
-        let currentUserId = UserManager.shared.currentUser.id
         do {
-            let ids = try await BlockService.fetchBlockedUsers(userId: currentUserId)
+            let ids = try await BlockService.fetchBlockedUsers()
             blockedUserIDs = Set(ids)
             saveToDefaults()
         } catch {
@@ -36,10 +35,7 @@ final class BlockManager: ObservableObject {
         blockedUserIDs.insert(blockedUserId)
         saveToDefaults()
         do {
-            try await BlockService.block(
-                blockerUserId: UserManager.shared.currentUser.id,
-                blockedUserId: blockedUserId
-            )
+            try await BlockService.block(blockedUserId: blockedUserId)
         } catch {
             #if DEBUG
             print("⚠️ blockUser failed:", error)
@@ -51,10 +47,7 @@ final class BlockManager: ObservableObject {
         blockedUserIDs.remove(blockedUserId)
         saveToDefaults()
         do {
-            try await BlockService.unblock(
-                blockerUserId: UserManager.shared.currentUser.id,
-                blockedUserId: blockedUserId
-            )
+            try await BlockService.unblock(blockedUserId: blockedUserId)
         } catch {
             #if DEBUG
             print("⚠️ unblockUser failed:", error)

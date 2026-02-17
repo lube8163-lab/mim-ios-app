@@ -4,14 +4,13 @@ enum BlockService {
 
     private static let base = "https://semantic-feed.semantic-compression.workers.dev"
 
-    static func fetchBlockedUsers(
-        userId: String
-    ) async throws -> [String] {
-        guard let url = URL(string: "\(base)/blockedUsers?userId=\(userId)") else {
+    static func fetchBlockedUsers() async throws -> [String] {
+        guard let url = URL(string: "\(base)/blockedUsers") else {
             throw URLError(.badURL)
         }
 
-        let (data, res) = try await URLSession.shared.data(from: url)
+        let req = try await AuthManager.shared.authorizedRequest(url: url)
+        let (data, res) = try await URLSession.shared.data(for: req)
         guard (res as? HTTPURLResponse)?.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
@@ -29,26 +28,22 @@ enum BlockService {
     }
 
     static func block(
-        blockerUserId: String,
         blockedUserId: String
     ) async throws {
         try await send(
             endpoint: "/blockUser",
             payload: [
-                "blockerUserId": blockerUserId,
                 "blockedUserId": blockedUserId,
             ]
         )
     }
 
     static func unblock(
-        blockerUserId: String,
         blockedUserId: String
     ) async throws {
         try await send(
             endpoint: "/unblockUser",
             payload: [
-                "blockerUserId": blockerUserId,
                 "blockedUserId": blockedUserId,
             ]
         )
@@ -81,8 +76,7 @@ enum BlockService {
             throw URLError(.badURL)
         }
 
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
+        var req = try await AuthManager.shared.authorizedRequest(url: url, method: "POST")
         req.addValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: payload)
 

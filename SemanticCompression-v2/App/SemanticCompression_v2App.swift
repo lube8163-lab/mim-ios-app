@@ -20,6 +20,7 @@ struct SemanticCompressionApp: App {
     private var acceptedTermsVersion = ""
 
     @StateObject private var taggerHolder = TaggerHolder()
+    @StateObject private var authManager = AuthManager.shared
 
     @StateObject private var modelManager =
         ModelManager()
@@ -51,8 +52,12 @@ struct SemanticCompressionApp: App {
                     }
                 }
             }
+            .task {
+                await authManager.restoreIfNeeded()
+            }
             .environmentObject(taggerHolder)
             .environmentObject(modelManager)
+            .environmentObject(authManager)
             .environment(\.locale, Locale(identifier: selectedLanguage))
         }
     }

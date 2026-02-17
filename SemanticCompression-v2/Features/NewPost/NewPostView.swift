@@ -18,7 +18,6 @@ struct NewPostView: View {
 
     @State private var isPosting = false
     @State private var errorMessage: String?
-    @State private var showEmailRequiredAlert = false
 
     private let uploader = PostUploader()
     private let prohibitedKeywords = [
@@ -73,17 +72,6 @@ struct NewPostView: View {
                     )
                 }
             }
-            .alert(
-                t(ja: "メール登録が必要です", en: "Email registration required"),
-                isPresented: $showEmailRequiredAlert
-            ) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(t(
-                    ja: "投稿するにはプロフィール画面でメールアドレスを登録してください。",
-                    en: "Please register an email address in your profile before posting."
-                ))
-            }
         }
     }
 }
@@ -129,14 +117,6 @@ extension NewPostView {
                     .font(.caption)
             }
 
-            if !isEmailRegistered {
-                Text(t(
-                    ja: "投稿にはメールアドレス登録が必要です（プロフィール画面で設定）。",
-                    en: "Email registration is required to post (set it in Profile)."
-                ))
-                .foregroundColor(.orange)
-                .font(.caption)
-            }
         }
         .padding(12)
         .background(.ultraThinMaterial)
@@ -225,13 +205,6 @@ extension NewPostView {
         let id = UUID().uuidString
         let localUser = UserManager.shared.currentUser
 
-        guard isEmailRegistered else {
-            await MainActor.run {
-                showEmailRequiredAlert = true
-            }
-            return
-        }
-
         let trimmed = userText.trimmingCharacters(in: .whitespacesAndNewlines)
         if containsProhibitedText(trimmed) {
             await MainActor.run {
@@ -304,12 +277,4 @@ extension NewPostView {
         return prohibitedKeywords.contains { normalized.contains($0.lowercased()) }
     }
 
-    private var isEmailRegistered: Bool {
-        guard let email = UserManager.shared.currentUser.email?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-              !email.isEmpty else {
-            return false
-        }
-        return email.contains("@") && email.contains(".")
-    }
 }

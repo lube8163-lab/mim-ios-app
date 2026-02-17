@@ -11,23 +11,21 @@ import Foundation
 enum UserService {
 
     static func register(_ user: LocalUser) async {
+        guard !user.id.isEmpty else { return }
         guard let url = URL(
             string: "https://semantic-feed.semantic-compression.workers.dev/registerUser"
         ) else { return }
 
         let payload: [String: Any] = [
-            "id": user.id,
             "displayName": user.displayName,
-            "avatarUrl": user.avatarUrl,
-            "email": user.email ?? ""
+            "avatarUrl": user.avatarUrl
         ]
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
-
         do {
+            var request = try await AuthManager.shared.authorizedRequest(url: url, method: "POST")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
             let (data, _) = try await URLSession.shared.data(for: request)
             if let response = try? JSONDecoder().decode(RegisterUserResponse.self, from: data),
                !response.deleteToken.isEmpty {

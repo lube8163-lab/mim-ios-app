@@ -12,9 +12,8 @@ final class LikeManager {
     static let shared = LikeManager()
     private init() {}
 
-    let userId: String = KeychainUserID.shared.getUserID()
-
     func toggleLike(for post: Post) {
+        guard !UserManager.shared.currentUser.id.isEmpty else { return }
         if (post.isLikedByCurrentUser ?? false) {
             unlike(post)
         } else {
@@ -46,19 +45,16 @@ final class LikeManager {
 
     private func sendToServer(endpoint: String, postId: String) async {
         guard let url = URL(string: "https://semantic-feed.semantic-compression.workers.dev/\(endpoint)") else { return }
-
-        let body = ["postId": postId, "userId": userId]
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONEncoder().encode(body)
-
-        #if DEBUG
-        print("📤 Sending to server:", url.absoluteString, body)
-        #endif
-        
         do {
+            let body = ["postId": postId]
+            var request = try await AuthManager.shared.authorizedRequest(url: url, method: "POST")
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONEncoder().encode(body)
+
+            #if DEBUG
+            print("📤 Sending to server:", url.absoluteString, body)
+            #endif
+
             let (_, response) = try await URLSession.shared.data(for: request)
             #if DEBUG
             print("✅ Server response:", response)
@@ -70,4 +66,3 @@ final class LikeManager {
         }
     }
 }
-

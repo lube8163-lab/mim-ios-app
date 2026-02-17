@@ -18,7 +18,7 @@ struct FeedLoader {
             queryItems: [
                 URLQueryItem(name: "page", value: String(page)),
                 URLQueryItem(name: "size", value: String(pageSize)),
-                URLQueryItem(name: "userId", value: LikeManager.shared.userId),
+                URLQueryItem(name: "userId", value: UserManager.shared.currentUser.id),
             ]
         )
     }
@@ -34,7 +34,7 @@ struct FeedLoader {
                 URLQueryItem(name: "userId", value: userId),
                 URLQueryItem(name: "page", value: String(page)),
                 URLQueryItem(name: "size", value: String(pageSize)),
-                URLQueryItem(name: "viewerId", value: LikeManager.shared.userId),
+                URLQueryItem(name: "viewerId", value: UserManager.shared.currentUser.id),
             ]
         )
     }
@@ -50,7 +50,7 @@ struct FeedLoader {
                 URLQueryItem(name: "userId", value: userId),
                 URLQueryItem(name: "page", value: String(page)),
                 URLQueryItem(name: "size", value: String(pageSize)),
-                URLQueryItem(name: "viewerId", value: LikeManager.shared.userId),
+                URLQueryItem(name: "viewerId", value: UserManager.shared.currentUser.id),
             ]
         )
     }
@@ -71,7 +71,11 @@ struct FeedLoader {
         print("📡 Fetching feed from:", url.absoluteString)
         #endif
 
-        let (data, response) = try await URLSession.shared.data(from: url)
+        var request = URLRequest(url: url)
+        if let token = try? await AuthManager.shared.validAccessToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
 
         if let http = response as? HTTPURLResponse,
             !(200...299).contains(http.statusCode) {

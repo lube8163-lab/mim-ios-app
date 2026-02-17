@@ -5,6 +5,7 @@ struct PostCardView: View {
 
     @ObservedObject var post: Post
     let isModelInstalled: Bool
+    @EnvironmentObject private var authManager: AuthManager
     var onUserBlocked: ((String) -> Void)? = nil
     var onPostReported: ((String) -> Void)? = nil
     @AppStorage(AppPreferences.selectedLanguageKey)
@@ -18,6 +19,7 @@ struct PostCardView: View {
     @State private var showReportThanks = false
     @State private var showReportError = false
     @State private var showBlockConfirm = false
+    @State private var showLoginSheet = false
 
     var body: some View {
         content
@@ -27,6 +29,9 @@ struct PostCardView: View {
             }
             .sheet(isPresented: $showShare) {
                 shareSheet
+            }
+            .sheet(isPresented: $showLoginSheet) {
+                OTPLoginView(allowsSkip: true)
             }
             .confirmationDialog(
                 t(ja: "この投稿を通報しますか？", en: "Report this post?"),
@@ -109,15 +114,17 @@ struct PostCardView: View {
 
     // MARK: - Report submit (temporary)
     private func submitReport(_ reason: ReportReason) {
-        let userId = UserManager.shared.currentUser.id   // ← ここ重要
+        guard authManager.isAuthenticated else {
+            showLoginSheet = true
+            return
+        }
         let reportedPostId = post.id
 
         Task {
             do {
                 try await ReportService.submit(
                     postId: reportedPostId,
-                    reason: reason.payload(languageCode: selectedLanguage),
-                    reporterUserId: userId
+                    reason: reason.payload(languageCode: selectedLanguage)
                 )
             } catch {
                 showReportError = true
@@ -186,6 +193,10 @@ extension PostCardView {
     }
 
     private func blockAuthorIfNeeded() {
+        guard authManager.isAuthenticated else {
+            showLoginSheet = true
+            return
+        }
         guard let blockedUserId = post.userId else { return }
         Task { @MainActor in
             await BlockManager.shared.block(blockedUserId)

@@ -5,12 +5,12 @@ struct UserProfileView: View {
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var userManager = UserManager.shared
+    @EnvironmentObject private var authManager: AuthManager
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
 
     // Profile edit
     @State private var newName = ""
-    @State private var emailInput = ""
     @State private var showCopied = false
     @State private var isSavingChanges = false
 
@@ -18,6 +18,7 @@ struct UserProfileView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var accountAlertMessage = ""
     @State private var showAccountAlert = false
+    @State private var showLoginSheet = false
 
     // Account delete
     @State private var showDeleteConfirm = false
@@ -75,7 +76,9 @@ struct UserProfileView: View {
         }
         .onAppear {
             newName = userManager.currentUser.displayName
-            emailInput = userManager.currentUser.email ?? ""
+        }
+        .sheet(isPresented: $showLoginSheet) {
+            OTPLoginView(allowsSkip: true)
         }
     }
 
@@ -83,6 +86,24 @@ struct UserProfileView: View {
 
     private var userInfoSection: some View {
         Section(header: Text(t(ja: "ユーザー", en: "User"))) {
+            if !authManager.isAuthenticated {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(t(ja: "現在はゲストモードです", en: "You are in guest mode"))
+                        .font(.subheadline.weight(.semibold))
+                    Text(t(ja: "ログインすると投稿、いいね、ブロック機能が有効になります。", en: "Sign in to enable posting, likes, and block features."))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Button {
+                        showLoginSheet = true
+                    } label: {
+                        Text(t(ja: "メールでログイン", en: "Sign in with Email"))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.vertical, 4)
+            }
+
             HStack(spacing: 16) {
 
                 AsyncImage(
@@ -101,17 +122,18 @@ struct UserProfileView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(userManager.currentUser.displayName)
                         .font(.headline)
-
-                    Text(userManager.currentUser.id)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .contextMenu {
-                            Button(t(ja: "ユーザーIDをコピー", en: "Copy User ID")) {
-                                UIPasteboard.general.string =
-                                    userManager.currentUser.id
-                                showCopied = true
+                    if !userManager.currentUser.id.isEmpty {
+                        Text(userManager.currentUser.id)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .contextMenu {
+                                Button(t(ja: "ユーザーIDをコピー", en: "Copy User ID")) {
+                                    UIPasteboard.general.string =
+                                        userManager.currentUser.id
+                                    showCopied = true
+                                }
                             }
-                        }
+                    }
                     if let email = userManager.currentUser.email, !email.isEmpty {
                         Text(email)
                             .font(.caption)
@@ -138,10 +160,6 @@ struct UserProfileView: View {
             }
 
             TextField(t(ja: "表示名", en: "Display Name"), text: $newName)
-            TextField(t(ja: "メールアドレス", en: "Email Address"), text: $emailInput)
-                .textInputAutocapitalization(.never)
-                .keyboardType(.emailAddress)
-                .autocorrectionDisabled()
 
             Button {
                 Task { await saveChanges() }
@@ -152,12 +170,16 @@ struct UserProfileView: View {
                     Text(t(ja: "変更を保存", en: "Save Changes"))
                 }
             }
-            .disabled(isSavingChanges || !hasPendingChanges)
+            .disabled(isSavingChanges || !hasPendingChanges || !authManager.isAuthenticated)
             .frame(maxWidth: .infinity, alignment: .center)
         } header: {
             Text(t(ja: "アカウント", en: "Account"))
         } footer: {
-            Text(t(ja: "現在はメールアドレスの登録のみ対応しています。復旧機能は今後対応予定です。", en: "Currently only email registration is available. Account recovery will be added in a future update."))
+            Text(
+                authManager.isAuthenticated
+                ? t(ja: "メール認証済みアカウントです。", en: "Signed in with email OTP.")
+                : t(ja: "編集や投稿にはログインが必要です。", en: "Sign in is required for editing and posting.")
+            )
         }
     }
 
@@ -186,10 +208,24 @@ struct UserProfileView: View {
 
     private var dangerZoneSection: some View {
         Section {
-            Button(role: .destructive) {
-                showDeleteConfirm = true
-            } label: {
-                Text(t(ja: "アカウントを削除", en: "Delete Account"))
+            if authManager.isAuthenticated {
+                Button(role: .destructive) {
+                    Task { await authManager.logout() }
+                } label: {
+                    Text(t(ja: "ログアウト", en: "Log Out"))
+                }
+
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Text(t(ja: "アカウントを削除", en: "Delete Account"))
+                }
+            } else {
+                Button {
+                    showLoginSheet = true
+                } label: {
+                    Text(t(ja: "メールでログイン", en: "Sign in with Email"))
+                }
             }
         }
     }
@@ -212,10 +248,7 @@ struct UserProfileView: View {
         guard let jpeg = resized.jpegData(compressionQuality: 0.75)
         else { return nil }
 
-        let rawUrl = try await AvatarUploader.uploadAvatar(
-            for: userManager.currentUser.id,
-            data: jpeg
-        )
+        let rawUrl = try await AvatarUploader.uploadAvatar(data: jpeg)
 
         // cache bust
         let bustedUrl =
@@ -230,20 +263,12 @@ struct UserProfileView: View {
 
     private func saveChanges() async {
         let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let email = emailInput.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let current = userManager.currentUser
 
-        if !email.isEmpty && (!email.contains("@") || !email.contains(".")) {
-            accountAlertMessage = t(ja: "メールアドレスの形式が正しくありません。", en: "Email format is invalid.")
-            showAccountAlert = true
-            return
-        }
-
         let nameChanged = !trimmedName.isEmpty && trimmedName != current.displayName
-        let emailChanged = email != (current.email ?? "").lowercased()
         let avatarChanged = selectedPhoto != nil
 
-        guard nameChanged || emailChanged || avatarChanged else {
+        guard nameChanged || avatarChanged else {
             accountAlertMessage = t(ja: "変更はありません。", en: "No changes to save.")
             showAccountAlert = true
             return
@@ -262,14 +287,6 @@ struct UserProfileView: View {
                 updated.avatarUrl = newAvatarURL
             }
 
-            if !email.isEmpty && email != (updated.email ?? "").lowercased() {
-                try await EmailAuthService.registerEmail(
-                    userId: updated.id,
-                    email: email
-                )
-                updated.email = email
-            }
-
             userManager.saveUser(updated)
             await UserService.register(updated)
             selectedPhoto = nil
@@ -277,31 +294,18 @@ struct UserProfileView: View {
             showAccountAlert = true
             if showsCloseButton { dismiss() }
         } catch {
-            if let authError = error as? EmailAuthError {
-                switch authError {
-                case .invalidEmail:
-                    accountAlertMessage = t(ja: "メールアドレスの形式が正しくありません。", en: "Email format is invalid.")
-                case .alreadyUsed:
-                    accountAlertMessage = t(ja: "このメールアドレスは既に使用されています。", en: "This email address is already in use.")
-                case .server:
-                    accountAlertMessage = t(ja: "保存に失敗しました。時間をおいて再度お試しください。", en: "Save failed. Please try again later.")
-                }
-            } else {
-                accountAlertMessage = t(ja: "保存に失敗しました。時間をおいて再度お試しください。", en: "Save failed. Please try again later.")
-            }
+            accountAlertMessage = t(ja: "保存に失敗しました。時間をおいて再度お試しください。", en: "Save failed. Please try again later.")
             showAccountAlert = true
         }
     }
 
     private var hasPendingChanges: Bool {
         let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let email = emailInput.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let current = userManager.currentUser
 
         let nameChanged = !trimmedName.isEmpty && trimmedName != current.displayName
-        let emailChanged = email != (current.email ?? "").lowercased()
         let avatarChanged = selectedPhoto != nil
-        return nameChanged || emailChanged || avatarChanged
+        return nameChanged || avatarChanged
     }
 
     // MARK: - Delete Account
@@ -310,14 +314,9 @@ struct UserProfileView: View {
         isDeleting = true
         defer { isDeleting = false }
 
-        let user = userManager.currentUser
-
         do {
-            try await AccountService.deleteAccount(
-                userId: user.id,
-                deleteToken: user.deleteToken
-            )
-            userManager.resetUser()
+            try await AccountService.deleteAccount()
+            authManager.signOutLocal()
             dismiss()
             #if DEBUG
             print("✅ Account deleted")

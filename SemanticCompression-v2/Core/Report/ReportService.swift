@@ -12,8 +12,7 @@ enum ReportService {
 
     static func submit(
         postId: String,
-        reason: String,
-        reporterUserId: String
+        reason: String
     ) async throws {
 
         guard let url = URL(
@@ -22,12 +21,10 @@ enum ReportService {
 
         let payload: [String: Any] = [
             "postId": postId,
-            "reason": reason,
-            "reporterUserId": reporterUserId
+            "reason": reason
         ]
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        var request = try await AuthManager.shared.authorizedRequest(url: url, method: "POST")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 
