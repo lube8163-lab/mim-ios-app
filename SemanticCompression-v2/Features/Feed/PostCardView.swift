@@ -227,14 +227,17 @@ extension PostCardView {
     @ViewBuilder
     private var imageSection: some View {
         if let img = post.localImage {
-            Image(uiImage: img)
-                .resizable()
-                .scaledToFit()
-                .cornerRadius(12)
-                .transition(.opacity)
+            ZStack(alignment: .topLeading) {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFit()
+                    .cornerRadius(12)
+                    .transition(.opacity)
+                modeBadge
+            }
         }
         else if let preview = post.previewImage {
-            ZStack {
+            ZStack(alignment: .topLeading) {
                 Image(uiImage: preview)
                     .resizable()
                     .scaledToFit()
@@ -248,32 +251,59 @@ extension PostCardView {
                             .foregroundColor(.secondary)
                     }
                 }
+                modeBadge
             }
         }
         else if !isModelInstalled {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.1))
-                .frame(maxHeight: 260)
-                .overlay(
-                    Text(t(ja: "画像モデル未インストール", en: "Image model not installed"))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                )
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.1))
+                    .frame(maxHeight: 260)
+                    .overlay(
+                        Text(t(ja: "画像モデル未インストール", en: "Image model not installed"))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    )
+                if post.hasImage {
+                    modeBadge
+                }
+            }
         }
-        else if post.semanticPrompt != nil {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.1))
-                .frame(maxHeight: 260)
-                .overlay(
-                    VStack(spacing: 12) {
-                        RainbowAILoader()
-                            .shadow(color: .purple.opacity(0.6), radius: 8)
-                        //Text("画像生成中…")
-                            //.font(.caption)
-                            //.foregroundColor(.secondary)
-                    }
-                )
+        else if post.effectivePrompt != nil {
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.1))
+                    .frame(maxHeight: 260)
+                    .overlay(
+                        VStack(spacing: 12) {
+                            RainbowAILoader()
+                                .shadow(color: .purple.opacity(0.6), radius: 8)
+                            //Text("画像生成中…")
+                                //.font(.caption)
+                                //.foregroundColor(.secondary)
+                        }
+                    )
+                if post.hasImage {
+                    modeBadge
+                }
+            }
         }
+    }
+
+    private var modeBadge: some View {
+        HStack(spacing: 4) {
+            Image(systemName: post.privacyMode.iconName)
+                .font(.caption2)
+            Text(post.privacyMode.titleEN)
+                .font(.caption2)
+                .fontWeight(.semibold)
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.black.opacity(0.58))
+        .clipShape(Capsule())
+        .padding(8)
     }
 }
 

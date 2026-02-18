@@ -83,7 +83,7 @@ struct LowResGuide: Codable {
     }
 }
 
-private extension UIImage {
+extension UIImage {
     func resized(to size: CGSize) -> UIImage {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1.0

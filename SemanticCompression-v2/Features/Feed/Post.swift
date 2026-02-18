@@ -33,6 +33,9 @@ final class Post: Identifiable, ObservableObject, Codable {
     @Published var semanticPrompt: String?
     @Published var regionTags: [RegionTag]?
     let lowResGuide: LowResGuide?
+    let mode: Int
+    let payload: PostPayload?
+    @Published var tags: [String]
 
     // User content
     let userText: String?
@@ -55,6 +58,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         case userText, hasImage, createdAt
         case status, likeCount, isLikedByCurrentUser
         case lowResGuide
+        case mode, payload, tags
     }
 
     // MARK: - Decode
@@ -85,7 +89,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         if let int = try? c.decode(Int.self, forKey: .hasImage) {
             hasImage = (int != 0)
         } else {
-            hasImage = try c.decode(Bool.self, forKey: .hasImage)
+            hasImage = (try? c.decode(Bool.self, forKey: .hasImage)) ?? false
         }
 
         if let ts = try? c.decode(Double.self, forKey: .createdAt) {
@@ -94,13 +98,15 @@ final class Post: Identifiable, ObservableObject, Codable {
                 : Date(timeIntervalSince1970: ts)
         } else if let str = try? c.decode(String.self, forKey: .createdAt) {
             let iso = ISO8601DateFormatter()
-            createdAt = iso.date(from: str)
-                ?? Date()
+            createdAt = iso.date(from: str) ?? Date()
         } else {
             createdAt = Date()
         }
 
         status = try c.decodeIfPresent(PostStatus.self, forKey: .status) ?? .normal
+        mode = (try? c.decode(Int.self, forKey: .mode)) ?? (lowResGuide == nil ? 1 : 22)
+        payload = (try? c.decode(PostPayload.self, forKey: .payload)) ?? lowResGuide.flatMap { PostPayload.fromLegacy($0) }
+        tags = (try? c.decode([String].self, forKey: .tags)) ?? []
 
         localImage = nil
         previewImage = nil
@@ -116,6 +122,9 @@ final class Post: Identifiable, ObservableObject, Codable {
         semanticPrompt: String? = nil,
         regionTags: [RegionTag]? = nil,
         lowResGuide: LowResGuide? = nil,
+        mode: Int = PrivacyMode.l2.rawValue,
+        payload: PostPayload? = nil,
+        tags: [String] = [],
         userText: String?,
         hasImage: Bool,
         status: PostStatus = .pending,
@@ -130,6 +139,9 @@ final class Post: Identifiable, ObservableObject, Codable {
         self.semanticPrompt = semanticPrompt
         self.regionTags = regionTags
         self.lowResGuide = lowResGuide
+        self.mode = mode
+        self.payload = payload
+        self.tags = tags
         self.userText = userText
         self.hasImage = hasImage
         self.status = status
@@ -159,5 +171,8 @@ extension Post {
         try c.encode(status, forKey: .status)
         try c.encode(likeCount, forKey: .likeCount)
         try c.encode(isLikedByCurrentUser, forKey: .isLikedByCurrentUser)
+        try c.encode(mode, forKey: .mode)
+        try c.encode(payload, forKey: .payload)
+        try c.encode(tags, forKey: .tags)
     }
 }

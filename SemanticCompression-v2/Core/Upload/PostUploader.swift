@@ -14,10 +14,9 @@ struct PostUploadPayload: Codable {
     let id: String
 
     // --- 投稿内容 ---
-    let caption: String?
-    let semanticPrompt: String?
-    let regionTags: [RegionTag]?
-    let lowResGuide: LowResGuide?
+    let mode: Int
+    let payload: PostPayload?
+    let tags: [String]
     let userText: String?
     let hasImage: Bool
 
@@ -37,10 +36,9 @@ final class PostUploader {
         // 🔹 Worker のフィールドに完全対応した payload
         let payload = PostUploadPayload(
             id: post.id,
-            caption: post.caption,
-            semanticPrompt: post.semanticPrompt,
-            regionTags: post.regionTags,
-            lowResGuide: post.lowResGuide,
+            mode: post.mode,
+            payload: post.payload,
+            tags: post.tags,
             userText: post.userText,
             hasImage: post.hasImage,
 

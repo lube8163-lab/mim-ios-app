@@ -112,6 +112,7 @@ actor SemanticExtractionTask {
                     post.regionTags = safeRegionTags
                     post.caption = caption
                     post.semanticPrompt = finalPrompt
+                    post.tags = objectTop
                     post.status = .completed
                 }
 
@@ -297,10 +298,11 @@ actor SemanticExtractionTask {
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let body: [String: Any?] = [
+        let body: [String: Any] = [
             "id": post.id,
-            "caption": post.caption,
-            "semanticPrompt": post.semanticPrompt
+            "caption": post.caption ?? NSNull(),
+            "semanticPrompt": post.semanticPrompt ?? NSNull(),
+            "tags": post.tags
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)

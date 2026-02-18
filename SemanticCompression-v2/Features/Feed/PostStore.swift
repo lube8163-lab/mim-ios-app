@@ -31,6 +31,7 @@ final class PostStore {
         target.caption = incoming.caption
         target.semanticPrompt = incoming.semanticPrompt
         target.regionTags = incoming.regionTags
+        target.tags = incoming.tags
         //target.userText = incoming.userText
         target.hasImage = incoming.hasImage
         target.likeCount = incoming.likeCount

@@ -20,6 +20,12 @@ struct SettingsView: View {
                 } label: {
                     Text(t(ja: "言語設定", en: "Language"))
                 }
+
+                NavigationLink {
+                    PrivacyModeSettingsView()
+                } label: {
+                    Text(t(ja: "投稿モード", en: "Post Mode"))
+                }
             }
 
             Section(t(ja: "このアプリについて", en: "About")) {
