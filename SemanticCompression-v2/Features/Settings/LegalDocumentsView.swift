@@ -28,7 +28,7 @@ struct LegalDocumentsView: View {
             }
 
             Section(t(ja: "連絡先", en: "Contact")) {
-                Link("lube8163@icloud.com", destination: URL(string: "mailto:lube8163@icloud.com")!)
+                Link("support@mim-protocol.com", destination: URL(string: "mailto:support@mim-protocol.com")!)
                 Text(t(ja: "不適切なコンテンツや利用者の報告は上記メールへご連絡ください。", en: "Please use the email above to report inappropriate content or users."))
                     .font(.caption)
                     .foregroundColor(.secondary)

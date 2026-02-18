@@ -644,15 +644,13 @@ extension ContentView {
     func enqueueImages(for posts: [Post]) {
         let canGenerate = modelManager.isModelInstalled
         for post in posts {
-            if let prompt = post.semanticPrompt,
-               let cached = ImageCacheManager.shared.load(for: prompt) {
+            let cacheKey = post.effectivePrompt.map { "\(post.mode)::\($0)" }
+            if let cacheKey,
+               let cached = ImageCacheManager.shared.load(for: cacheKey) {
                 post.localImage = cached
             } else {
-                if post.previewImage == nil, let guide = post.lowResGuide {
-                    post.previewImage = guide.makePreviewImage(
-                        targetSize: CGSize(width: 32, height: 32),
-                        blurRadius: 3.0
-                    )
+                if post.previewImage == nil {
+                    post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
                 }
                 if canGenerate, !generationQueue.contains(where: { $0.id == post.id }) {
                     generationQueue.append(post)
@@ -675,24 +673,28 @@ extension ContentView {
 
         while !generationQueue.isEmpty {
             let post = generationQueue.removeFirst()
-            guard let prompt = post.semanticPrompt else { continue }
-            let enhancedPrompt = post.lowResGuide == nil
-                ? prompt
-                : "\(prompt), sharp focus, fine detail, highly detailed, crisp texture, high clarity"
-            let negativePrompt = post.lowResGuide == nil
-                ? ""
-                : "blurry, soft focus, low detail, lowres, out of focus"
+            guard let prompt = post.effectivePrompt else { continue }
+            let initImage = post.makeInitImage()
+            let hasInit = (initImage != nil)
+            let enhancedPrompt = hasInit
+                ? "\(prompt), sharp focus, fine detail, highly detailed, crisp texture, high clarity"
+                : prompt
+            let negativePrompt = hasInit
+                ? "blurry, soft focus, low detail, lowres, out of focus"
+                : ""
+            let profile = SDModeProfile.forMode(post.privacyMode)
 
             do {
-                let initImage = post.lowResGuide?.makeInitImage()
                 let img = try await generator.generateImage(
                     from: enhancedPrompt,
                     negativePrompt: negativePrompt,
-                    initImage: initImage
+                    initImage: initImage,
+                    strength: profile.denoiseStrength,
+                    guidance: profile.guidanceScale
                 )
                 post.localImage = img
                 post.previewImage = nil
-                ImageCacheManager.shared.save(img, for: prompt)
+                ImageCacheManager.shared.save(img, for: "\(post.mode)::\(prompt)")
             } catch {
                 #if DEBUG
                 print("⚠️ Image generation failed:", error)
@@ -701,11 +703,12 @@ extension ContentView {
                     let fallback = try await generator.generateImage(
                         from: enhancedPrompt,
                         negativePrompt: negativePrompt,
-                        initImage: nil
+                        initImage: nil,
+                        guidance: profile.guidanceScale
                     )
                     post.localImage = fallback
                     post.previewImage = nil
-                    ImageCacheManager.shared.save(fallback, for: prompt)
+                    ImageCacheManager.shared.save(fallback, for: "\(post.mode)::\(prompt)")
                 } catch {
                     #if DEBUG
                     print("⚠️ Fallback generation failed:", error)
@@ -747,7 +750,7 @@ extension ContentView {
     private func filterMyPosts(_ posts: [Post]) -> [Post] {
         posts.filter { post in
             if post.hasImage {
-                let promptEmpty = (post.semanticPrompt?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+                let promptEmpty = (post.effectivePrompt?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
                 if post.status != .completed && promptEmpty {
                     return false
                 }

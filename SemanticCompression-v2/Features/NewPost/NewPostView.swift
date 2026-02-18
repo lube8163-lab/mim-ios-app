@@ -7,6 +7,8 @@ struct NewPostView: View {
     @Binding var posts: [Post]
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
+    @AppStorage(AppPreferences.selectedPrivacyModeKey)
+    private var selectedPrivacyModeRaw = PrivacyMode.l2.storageValue
 
     @EnvironmentObject var taggerHolder: TaggerHolder
     @EnvironmentObject var modelManager: ModelManager
@@ -15,9 +17,12 @@ struct NewPostView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var userText: String = ""
+    @State private var selectedMode: PrivacyMode = .l2
 
     @State private var isPosting = false
     @State private var errorMessage: String?
+    @State private var showL2PrimeWarning = false
+    @State private var showModeSheet = false
 
     private let uploader = PostUploader()
     private let prohibitedKeywords = [
@@ -63,7 +68,7 @@ struct NewPostView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button(isPosting ? t(ja: "投稿中…", en: "Posting...") : t(ja: "投稿", en: "Post")) {
-                        Task { await handlePost() }
+                        requestPost()
                     }
                     .disabled(
                         isPosting ||
@@ -72,6 +77,18 @@ struct NewPostView: View {
                     )
                 }
             }
+        }
+        .alert(
+            t(
+                ja: "L4 は再現性が高い一方、プライバシーは弱くなります。続行しますか？",
+                en: "L4 improves reconstruction but weakens privacy. Continue?"
+            ),
+            isPresented: $showL2PrimeWarning
+        ) {
+            Button(t(ja: "続行", en: "Continue"), role: .destructive) {
+                Task { await handlePost() }
+            }
+            Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
         }
     }
 }
@@ -109,6 +126,22 @@ extension NewPostView {
                 }
 
                 Spacer()
+                
+                if selectedImage != nil {
+                    Button {
+                        showModeSheet = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: selectedMode.iconName)
+                            Text(selectedMode.titleEN)
+                                .font(.caption)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.gray.opacity(0.14))
+                        .clipShape(Capsule())
+                    }
+                }
             }
 
             if let err = errorMessage {
@@ -121,6 +154,69 @@ extension NewPostView {
         .padding(12)
         .background(.ultraThinMaterial)
         .onChange(of: selectedItem) { _ in loadImage() }
+        .sheet(isPresented: $showModeSheet) {
+            modeSelectionSheet
+        }
+        .onAppear {
+            let mode = PrivacyMode.fromStorageValue(selectedPrivacyModeRaw)
+            selectedMode = PrivacyModeAccessPolicy.canUse(mode: mode) ? mode : .l2
+        }
+        .onChange(of: selectedPrivacyModeRaw) { newValue in
+            let mode = PrivacyMode.fromStorageValue(newValue)
+            selectedMode = PrivacyModeAccessPolicy.canUse(mode: mode) ? mode : .l2
+        }
+    }
+
+    private var modeSelectionSheet: some View {
+        NavigationStack {
+            List {
+                ForEach(PrivacyMode.allCases) { mode in
+                    Button {
+                        guard PrivacyModeAccessPolicy.canUse(mode: mode) else { return }
+                        selectedMode = mode
+                        showModeSheet = false
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: mode.iconName)
+                                .frame(width: 18)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(t(ja: mode.titleJA, en: mode.titleEN))
+                                    .font(.body)
+                                Text(modeDescription(mode))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            if selectedMode == mode {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                    }
+                    .disabled(!PrivacyModeAccessPolicy.canUse(mode: mode))
+                }
+            }
+            .navigationTitle(t(ja: "投稿モード", en: "Post Mode"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(t(ja: "閉じる", en: "Close")) { showModeSheet = false }
+                }
+            }
+        }
+    }
+
+    private func modeDescription(_ mode: PrivacyMode) -> String {
+        switch mode {
+        case .l1:
+            return t(ja: "画像情報なし", en: "No image data")
+        case .l2:
+            return t(ja: "軽量要約", en: "Compact summary")
+        case .l3:
+            return t(ja: "低周波係数", en: "Low-frequency DCT")
+        case .l2Prime:
+            return t(ja: "極低解像ピクセル", en: "Extreme low-res pixels")
+        }
     }
 
     private var userAvatar: some View {
@@ -178,6 +274,14 @@ extension NewPostView {
 
 extension NewPostView {
 
+    private func requestPost() {
+        if selectedImage != nil && selectedMode == .l2Prime {
+            showL2PrimeWarning = true
+            return
+        }
+        Task { await handlePost() }
+    }
+
     func loadImage() {
         Task {
             if let data = try? await selectedItem?.loadTransferable(type: Data.self),
@@ -206,6 +310,15 @@ extension NewPostView {
         let localUser = UserManager.shared.currentUser
 
         let trimmed = userText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !PrivacyModeAccessPolicy.canUse(mode: selectedMode) {
+            await MainActor.run {
+                errorMessage = t(
+                    ja: "このモードは現在利用できません。",
+                    en: "This mode is currently unavailable."
+                )
+            }
+            return
+        }
         if containsProhibitedText(trimmed) {
             await MainActor.run {
                 errorMessage = t(
@@ -216,7 +329,18 @@ extension NewPostView {
             return
         }
 
-        let lowResGuide = selectedImage.flatMap { LowResGuide.encode(from: $0, size: 64) }
+        let modeForPost: PrivacyMode = (selectedImage == nil) ? .l1 : selectedMode
+        let payload = selectedImage.flatMap { PostPayload.make(from: $0, mode: modeForPost) }
+
+        if selectedImage != nil && modeForPost != .l1 && payload == nil {
+            await MainActor.run {
+                errorMessage = t(
+                    ja: "中間表現の生成に失敗しました。画像を変更して再試行してください。",
+                    en: "Failed to build payload. Please retry with another image."
+                )
+            }
+            return
+        }
 
         // ① 即時表示用ローカルポスト
         let tempPost = Post(
@@ -227,7 +351,10 @@ extension NewPostView {
             caption: nil,
             semanticPrompt: nil,
             regionTags: nil,
-            lowResGuide: lowResGuide,
+            lowResGuide: nil,
+            mode: modeForPost.rawValue,
+            payload: payload,
+            tags: [],
             userText: trimmed.isEmpty ? nil : trimmed,
             hasImage: selectedImage != nil,
             status: .pending,
