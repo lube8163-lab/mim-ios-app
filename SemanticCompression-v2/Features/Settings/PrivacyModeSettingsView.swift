@@ -5,6 +5,8 @@ struct PrivacyModeSettingsView: View {
     private var selectedLanguage = AppLanguage.japanese.rawValue
     @AppStorage(AppPreferences.selectedPrivacyModeKey)
     private var selectedModeRaw = PrivacyMode.l2.storageValue
+    @State private var showL4Warning = false
+    @State private var previousModeRawBeforeL4Warning: Int?
 
     var body: some View {
         List {
@@ -21,7 +23,15 @@ struct PrivacyModeSettingsView: View {
                 ForEach(PrivacyMode.allCases) { mode in
                     Button {
                         guard PrivacyModeAccessPolicy.canUse(mode: mode) else { return }
-                        selectedModeRaw = mode.storageValue
+                        let current = PrivacyMode.fromStorageValue(selectedModeRaw)
+                        if current != .l2Prime && mode == .l2Prime {
+                            previousModeRawBeforeL4Warning = selectedModeRaw
+                            selectedModeRaw = mode.storageValue
+                            showL4Warning = true
+                        } else {
+                            previousModeRawBeforeL4Warning = nil
+                            selectedModeRaw = mode.storageValue
+                        }
                     } label: {
                         HStack(spacing: 10) {
                             Image(systemName: mode.iconName)
@@ -45,6 +55,23 @@ struct PrivacyModeSettingsView: View {
         }
         .navigationTitle(t(ja: "投稿モード", en: "Post Mode"))
         .navigationBarTitleDisplayMode(.inline)
+        .alert(
+            t(
+                ja: "L4 は再現性が高い一方、プライバシーは弱くなります。続行しますか？",
+                en: "L4 improves reconstruction but weakens privacy. Continue?"
+            ),
+            isPresented: $showL4Warning
+        ) {
+            Button(t(ja: "続行", en: "Continue"), role: .destructive) {
+                previousModeRawBeforeL4Warning = nil
+            }
+            Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {
+                if let previousModeRawBeforeL4Warning {
+                    selectedModeRaw = previousModeRawBeforeL4Warning
+                }
+                self.previousModeRawBeforeL4Warning = nil
+            }
+        }
     }
 
     private func label(for mode: PrivacyMode) -> String {

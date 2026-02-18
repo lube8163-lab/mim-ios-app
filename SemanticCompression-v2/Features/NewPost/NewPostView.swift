@@ -25,6 +25,8 @@ struct NewPostView: View {
     @State private var showModeSheet = false
     @State private var hasAcknowledgedCurrentL4Selection = true
     @State private var warningTriggeredFromPostAction = false
+    @State private var previousModeBeforeL4Warning: PrivacyMode? = nil
+    @State private var lastNonL4Mode: PrivacyMode = .l2
 
     private let uploader = PostUploader()
     private let prohibitedKeywords = [
@@ -89,12 +91,21 @@ struct NewPostView: View {
         ) {
             Button(t(ja: "続行", en: "Continue"), role: .destructive) {
                 hasAcknowledgedCurrentL4Selection = true
+                previousModeBeforeL4Warning = nil
                 if warningTriggeredFromPostAction {
                     warningTriggeredFromPostAction = false
                     Task { await handlePost() }
                 }
             }
             Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {
+                if let prev = previousModeBeforeL4Warning {
+                    selectedMode = prev
+                    hasAcknowledgedCurrentL4Selection = true
+                } else if selectedMode == .l2Prime {
+                    selectedMode = lastNonL4Mode
+                    hasAcknowledgedCurrentL4Selection = true
+                }
+                previousModeBeforeL4Warning = nil
                 warningTriggeredFromPostAction = false
             }
         }
@@ -168,11 +179,13 @@ extension NewPostView {
         .onAppear {
             let mode = PrivacyMode.fromStorageValue(selectedPrivacyModeRaw)
             selectedMode = PrivacyModeAccessPolicy.canUse(mode: mode) ? mode : .l2
+            lastNonL4Mode = (selectedMode == .l2Prime) ? .l2 : selectedMode
             hasAcknowledgedCurrentL4Selection = (selectedMode != .l2Prime)
         }
         .onChange(of: selectedPrivacyModeRaw) { newValue in
             let mode = PrivacyMode.fromStorageValue(newValue)
             selectedMode = PrivacyModeAccessPolicy.canUse(mode: mode) ? mode : .l2
+            if selectedMode != .l2Prime { lastNonL4Mode = selectedMode }
             hasAcknowledgedCurrentL4Selection = (selectedMode != .l2Prime)
         }
     }
@@ -184,12 +197,17 @@ extension NewPostView {
                     Button {
                         guard PrivacyModeAccessPolicy.canUse(mode: mode) else { return }
                         let switchedToL4 = (selectedMode != .l2Prime && mode == .l2Prime)
+                        let previous = selectedMode
                         selectedMode = mode
+                        if mode != .l2Prime { lastNonL4Mode = mode }
                         hasAcknowledgedCurrentL4Selection = (mode != .l2Prime)
                         showModeSheet = false
                         if switchedToL4 {
+                            previousModeBeforeL4Warning = previous
                             warningTriggeredFromPostAction = false
                             showL2PrimeWarning = true
+                        } else {
+                            previousModeBeforeL4Warning = nil
                         }
                     } label: {
                         HStack(spacing: 10) {
