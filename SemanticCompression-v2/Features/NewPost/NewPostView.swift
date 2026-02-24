@@ -29,6 +29,7 @@ struct NewPostView: View {
     @State private var lastNonL4Mode: PrivacyMode = .l2
 
     private let uploader = PostUploader()
+    private let maxPostTextLength = 300
     private let prohibitedKeywords = [
         "kill", "murder", "suicide", "rape", "nude", "porn", "child porn",
         "殺す", "死ね", "自殺", "レイプ", "児童ポルノ", "違法薬物"
@@ -135,6 +136,11 @@ extension NewPostView {
                         .frame(minHeight: 80, maxHeight: 120)
                         .padding(4)
                         .scrollContentBackground(.hidden)
+                        .onChange(of: userText) { newValue in
+                            if newValue.count > maxPostTextLength {
+                                userText = String(newValue.prefix(maxPostTextLength))
+                            }
+                        }
                 }
             }
 
@@ -167,6 +173,13 @@ extension NewPostView {
                 Text(err)
                     .foregroundColor(.red)
                     .font(.caption)
+            }
+            
+            HStack {
+                Spacer()
+                Text("\(userText.count)/\(maxPostTextLength)")
+                    .font(.caption2)
+                    .foregroundColor(userText.count >= maxPostTextLength ? .orange : .secondary)
             }
 
         }

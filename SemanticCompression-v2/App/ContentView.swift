@@ -644,6 +644,10 @@ extension ContentView {
     func enqueueImages(for posts: [Post]) {
         let canGenerate = modelManager.isModelInstalled
         for post in posts {
+            guard post.hasImage else {
+                post.previewImage = nil
+                continue
+            }
             let cacheKey = post.effectivePrompt.map { "\(post.mode)::\($0)" }
             if let cacheKey,
                let cached = ImageCacheManager.shared.load(for: cacheKey) {
