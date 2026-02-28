@@ -20,7 +20,11 @@ actor SemanticExtractionTask {
 
     // MARK: - Entry point
 
-    func process(post: Post, taggers: TaggerHolder) {
+    func process(
+        post: Post,
+        taggers: TaggerHolder,
+        onTagsExtracted: (([String]) -> Void)? = nil
+    ) {
 
         guard let image = post.localImage else {
             #if DEBUG
@@ -79,7 +83,15 @@ actor SemanticExtractionTask {
                     .sorted { $0.value > $1.value }
                     .map { $0.key }
 
-                let objectTop = Array(rankedObjects.prefix(6))   // ← 修飾用に6件くらい
+                var streamedTags: [String] = []
+                for tag in rankedObjects.prefix(6) {
+                    streamedTags.append(tag)
+                    await MainActor.run {
+                        onTagsExtracted?(streamedTags)
+                    }
+                }
+
+                let objectTop = Array(streamedTags.prefix(6))
 
                 // 4️⃣ style + caption 辞書（画像全体embedding）
                 guard let cgImage = image.cgImage else {
@@ -129,7 +141,7 @@ actor SemanticExtractionTask {
                 #endif
 
                 await MainActor.run {
-                    post.status = .completed
+                    post.status = .failed
                 }
 
                 // fallback upload
@@ -143,6 +155,9 @@ actor SemanticExtractionTask {
                         }
                     }
                     try await Self.upload(post: post)
+                    await MainActor.run {
+                        post.status = .completed
+                    }
                 } catch {
                     #if DEBUG
                     print("⚠️ Upload fallback also failed:", error)

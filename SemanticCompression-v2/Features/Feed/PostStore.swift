@@ -8,7 +8,7 @@
 
 import Foundation
 
-final class PostStore {
+actor PostStore {
     static let shared = PostStore()
     private init() {}
 

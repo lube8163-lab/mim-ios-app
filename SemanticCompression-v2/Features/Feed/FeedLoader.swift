@@ -91,7 +91,12 @@ struct FeedLoader {
 
         do {
             let decoded = try decoder.decode([Post].self, from: data)
-            let resolved = decoded.map { PostStore.shared.resolve($0) }
+            var resolved: [Post] = []
+            resolved.reserveCapacity(decoded.count)
+            for incoming in decoded {
+                let post = await PostStore.shared.resolve(incoming)
+                resolved.append(post)
+            }
             #if DEBUG
             print("📥 Loaded \(resolved.count) posts")
             #endif

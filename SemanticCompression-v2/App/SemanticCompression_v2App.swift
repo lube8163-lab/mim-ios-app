@@ -29,7 +29,7 @@ struct SemanticCompressionApp: App {
         Task.detached(priority: .utility) {
 
             let isInstalled = await MainActor.run {
-                ModelManager.shared.isModelInstalled
+                ModelManager.shared.siglipInstalled
             }
 
             if isInstalled {

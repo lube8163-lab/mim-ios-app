@@ -14,6 +14,8 @@ struct InstallModelsView: View {
     @ObservedObject var modelManager: ModelManager
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
+    @State private var showInstallCompletedToast = false
+    @State private var wasInstalling = false
 
     var body: some View {
         VStack(spacing: 24) {
@@ -48,7 +50,7 @@ You can install each model later as needed.
             )
             .frame(maxHeight: 460)
             
-            if modelManager.siglipInstalled || modelManager.sdInstalled {
+            if modelManager.siglipInstalled || modelManager.hasAnySDInstalled {
                 Text(t(
                     ja: """
 ※ モデルのインストール完了後は、
@@ -70,7 +72,7 @@ After installation completes, please close and restart the app.
             if !modelManager.siglipInstalling &&
                !modelManager.sdInstalling &&
                !modelManager.siglipInstalled &&
-               !modelManager.sdInstalled {
+               !modelManager.hasAnySDInstalled {
 
                 Button {
                     dismiss()
@@ -87,6 +89,43 @@ After installation completes, please close and restart the app.
         .interactiveDismissDisabled(
             modelManager.siglipInstalling || modelManager.sdInstalling
         )
+        .safeAreaInset(edge: .bottom) {
+            if showInstallCompletedToast {
+                Text(
+                    t(
+                        ja: "インストールが完了しました。安定動作のためアプリを再起動してください。",
+                        en: "Installation completed. Please restart the app for stable behavior."
+                    )
+                )
+                .font(.footnote)
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color.black.opacity(0.78))
+                .clipShape(Capsule())
+                .padding(.bottom, 8)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: showInstallCompletedToast)
+        .onAppear {
+            wasInstalling = modelManager.siglipInstalling || modelManager.sdInstalling
+        }
+        .onChange(of: modelManager.siglipInstalling || modelManager.sdInstalling) { installing in
+            if wasInstalling && !installing &&
+               (modelManager.siglipInstalled || modelManager.hasAnySDInstalled) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showInstallCompletedToast = true
+                }
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 2_400_000_000)
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showInstallCompletedToast = false
+                    }
+                }
+            }
+            wasInstalling = installing
+        }
     }
 
     private func t(ja: String, en: String) -> String {
