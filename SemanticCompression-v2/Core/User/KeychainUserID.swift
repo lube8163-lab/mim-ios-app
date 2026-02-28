@@ -6,13 +6,6 @@
 //
 
 
-//
-//  KeychainUserID.swift
-//  SemanticCompression-v2
-//
-//  Created by ChatGPT
-//
-
 import Foundation
 import Security
 

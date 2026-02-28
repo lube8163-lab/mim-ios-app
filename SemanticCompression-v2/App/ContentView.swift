@@ -220,7 +220,7 @@ extension ContentView {
         }
 
         // モデル未インストールなら即 ready
-        guard modelManager.isModelInstalled else {
+        guard modelManager.sdInstalled else {
             appBootState = .ready
             await loadInitialPage()
             return
@@ -229,8 +229,7 @@ extension ContentView {
         appBootState = .preparingModel
 
         // SD 初期化（ここで固まっても OK）
-        let sdDir = ModelManager.modelsRoot
-            .appendingPathComponent("StableDiffusion/sd15")
+        let sdDir = modelManager.selectedSDModelDirectory
 
         do {
             let gen = try ImageGenerator(modelsDirectory: sdDir)
@@ -269,7 +268,7 @@ extension ContentView {
                         ForEach(postList.items) { post in
                             PostCardView(
                                 post: post,
-                                isModelInstalled: modelManager.isModelInstalled,
+                                isModelInstalled: modelManager.sdInstalled,
                                 onUserBlocked: removeBlockedUserFromLists,
                                 onPostReported: removeReportedPostFromLists
                             )
@@ -297,7 +296,7 @@ extension ContentView {
 
     private var bottomStatusBar: some View {
         Group {
-            if modelManager.isModelInstalled {
+            if modelManager.sdInstalled {
                 Text(genLog)
             } else {
                 Text(t(ja: "⚠️ モデル未インストール（画像生成は無効）", en: "⚠️ Model not installed (image generation disabled)"))
@@ -407,7 +406,7 @@ extension ContentView {
                     ForEach(posts) { post in
                         PostCardView(
                             post: post,
-                            isModelInstalled: modelManager.isModelInstalled,
+                            isModelInstalled: modelManager.sdInstalled,
                             onUserBlocked: removeBlockedUserFromLists,
                             onPostReported: removeReportedPostFromLists
                         )
@@ -642,7 +641,7 @@ extension ContentView {
 
     @MainActor
     func enqueueImages(for posts: [Post]) {
-        let canGenerate = modelManager.isModelInstalled
+        let canGenerate = modelManager.sdInstalled
         for post in posts {
             guard post.hasImage else {
                 post.previewImage = nil

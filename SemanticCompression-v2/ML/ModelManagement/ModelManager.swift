@@ -9,6 +9,7 @@ final class ModelManager: ObservableObject {
 
     private var siglipInstaller: ModelInstaller?
     private var sdInstaller: ModelInstaller?
+    private var activeSDInstallModelID: String?
 
     // MARK: - Manifest Types
 
@@ -30,10 +31,31 @@ final class ModelManager: ObservableObject {
         let sha256: String
     }
 
+    struct SDModelConfig: Identifiable, Hashable {
+        let id: String
+        let title: String
+        let sizeLabel: String
+        let installPath: String
+        let downloadURL: URL
+    }
+
+    static let supportedSDModels: [SDModelConfig] = [
+        SDModelConfig(
+            id: "sd15_coreml_v2",
+            title: "Stable Diffusion 1.5",
+            sizeLabel: "約2 GB（Wi-Fi 推奨）",
+            installPath: "StableDiffusion/sd15",
+            downloadURL: URL(
+                string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/SD/sd15/sd15_coreml_v2.zip"
+            )!
+        )
+    ]
+
     // MARK: - Published
 
     @Published var siglipInstalled = false
     @Published var sdInstalled = false
+    @Published var selectedSDModelID: String
 
     @Published var siglipInstalling = false
     @Published var sdInstalling = false
@@ -46,6 +68,19 @@ final class ModelManager: ObservableObject {
 
     @Published var sdDownloadedBytes: Int64 = 0
     @Published var sdTotalBytes: Int64 = 0
+
+    var sdModels: [SDModelConfig] {
+        Self.supportedSDModels
+    }
+
+    var selectedSDModel: SDModelConfig {
+        Self.supportedSDModels.first(where: { $0.id == selectedSDModelID })
+            ?? Self.supportedSDModels[0]
+    }
+
+    var hasAnySDInstalled: Bool {
+        Self.supportedSDModels.contains { isInstalled(path: $0.installPath) }
+    }
 
     var isModelInstalled: Bool {
         siglipInstalled && sdInstalled
@@ -64,6 +99,10 @@ final class ModelManager: ObservableObject {
     // MARK: - Init
 
     init() {
+        selectedSDModelID = UserDefaults.standard.string(
+            forKey: AppPreferences.selectedSDModelKey
+        ) ?? Self.supportedSDModels[0].id
+        normalizeSelectedSDModelID()
         reloadState()
     }
 
@@ -78,7 +117,8 @@ final class ModelManager: ObservableObject {
 
     func reloadState() {
         siglipInstalled = isInstalled(path: "SigLIP2")
-        sdInstalled     = isInstalled(path: "StableDiffusion/sd15")
+        normalizeSelectedSDModelID()
+        sdInstalled = isInstalled(path: selectedSDModel.installPath)
     }
 
     // MARK: - Install
@@ -149,19 +189,25 @@ final class ModelManager: ObservableObject {
     }
 
     func installSD() {
+        installSD(modelID: selectedSDModelID)
+    }
+
+    func installSD(modelID: String) {
 
         guard !sdInstalling else { return }
+        guard let model = Self.supportedSDModels.first(where: { $0.id == modelID }) else {
+            return
+        }
 
         sdInstalling = true
         sdProgress = 0.01
         sdDownloadedBytes = 0
         sdTotalBytes = 0
+        activeSDInstallModelID = model.id
 
         let installer = ModelInstaller(
-            modelURL: URL(
-                string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/SD/sd15/sd15_coreml.zip"
-            )!,
-            modelName: "StableDiffusion/sd15"
+            modelURL: model.downloadURL,
+            modelName: model.installPath
         )
         sdInstaller = installer
 
@@ -195,10 +241,12 @@ final class ModelManager: ObservableObject {
                 case .completed:
                     self.sdInstalling = false
                     self.sdProgress = 1.0
+                    self.activeSDInstallModelID = nil
                     self.reloadState()
 
                 case .failed, .cancelled:
                     self.sdInstalling = false
+                    self.activeSDInstallModelID = nil
 
                 default:
                     break
@@ -207,6 +255,58 @@ final class ModelManager: ObservableObject {
             .store(in: &cancellables)
 
         installer.start()
+    }
+
+    func selectSDModel(id: String) {
+        guard Self.supportedSDModels.contains(where: { $0.id == id }) else { return }
+        selectedSDModelID = id
+        UserDefaults.standard.set(id, forKey: AppPreferences.selectedSDModelKey)
+        reloadState()
+    }
+
+    func isSDModelInstalled(_ modelID: String) -> Bool {
+        guard let model = Self.supportedSDModels.first(where: { $0.id == modelID }) else {
+            return false
+        }
+        return isInstalled(path: model.installPath)
+    }
+
+    func isSDModelInstalling(_ modelID: String) -> Bool {
+        sdInstalling && activeSDInstallModelID == modelID
+    }
+
+    func deleteSDModel(_ modelID: String) {
+        guard let model = Self.supportedSDModels.first(where: { $0.id == modelID }) else {
+            return
+        }
+        guard !isSDModelInstalling(modelID) else { return }
+
+        let dir = Self.modelsRoot.appendingPathComponent(model.installPath)
+        try? FileManager.default.removeItem(at: dir)
+
+        if selectedSDModelID == modelID {
+            if let installed = Self.supportedSDModels.first(where: {
+                isInstalled(path: $0.installPath)
+            }) {
+                selectedSDModelID = installed.id
+            } else {
+                selectedSDModelID = Self.supportedSDModels[0].id
+            }
+            UserDefaults.standard.set(selectedSDModelID, forKey: AppPreferences.selectedSDModelKey)
+        }
+
+        reloadState()
+    }
+
+    func deleteSigLIPModel() {
+        guard !siglipInstalling else { return }
+        let dir = Self.modelsRoot.appendingPathComponent("SigLIP2")
+        try? FileManager.default.removeItem(at: dir)
+        reloadState()
+    }
+
+    var selectedSDModelDirectory: URL {
+        Self.modelsRoot.appendingPathComponent(selectedSDModel.installPath)
     }
 
     // MARK: - Delete
@@ -222,6 +322,13 @@ final class ModelManager: ObservableObject {
         let fm = FileManager.default
         if !fm.fileExists(atPath: Self.modelsRoot.path) {
             try fm.createDirectory(at: Self.modelsRoot, withIntermediateDirectories: true)
+        }
+    }
+
+    private func normalizeSelectedSDModelID() {
+        if !Self.supportedSDModels.contains(where: { $0.id == selectedSDModelID }) {
+            selectedSDModelID = Self.supportedSDModels[0].id
+            UserDefaults.standard.set(selectedSDModelID, forKey: AppPreferences.selectedSDModelKey)
         }
     }
 }

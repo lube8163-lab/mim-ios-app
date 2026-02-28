@@ -21,7 +21,10 @@ struct NewPostView: View {
 
     @State private var isPosting = false
     @State private var errorMessage: String?
+    @State private var extractedTags: [String] = []
+    @State private var showSemanticCompletionMessage = false
     @State private var showL2PrimeWarning = false
+    @State private var showSiglipRequiredAlert = false
     @State private var showModeSheet = false
     @State private var hasAcknowledgedCurrentL4Selection = true
     @State private var warningTriggeredFromPostAction = false
@@ -53,6 +56,10 @@ struct NewPostView: View {
                                 .foregroundColor(.secondary)
                                 .padding(.horizontal)
                         }
+
+                        if isPosting, selectedImage != nil {
+                            postingTagStreamSection
+                        }
                     }
                     .padding(.top, 12)
                 }
@@ -83,6 +90,24 @@ struct NewPostView: View {
                 }
             }
         }
+        .overlay(alignment: .bottom) {
+            if showSemanticCompletionMessage {
+                Text(
+                    t(
+                        ja: "この投稿は、見る人の端末で意味情報から再生成されます。",
+                        en: "This post will be reconstructed from semantic data on each viewer's device."
+                    )
+                )
+                .font(.footnote)
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color.black.opacity(0.78))
+                .clipShape(Capsule())
+                .padding(.bottom, 20)
+                .transition(.opacity)
+            }
+        }
         .alert(
             t(
                 ja: "L4 は再現性が高い一方、プライバシーは弱くなります。続行しますか？",
@@ -110,12 +135,63 @@ struct NewPostView: View {
                 warningTriggeredFromPostAction = false
             }
         }
+        .alert(
+            t(
+                ja: "SigLIP2 が未インストールです",
+                en: "SigLIP2 is not installed"
+            ),
+            isPresented: $showSiglipRequiredAlert
+        ) {
+            Button(t(ja: "テキストのみ投稿", en: "Post text only")) {
+                Task { await handlePost(forceTextOnly: true) }
+            }
+            Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
+        } message: {
+            Text(
+                t(
+                    ja: "画像の意味抽出ができないため、このままでは画像投稿は反映されません。テキストのみで投稿しますか？",
+                    en: "Image semantic extraction is unavailable. Image posts may not appear correctly. Post as text-only?"
+                )
+            )
+        }
     }
 }
 
 // MARK: - Composer Area
 
 extension NewPostView {
+
+    private var postingTagStreamSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                RainbowAILoader()
+                Text(t(ja: "意味情報を送信中…", en: "Sending semantic data..."))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Text(t(ja: "サーバーへ送信中の情報", en: "What's being sent"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(extractedTags.enumerated()), id: \.offset) { _, tag in
+                        Text(tag)
+                            .font(.caption)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.accentColor.opacity(0.14))
+                            .clipShape(Capsule())
+                            .transition(.opacity)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 6)
+    }
 
     private var composerArea: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -305,6 +381,7 @@ extension NewPostView {
             Button {
                 selectedItem = nil
                 selectedImage = nil
+                extractedTags = []
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 22))
@@ -322,6 +399,10 @@ extension NewPostView {
 extension NewPostView {
 
     private func requestPost() {
+        if selectedImage != nil && !modelManager.siglipInstalled {
+            showSiglipRequiredAlert = true
+            return
+        }
         if selectedImage != nil && selectedMode == .l2Prime && !hasAcknowledgedCurrentL4Selection {
             warningTriggeredFromPostAction = true
             showL2PrimeWarning = true
@@ -336,17 +417,20 @@ extension NewPostView {
                let ui = UIImage(data: data) {
                 await MainActor.run {
                     selectedImage = ui
+                    extractedTags = []
                 }
             }
         }
     }
 
-    func handlePost() async {
+    func handlePost(forceTextOnly: Bool = false) async {
 
         guard !isPosting else { return }
         await MainActor.run {
             isPosting = true
             errorMessage = nil
+            extractedTags = []
+            showSemanticCompletionMessage = false
         }
         defer {
             Task { @MainActor in
@@ -377,10 +461,11 @@ extension NewPostView {
             return
         }
 
-        let modeForPost: PrivacyMode = (selectedImage == nil) ? .l1 : selectedMode
-        let payload = selectedImage.flatMap { PostPayload.make(from: $0, mode: modeForPost) }
+        let imageForPost = forceTextOnly ? nil : selectedImage
+        let modeForPost: PrivacyMode = (imageForPost == nil) ? .l1 : selectedMode
+        let payload = imageForPost.flatMap { PostPayload.make(from: $0, mode: modeForPost) }
 
-        if selectedImage != nil && modeForPost != .l1 && payload == nil {
+        if imageForPost != nil && modeForPost != .l1 && payload == nil {
             await MainActor.run {
                 errorMessage = t(
                     ja: "中間表現の生成に失敗しました。画像を変更して再試行してください。",
@@ -404,10 +489,10 @@ extension NewPostView {
             payload: payload,
             tags: [],
             userText: trimmed.isEmpty ? nil : trimmed,
-            hasImage: selectedImage != nil,
+            hasImage: imageForPost != nil,
             status: .pending,
             createdAt: Date(),
-            localImage: selectedImage
+            localImage: imageForPost
         )
 
         await MainActor.run {
@@ -415,11 +500,19 @@ extension NewPostView {
         }
 
         // ② Semantic Extraction（画像があるときだけ）
-        if selectedImage != nil {
+        if imageForPost != nil {
             SemanticExtractionTask.shared.process(
                 post: tempPost,
                 taggers: taggerHolder
-            )
+            ) { tags in
+                Task { @MainActor in
+                    for tag in tags where !extractedTags.contains(tag) {
+                        withAnimation(.easeIn(duration: 0.3)) {
+                            extractedTags.append(tag)
+                        }
+                    }
+                }
+            }
         } else {
             #if DEBUG
             print("ℹ️ Skip semantic extraction (no image)")
@@ -429,7 +522,16 @@ extension NewPostView {
         // ③ Upload
         do {
             try await uploader.upload(post: tempPost)
+            if tempPost.hasImage {
+                await MainActor.run {
+                    withAnimation(.easeIn(duration: 0.2)) {
+                        showSemanticCompletionMessage = true
+                    }
+                }
+                try? await Task.sleep(nanoseconds: 1_800_000_000)
+            }
             await MainActor.run {
+                showSemanticCompletionMessage = false
                 dismiss()
             }
         } catch {
@@ -438,6 +540,7 @@ extension NewPostView {
             #endif
             await MainActor.run {
                 posts.removeAll { $0.id == tempPost.id }
+                showSemanticCompletionMessage = false
                 errorMessage = t(ja: "アップロードに失敗しました", en: "Upload failed")
             }
         }

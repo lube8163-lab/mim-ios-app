@@ -12,6 +12,8 @@ struct OTPLoginView: View {
     @State private var isVerifying = false
     @State private var sent = false
     @State private var message: String?
+    @State private var showSentToast = false
+    @State private var sentToastText = ""
     let allowsSkip: Bool
 
     init(allowsSkip: Bool = true) {
@@ -75,6 +77,20 @@ struct OTPLoginView: View {
                     }
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                if showSentToast {
+                    Text(sentToastText)
+                        .font(.footnote)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.black.opacity(0.78))
+                        .clipShape(Capsule())
+                        .padding(.bottom, 8)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: showSentToast)
         }
     }
 
@@ -85,7 +101,20 @@ struct OTPLoginView: View {
         do {
             try await authManager.startOtp(email: email)
             sent = true
-            message = t(ja: "認証コードを送信しました。メールをご確認ください。", en: "Code sent. Please check your email.")
+            message = nil
+            sentToastText = t(
+                ja: "認証コードを送信しました。メールをご確認ください。",
+                en: "Code sent. Please check your email."
+            )
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showSentToast = true
+            }
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showSentToast = false
+                }
+            }
         } catch {
             if case let AuthError.server(serverMessage) = error {
                 message = t(

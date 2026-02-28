@@ -2,7 +2,7 @@
 //  ModelInstaller.swift
 //  SemanticCompression-v2
 //
-//  Safe installer for huge model zips (e.g. SD ~4GB)
+//  Safe installer for huge model zips (e.g. SD ~2GB)
 //  - Range + resume
 //  - Chunk write
 //  - Correct zip layout for SD (merges.txt / vocab.json)
