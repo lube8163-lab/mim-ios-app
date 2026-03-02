@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PrivacyModeSettingsView: View {
+    @EnvironmentObject var modelManager: ModelManager
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
     @AppStorage(AppPreferences.selectedPrivacyModeKey)
@@ -17,6 +18,17 @@ struct PrivacyModeSettingsView: View {
                 ))
                 .font(.footnote)
                 .foregroundColor(.secondary)
+
+                if modelManager.selectedSDModelID == ModelManager.sd15LCMModelID {
+                    Text(
+                        t(
+                            ja: "LCM 使用中は投稿モード変更が無効です（高速生成優先・img2img 無効）。",
+                            en: "Post mode switching is disabled while LCM is selected (speed-first, img2img off)."
+                        )
+                    )
+                    .font(.footnote)
+                    .foregroundColor(.orange)
+                }
             }
 
             Section(t(ja: "既定の投稿モード", en: "Default Post Mode")) {
@@ -50,6 +62,7 @@ struct PrivacyModeSettingsView: View {
                         }
                     }
                     .disabled(!PrivacyModeAccessPolicy.canUse(mode: mode))
+                    .disabled(modelManager.selectedSDModelID == ModelManager.sd15LCMModelID)
                 }
             }
         }

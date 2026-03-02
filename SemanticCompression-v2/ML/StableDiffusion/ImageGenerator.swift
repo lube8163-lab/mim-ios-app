@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import CoreML
 import UIKit
 import StableDiffusion
 
@@ -20,10 +19,13 @@ actor ImageGenerator {
         print("🧠 Loading Stable Diffusion from:", modelsDirectory.path)
         #endif
 
+        try Self.ensureTokenizerFiles(at: modelsDirectory)
+        try Self.ensureCoreMLModelFiles(at: modelsDirectory)
+
         let pipe = try StableDiffusionPipeline(
             resourcesAt: modelsDirectory,
             controlNet: [],
-            reduceMemory: false   // メモリ削減モード
+            reduceMemory: true
         )
 
         try pipe.loadResources()
@@ -32,6 +34,93 @@ actor ImageGenerator {
         #if DEBUG
         print("✅ Stable Diffusion pipeline loaded from Application Support")
         #endif
+    }
+
+    private static func ensureTokenizerFiles(at modelsDirectory: URL) throws {
+        let fm = FileManager.default
+
+        let rootMerges = modelsDirectory.appendingPathComponent("merges.txt")
+        let rootVocab = modelsDirectory.appendingPathComponent("vocab.json")
+        let tokenizerDir = modelsDirectory.appendingPathComponent("tokenizer", isDirectory: true)
+
+        if fm.fileExists(atPath: rootMerges.path),
+           fm.fileExists(atPath: rootVocab.path) {
+            return
+        }
+
+        let stableDiffusionRoot = modelsDirectory.deletingLastPathComponent()
+        let siblingDirs = (try? fm.contentsOfDirectory(
+            at: stableDiffusionRoot,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ))?.filter { $0.path != modelsDirectory.path } ?? []
+
+        var searchRoots: [URL] = [modelsDirectory, tokenizerDir]
+        for sibling in siblingDirs {
+            searchRoots.append(sibling)
+            searchRoots.append(sibling.appendingPathComponent("tokenizer", isDirectory: true))
+        }
+
+        func firstExisting(_ fileName: String) -> URL? {
+            for root in searchRoots {
+                let candidate = root.appendingPathComponent(fileName)
+                if fm.fileExists(atPath: candidate.path) {
+                    return candidate
+                }
+            }
+            return nil
+        }
+
+        if !fm.fileExists(atPath: rootMerges.path),
+           let src = firstExisting("merges.txt") {
+            try? fm.removeItem(at: rootMerges)
+            try fm.copyItem(at: src, to: rootMerges)
+        }
+
+        if !fm.fileExists(atPath: rootVocab.path),
+           let src = firstExisting("vocab.json") {
+            try? fm.removeItem(at: rootVocab)
+            try fm.copyItem(at: src, to: rootVocab)
+        }
+
+        guard fm.fileExists(atPath: rootMerges.path),
+              fm.fileExists(atPath: rootVocab.path) else {
+            throw NSError(
+                domain: "ImageGenerator",
+                code: -31,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Tokenizer files are missing. Please include merges.txt and vocab.json in the model package root (or tokenizer/)."
+                ]
+            )
+        }
+    }
+
+    private static func ensureCoreMLModelFiles(at modelsDirectory: URL) throws {
+        let fm = FileManager.default
+
+        func hasModel(_ name: String) -> Bool {
+            fm.fileExists(atPath: modelsDirectory.appendingPathComponent(name).path)
+        }
+
+        let hasUNet = hasModel("Unet.mlmodelc")
+            || (hasModel("UnetChunk1.mlmodelc") && hasModel("UnetChunk2.mlmodelc"))
+            || (hasModel("UNetChunk1.mlmodelc") && hasModel("UNetChunk2.mlmodelc"))
+        let hasTextEncoder = hasModel("TextEncoder.mlmodelc")
+        let hasVAEEncoder = hasModel("VAEEncoder.mlmodelc")
+        let hasVAEDecoder = hasModel("VAEDecoder.mlmodelc")
+
+        if hasUNet && hasTextEncoder && hasVAEEncoder && hasVAEDecoder {
+            return
+        }
+        throw NSError(
+            domain: "ImageGenerator",
+            code: -32,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Core ML model files are missing. Expected Unet.mlmodelc or UnetChunk1/UnetChunk2, plus TextEncoder/VAEEncoder/VAEDecoder .mlmodelc files."
+            ]
+        )
     }
 
     // MARK: - Image Generation

@@ -518,17 +518,56 @@ private enum ImagePixelSampler {
 struct SDModeProfile {
     let denoiseStrength: Float
     let guidanceScale: Float
+    let stepCount: Int
 
-    static func forMode(_ mode: PrivacyMode) -> SDModeProfile {
+    static func forMode(_ mode: PrivacyMode, modelID: String) -> SDModeProfile {
+        if modelID == ModelManager.sd15LCMModelID {
+            return SDModeProfile(
+                denoiseStrength: lcmDenoiseStrength(for: mode),
+                guidanceScale: 1.5,
+                stepCount: 8
+            )
+        }
+
+        return SDModeProfile(
+            denoiseStrength: denoiseStrength(for: mode),
+            guidanceScale: guidanceScale(for: mode),
+            stepCount: 25
+        )
+    }
+
+    private static func denoiseStrength(for mode: PrivacyMode) -> Float {
         switch mode {
         case .l1:
-            return SDModeProfile(denoiseStrength: 0.95, guidanceScale: 7.0)
+            return 0.95
         case .l2:
-            return SDModeProfile(denoiseStrength: 0.78, guidanceScale: 6.0)
+            return 0.78
         case .l3:
-            return SDModeProfile(denoiseStrength: 0.82, guidanceScale: 6.0)
+            return 0.82
         case .l2Prime:
-            return SDModeProfile(denoiseStrength: 0.80, guidanceScale: 6.0)
+            return 0.80
+        }
+    }
+
+    private static func guidanceScale(for mode: PrivacyMode) -> Float {
+        switch mode {
+        case .l1:
+            return 7.0
+        case .l2, .l3, .l2Prime:
+            return 6.0
+        }
+    }
+
+    private static func lcmDenoiseStrength(for mode: PrivacyMode) -> Float {
+        switch mode {
+        case .l1:
+            return 0.55
+        case .l2:
+            return 0.45
+        case .l3:
+            return 0.50
+        case .l2Prime:
+            return 0.48
         }
     }
 }

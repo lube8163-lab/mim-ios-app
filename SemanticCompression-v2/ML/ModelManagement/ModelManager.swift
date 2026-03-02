@@ -39,14 +39,26 @@ final class ModelManager: ObservableObject {
         let downloadURL: URL
     }
 
+    static let sd15ModelID = "sd15"
+    static let sd15LCMModelID = "sd15_lcm"
+
     static let supportedSDModels: [SDModelConfig] = [
         SDModelConfig(
-            id: "sd15_coreml_v2",
+            id: sd15ModelID,
             title: "Stable Diffusion 1.5",
             sizeLabel: "約2 GB（Wi-Fi 推奨）",
             installPath: "StableDiffusion/sd15",
             downloadURL: URL(
                 string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/SD/sd15/sd15_coreml_v2.zip"
+            )!
+        ),
+        SDModelConfig(
+            id: sd15LCMModelID,
+            title: "Stable Diffusion 1.5 (LCM)",
+            sizeLabel: "約2 GB（Wi-Fi 推奨）",
+            installPath: "StableDiffusion/sd15_lcm",
+            downloadURL: URL(
+                string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/SD/sd15/sd15_lcm_coreml_v1_mlmodelc.zip"
             )!
         )
     ]
@@ -118,6 +130,7 @@ final class ModelManager: ObservableObject {
     func reloadState() {
         siglipInstalled = isInstalled(path: "SigLIP2")
         normalizeSelectedSDModelID()
+        autoSelectInstalledSDModelIfNeeded()
         sdInstalled = isInstalled(path: selectedSDModel.installPath)
     }
 
@@ -330,6 +343,21 @@ final class ModelManager: ObservableObject {
             selectedSDModelID = Self.supportedSDModels[0].id
             UserDefaults.standard.set(selectedSDModelID, forKey: AppPreferences.selectedSDModelKey)
         }
+    }
+
+    private func autoSelectInstalledSDModelIfNeeded() {
+        if isInstalled(path: selectedSDModel.installPath) {
+            return
+        }
+
+        guard let installed = Self.supportedSDModels.first(where: {
+            isInstalled(path: $0.installPath)
+        }) else {
+            return
+        }
+
+        selectedSDModelID = installed.id
+        UserDefaults.standard.set(selectedSDModelID, forKey: AppPreferences.selectedSDModelKey)
     }
 }
 
