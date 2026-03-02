@@ -52,6 +52,11 @@ final class ImageCacheManager {
         pruneCacheIfNeeded()
     }
 
+    func remove(for prompt: String) {
+        let url = cachePath(for: prompt)
+        try? FileManager.default.removeItem(at: url)
+    }
+
     // MARK: - LRU prune logic
     private func pruneCacheIfNeeded(maxFiles: Int = 50) {
         guard let files = try? FileManager.default.contentsOfDirectory(

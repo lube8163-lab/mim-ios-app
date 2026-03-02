@@ -147,16 +147,64 @@ extension ModelInstaller: URLSessionDataDelegate {
     }
 
     private func fetchTotalSize() async throws -> Int64 {
+        if let size = try await fetchTotalSizeByHEAD() {
+            return size
+        }
+        if let size = try await fetchTotalSizeByRangeGET() {
+            return size
+        }
+        throw NSError(
+            domain: "Installer",
+            code: -1,
+            userInfo: [NSLocalizedDescriptionKey: "Could not determine file size before download"]
+        )
+    }
+
+    private func fetchTotalSizeByHEAD() async throws -> Int64? {
         var req = URLRequest(url: modelURL)
         req.httpMethod = "HEAD"
 
         let (_, res) = try await URLSession.shared.data(for: req)
         guard let http = res as? HTTPURLResponse,
-              let len = http.value(forHTTPHeaderField: "Content-Length"),
-              let size = Int64(len) else {
-            throw NSError(domain: "Installer", code: -1)
+              (200..<400).contains(http.statusCode) else {
+            return nil
         }
-        return size
+
+        return parseSize(from: http)
+    }
+
+    private func fetchTotalSizeByRangeGET() async throws -> Int64? {
+        var req = URLRequest(url: modelURL)
+        req.httpMethod = "GET"
+        req.setValue("bytes=0-0", forHTTPHeaderField: "Range")
+        req.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
+
+        let (bytes, res) = try await URLSession.shared.bytes(for: req)
+        bytes.task.cancel()
+
+        guard let http = res as? HTTPURLResponse,
+              http.statusCode == 206 || (200..<300).contains(http.statusCode) else {
+            return nil
+        }
+
+        return parseSize(from: http)
+    }
+
+    private func parseSize(from response: HTTPURLResponse) -> Int64? {
+        if let len = response.value(forHTTPHeaderField: "Content-Length"),
+           let size = Int64(len),
+           size > 0 {
+            return size
+        }
+
+        if let range = response.value(forHTTPHeaderField: "Content-Range"),
+           let totalPart = range.split(separator: "/").last,
+           let size = Int64(totalPart),
+           size > 0 {
+            return size
+        }
+
+        return nil
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {

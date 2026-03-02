@@ -6,6 +6,7 @@ struct ModelInstallContentView: View {
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
     @State private var deleteTarget: DeleteTarget?
+    @State private var showRestartRequiredNotice = false
 
     private enum DeleteTarget: Identifiable {
         case siglip
@@ -35,6 +36,7 @@ struct ModelInstallContentView: View {
 
             Section(header: Text("Image Understanding")) {
                 modelRow(
+                    modelID: nil,
                     title: "SigLIP2 Vision Encoder",
                     size: "170 MB",
                     installed: modelManager.siglipInstalled,
@@ -53,6 +55,7 @@ struct ModelInstallContentView: View {
             Section(header: Text("Image Generation")) {
                 ForEach(modelManager.sdModels) { model in
                     modelRow(
+                        modelID: model.id,
                         title: model.title,
                         size: model.sizeLabel,
                         installed: modelManager.isSDModelInstalled(model.id),
@@ -62,6 +65,7 @@ struct ModelInstallContentView: View {
                         installAction: { modelManager.installSD(modelID: model.id) },
                         useAction: (modelManager.isSDModelInstalled(model.id) &&
                                     modelManager.selectedSDModelID != model.id) ? {
+                            showRestartRequiredNotice = true
                             modelManager.selectSDModel(id: model.id)
                         } : nil,
                         deleteAction: modelManager.isSDModelInstalled(model.id) ? {
@@ -95,6 +99,19 @@ struct ModelInstallContentView: View {
                 secondaryButton: .cancel(Text(t(ja: "キャンセル", en: "Cancel")))
             )
         }
+        .alert(
+            t(ja: "モデル切替を反映しました", en: "Model switch applied"),
+            isPresented: $showRestartRequiredNotice
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(
+                t(
+                    ja: "切替を確実に反映するため、アプリを再起動してください。",
+                    en: "Please restart the app to ensure the new model is fully applied."
+                )
+            )
+        }
     }
 
     private var siglipProgressText: String? {
@@ -125,6 +142,7 @@ struct ModelInstallContentView: View {
 
     @ViewBuilder
     private func modelRow(
+        modelID: String?,
         title: String,
         size: String,
         installed: Bool,
@@ -164,6 +182,17 @@ struct ModelInstallContentView: View {
                             .foregroundColor(.green)
                     }
                 }
+            }
+
+            if modelID == ModelManager.sd15LCMModelID {
+                Text(
+                    t(
+                        ja: "LCM は高速生成向けです。img2img（元画像ベース）は無効化されます。",
+                        en: "LCM is tuned for speed. img2img (starting-image workflow) is disabled."
+                    )
+                )
+                .font(.caption2)
+                .foregroundColor(.orange)
             }
 
             if installing {

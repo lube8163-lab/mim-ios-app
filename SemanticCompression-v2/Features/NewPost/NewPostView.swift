@@ -38,6 +38,10 @@ struct NewPostView: View {
         "殺す", "死ね", "自殺", "レイプ", "児童ポルノ", "違法薬物"
     ]
 
+    private var isLCMSelected: Bool {
+        modelManager.selectedSDModelID == ModelManager.sd15LCMModelID
+    }
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -229,18 +233,34 @@ extension NewPostView {
                 Spacer()
                 
                 if selectedImage != nil {
-                    Button {
-                        showModeSheet = true
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: selectedMode.iconName)
-                            Text(selectedMode.titleEN)
-                                .font(.caption)
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Button {
+                            guard !isLCMSelected else { return }
+                            showModeSheet = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: selectedMode.iconName)
+                                Text(selectedMode.titleEN)
+                                    .font(.caption)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.gray.opacity(0.14))
+                            .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.gray.opacity(0.14))
-                        .clipShape(Capsule())
+                        .disabled(isLCMSelected)
+
+                        if isLCMSelected {
+                            Text(
+                                t(
+                                    ja: "LCM 使用中: モード切替不可 / img2img 無効",
+                                    en: "LCM active: mode switch disabled / img2img off"
+                                )
+                            )
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                            .multilineTextAlignment(.trailing)
+                        }
                     }
                 }
             }
