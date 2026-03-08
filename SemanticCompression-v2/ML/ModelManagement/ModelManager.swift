@@ -54,6 +54,14 @@ final class ModelManager: ObservableObject {
     static let qwenVLInstallPath = "Qwen3_5_VL_0_8B"
     static let qwenMainModelFile = "Qwen3.5-0.8B-Q4_K_M.gguf"
     static let qwenMMProjFile = "mmproj-F16.gguf"
+    static let siglipRequiredFiles = [
+        "caption_10k.json",
+        "caption_10k_embs.npy",
+        "styles.json",
+        "styles_embs.npy",
+        "tag_embs_siglip2_base.npy",
+        "tag_labels_siglip2_base.json"
+    ]
 
     static let supportedSDModels: [SDModelConfig] = [
         SDModelConfig(
@@ -80,10 +88,10 @@ final class ModelManager: ObservableObject {
         ImageUnderstandingModelConfig(
             id: siglipModelID,
             title: "SigLIP2 Vision Encoder",
-            sizeLabel: "170 MB",
+            sizeLabel: "199 MB",
             installPath: "SigLIP2",
             downloadURL: URL(
-                string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/siglip2/siglip2-vision-v1.zip"
+                string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/siglip2/siglip2-vision-v2.zip"
             )!
         ),
         ImageUnderstandingModelConfig(
@@ -171,8 +179,20 @@ final class ModelManager: ObservableObject {
         return FileManager.default.fileExists(atPath: marker.path)
     }
 
+    private func hasCompleteSigLIPInstallation() -> Bool {
+        let root = Self.modelsRoot.appendingPathComponent("SigLIP2")
+        guard isInstalled(path: "SigLIP2") else { return false }
+        guard (try? findSigLIPModelURL()) != nil else { return false }
+
+        return Self.siglipRequiredFiles.allSatisfy { fileName in
+            FileManager.default.fileExists(
+                atPath: root.appendingPathComponent(fileName).path
+            )
+        }
+    }
+
     func reloadState() {
-        siglipInstalled = isInstalled(path: "SigLIP2")
+        siglipInstalled = hasCompleteSigLIPInstallation()
         qwenInstalled = isInstalled(path: Self.qwenVLInstallPath)
         normalizeSelectedImageUnderstandingModelID()
         autoSelectInstalledImageUnderstandingModelIfNeeded()
@@ -193,6 +213,13 @@ final class ModelManager: ObservableObject {
         guard !siglipInstalling && !qwenInstalling else { return }
         guard let model = Self.supportedImageUnderstandingModels.first(where: { $0.id == id }) else {
             return
+        }
+
+        // Old SigLIP installs may have only the model payload and .installed marker.
+        // Remove incomplete directories so the installer does a full redownload.
+        if model.id == Self.siglipModelID && !hasCompleteSigLIPInstallation() {
+            let dir = Self.modelsRoot.appendingPathComponent(model.installPath)
+            try? FileManager.default.removeItem(at: dir)
         }
 
         activeUnderstandingInstallModelID = model.id
@@ -377,6 +404,9 @@ final class ModelManager: ObservableObject {
     }
 
     func isImageUnderstandingModelInstalled(_ modelID: String) -> Bool {
+        if modelID == Self.siglipModelID {
+            return hasCompleteSigLIPInstallation()
+        }
         guard let model = Self.supportedImageUnderstandingModels.first(where: { $0.id == modelID }) else {
             return false
         }
@@ -462,12 +492,12 @@ final class ModelManager: ObservableObject {
     }
 
     private func autoSelectInstalledImageUnderstandingModelIfNeeded() {
-        if isInstalled(path: selectedImageUnderstandingModel.installPath) {
+        if isImageUnderstandingModelInstalled(selectedImageUnderstandingModelID) {
             return
         }
 
         guard let installed = Self.supportedImageUnderstandingModels.first(where: {
-            isInstalled(path: $0.installPath)
+            isImageUnderstandingModelInstalled($0.id)
         }) else {
             return
         }
@@ -502,6 +532,11 @@ extension ModelManager {
 }
 
 extension ModelManager {
+
+    var siglipResourceDirectory: URL? {
+        let root = Self.modelsRoot.appendingPathComponent("SigLIP2")
+        return hasCompleteSigLIPInstallation() ? root : nil
+    }
 
     func findSigLIPModelURL() throws -> URL {
         let fm = FileManager.default

@@ -66,6 +66,7 @@ struct ModelInstallContentView: View {
                             },
                             useAction: (modelManager.isImageUnderstandingModelInstalled(model.id) &&
                                 modelManager.selectedImageUnderstandingModelID != model.id) ? {
+                                    showRestartRequiredNotice = true
                                     modelManager.selectImageUnderstandingModel(id: model.id)
                                 } : nil,
                             deleteAction: modelManager.isImageUnderstandingModelInstalled(model.id) ? {

@@ -17,11 +17,15 @@ final class EmbeddingTagger {
     private var dimension: Int = 0
 
     // MARK: - Load Dictionary (call once at app start)
-    func loadEmbeddings(labelFile: String, embeddingFile: String) {
+    func loadEmbeddings(labelFile: String, embeddingFile: String, resourceDirectory: URL? = nil) {
         do {
             // ---- Load labels (.json)
             guard
-                let url1 = Bundle.main.url(forResource: labelFile, withExtension: "json")
+                let url1 = resolveResourceURL(
+                    directory: resourceDirectory,
+                    fileName: labelFile,
+                    fileExtension: "json"
+                )
             else {
                 #if DEBUG
                 print("❌ EmbeddingTagger: label JSON not found.")
@@ -34,7 +38,11 @@ final class EmbeddingTagger {
 
             // ---- Load embeddings (.npy)
             guard
-                let url2 = Bundle.main.url(forResource: embeddingFile, withExtension: "npy")
+                let url2 = resolveResourceURL(
+                    directory: resourceDirectory,
+                    fileName: embeddingFile,
+                    fileExtension: "npy"
+                )
             else {
                 #if DEBUG
                 print("❌ EmbeddingTagger: embedding npy not found.")
@@ -66,6 +74,20 @@ final class EmbeddingTagger {
             print("❌ EmbeddingTagger load error:", error.localizedDescription)
             #endif
         }
+    }
+
+    private func resolveResourceURL(
+        directory: URL?,
+        fileName: String,
+        fileExtension: String
+    ) -> URL? {
+        if let directory {
+            let candidate = directory.appendingPathComponent("\(fileName).\(fileExtension)")
+            if FileManager.default.fileExists(atPath: candidate.path) {
+                return candidate
+            }
+        }
+        return Bundle.main.url(forResource: fileName, withExtension: fileExtension)
     }
 
     // MARK: - Top-K Tag Extraction
