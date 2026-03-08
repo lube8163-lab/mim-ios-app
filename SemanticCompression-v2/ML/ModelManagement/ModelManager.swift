@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 @MainActor
 final class ModelManager: ObservableObject {
@@ -8,10 +8,10 @@ final class ModelManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     private var siglipInstaller: ModelInstaller?
+    private var qwenInstaller: ModelInstaller?
     private var sdInstaller: ModelInstaller?
+    private var activeUnderstandingInstallModelID: String?
     private var activeSDInstallModelID: String?
-
-    // MARK: - Manifest Types
 
     struct ModelManifest: Decodable {
         let models: [ModelEntry]
@@ -39,8 +39,21 @@ final class ModelManager: ObservableObject {
         let downloadURL: URL
     }
 
+    struct ImageUnderstandingModelConfig: Identifiable, Hashable {
+        let id: String
+        let title: String
+        let sizeLabel: String
+        let installPath: String
+        let downloadURL: URL
+    }
+
     static let sd15ModelID = "sd15"
     static let sd15LCMModelID = "sd15_lcm"
+    static let siglipModelID = ImageUnderstandingModel.siglip2.rawValue
+    static let qwenVLModelID = ImageUnderstandingModel.qwen35vl.rawValue
+    static let qwenVLInstallPath = "Qwen3_5_VL_0_8B"
+    static let qwenMainModelFile = "Qwen3.5-0.8B-Q4_K_M.gguf"
+    static let qwenMMProjFile = "mmproj-F16.gguf"
 
     static let supportedSDModels: [SDModelConfig] = [
         SDModelConfig(
@@ -63,26 +76,59 @@ final class ModelManager: ObservableObject {
         )
     ]
 
-    // MARK: - Published
+    static let supportedImageUnderstandingModels: [ImageUnderstandingModelConfig] = [
+        ImageUnderstandingModelConfig(
+            id: siglipModelID,
+            title: "SigLIP2 Vision Encoder",
+            sizeLabel: "170 MB",
+            installPath: "SigLIP2",
+            downloadURL: URL(
+                string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/siglip2/siglip2-vision-v1.zip"
+            )!
+        ),
+        ImageUnderstandingModelConfig(
+            id: qwenVLModelID,
+            title: "Qwen3.5-VL-0.8B",
+            sizeLabel: "703 MB",
+            installPath: qwenVLInstallPath,
+            downloadURL: URL(
+                string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/qwen/qwen3_5_vl_0_8b_gguf.zip"
+            )!
+        )
+    ]
 
     @Published var siglipInstalled = false
+    @Published var qwenInstalled = false
     @Published var sdInstalled = false
+    @Published var selectedImageUnderstandingModelID: String
     @Published var selectedSDModelID: String
 
     @Published var siglipInstalling = false
+    @Published var qwenInstalling = false
     @Published var sdInstalling = false
 
     @Published var siglipProgress: Double = 0
+    @Published var qwenProgress: Double = 0
     @Published var sdProgress: Double = 0
 
     @Published var siglipDownloadedBytes: Int64 = 0
     @Published var siglipTotalBytes: Int64 = 0
-
+    @Published var qwenDownloadedBytes: Int64 = 0
+    @Published var qwenTotalBytes: Int64 = 0
     @Published var sdDownloadedBytes: Int64 = 0
     @Published var sdTotalBytes: Int64 = 0
 
+    var imageUnderstandingModels: [ImageUnderstandingModelConfig] {
+        Self.supportedImageUnderstandingModels
+    }
+
     var sdModels: [SDModelConfig] {
         Self.supportedSDModels
+    }
+
+    var selectedImageUnderstandingModel: ImageUnderstandingModelConfig {
+        Self.supportedImageUnderstandingModels.first(where: { $0.id == selectedImageUnderstandingModelID })
+            ?? Self.supportedImageUnderstandingModels[0]
     }
 
     var selectedSDModel: SDModelConfig {
@@ -95,10 +141,8 @@ final class ModelManager: ObservableObject {
     }
 
     var isModelInstalled: Bool {
-        siglipInstalled && sdInstalled
+        (siglipInstalled || qwenInstalled) && sdInstalled
     }
-
-    // MARK: - Paths
 
     static var modelsRoot: URL {
         let base = FileManager.default.urls(
@@ -108,17 +152,17 @@ final class ModelManager: ObservableObject {
         return base.appendingPathComponent("Models")
     }
 
-    // MARK: - Init
-
     init() {
+        selectedImageUnderstandingModelID = UserDefaults.standard.string(
+            forKey: AppPreferences.selectedImageUnderstandingModelKey
+        ) ?? Self.siglipModelID
         selectedSDModelID = UserDefaults.standard.string(
             forKey: AppPreferences.selectedSDModelKey
         ) ?? Self.supportedSDModels[0].id
+        normalizeSelectedImageUnderstandingModelID()
         normalizeSelectedSDModelID()
         reloadState()
     }
-
-    // MARK: - Installed Check
 
     private func isInstalled(path: String) -> Bool {
         let marker = Self.modelsRoot
@@ -129,54 +173,92 @@ final class ModelManager: ObservableObject {
 
     func reloadState() {
         siglipInstalled = isInstalled(path: "SigLIP2")
+        qwenInstalled = isInstalled(path: Self.qwenVLInstallPath)
+        normalizeSelectedImageUnderstandingModelID()
+        autoSelectInstalledImageUnderstandingModelIfNeeded()
         normalizeSelectedSDModelID()
         autoSelectInstalledSDModelIfNeeded()
         sdInstalled = isInstalled(path: selectedSDModel.installPath)
     }
 
-    // MARK: - Install
-
     func installSigLIP() {
+        installImageUnderstandingModel(id: Self.siglipModelID)
+    }
 
-        guard !siglipInstalling else { return }
+    func installQwenVL() {
+        installImageUnderstandingModel(id: Self.qwenVLModelID)
+    }
 
-        siglipInstalling = true
-        siglipProgress = 0.01
-        siglipDownloadedBytes = 0
-        siglipTotalBytes = 0
+    private func installImageUnderstandingModel(id: String) {
+        guard !siglipInstalling && !qwenInstalling else { return }
+        guard let model = Self.supportedImageUnderstandingModels.first(where: { $0.id == id }) else {
+            return
+        }
+
+        activeUnderstandingInstallModelID = model.id
+
+        switch model.id {
+        case Self.siglipModelID:
+            siglipInstalling = true
+            siglipProgress = 0.01
+            siglipDownloadedBytes = 0
+            siglipTotalBytes = 0
+        case Self.qwenVLModelID:
+            qwenInstalling = true
+            qwenProgress = 0.01
+            qwenDownloadedBytes = 0
+            qwenTotalBytes = 0
+        default:
+            break
+        }
 
         let installer = ModelInstaller(
-            modelURL: URL(
-                string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/siglip2/siglip2-vision-v1.zip"
-            )!,
-            modelName: "SigLIP2"
+            modelURL: model.downloadURL,
+            modelName: model.installPath
         )
-        siglipInstaller = installer
 
-        // --- progress ---
+        if model.id == Self.siglipModelID {
+            siglipInstaller = installer
+        } else if model.id == Self.qwenVLModelID {
+            qwenInstaller = installer
+        }
+
         installer.$progress
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] v in
-                self?.siglipProgress = max(v, 0.01)
+            .sink { [weak self] value in
+                guard let self else { return }
+                if model.id == Self.siglipModelID {
+                    self.siglipProgress = max(value, 0.01)
+                } else if model.id == Self.qwenVLModelID {
+                    self.qwenProgress = max(value, 0.01)
+                }
             }
             .store(in: &cancellables)
 
-        // --- bytes ---
         installer.$downloadedBytes
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] v in
-                self?.siglipDownloadedBytes = v
+            .sink { [weak self] value in
+                guard let self else { return }
+                if model.id == Self.siglipModelID {
+                    self.siglipDownloadedBytes = value
+                } else if model.id == Self.qwenVLModelID {
+                    self.qwenDownloadedBytes = value
+                }
             }
             .store(in: &cancellables)
 
         installer.$totalBytes
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] v in
-                self?.siglipTotalBytes = v
+            .sink { [weak self] value in
+                guard let self else { return }
+                if model.id == Self.siglipModelID {
+                    self.siglipTotalBytes = value
+                } else if model.id == Self.qwenVLModelID {
+                    self.qwenTotalBytes = value
+                }
             }
             .store(in: &cancellables)
 
-        // --- status（ここが一番重要） ---
         installer.$status
             .receive(on: DispatchQueue.main)
             .sink { [weak self] status in
@@ -184,13 +266,23 @@ final class ModelManager: ObservableObject {
 
                 switch status {
                 case .completed:
-                    self.siglipInstalling = false
-                    self.siglipProgress = 1.0
+                    if model.id == Self.siglipModelID {
+                        self.siglipInstalling = false
+                        self.siglipProgress = 1.0
+                    } else if model.id == Self.qwenVLModelID {
+                        self.qwenInstalling = false
+                        self.qwenProgress = 1.0
+                    }
+                    self.activeUnderstandingInstallModelID = nil
                     self.reloadState()
 
                 case .failed, .cancelled:
-                    // ❗ 必ず戻す
-                    self.siglipInstalling = false
+                    if model.id == Self.siglipModelID {
+                        self.siglipInstalling = false
+                    } else if model.id == Self.qwenVLModelID {
+                        self.qwenInstalling = false
+                    }
+                    self.activeUnderstandingInstallModelID = nil
 
                 default:
                     break
@@ -206,7 +298,6 @@ final class ModelManager: ObservableObject {
     }
 
     func installSD(modelID: String) {
-
         guard !sdInstalling else { return }
         guard let model = Self.supportedSDModels.first(where: { $0.id == modelID }) else {
             return
@@ -226,22 +317,22 @@ final class ModelManager: ObservableObject {
 
         installer.$progress
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] v in
-                self?.sdProgress = max(v, 0.01)
+            .sink { [weak self] value in
+                self?.sdProgress = max(value, 0.01)
             }
             .store(in: &cancellables)
 
         installer.$downloadedBytes
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] v in
-                self?.sdDownloadedBytes = v
+            .sink { [weak self] value in
+                self?.sdDownloadedBytes = value
             }
             .store(in: &cancellables)
 
         installer.$totalBytes
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] v in
-                self?.sdTotalBytes = v
+            .sink { [weak self] value in
+                self?.sdTotalBytes = value
             }
             .store(in: &cancellables)
 
@@ -270,11 +361,30 @@ final class ModelManager: ObservableObject {
         installer.start()
     }
 
+    func selectImageUnderstandingModel(id: String) {
+        guard Self.supportedImageUnderstandingModels.contains(where: { $0.id == id }) else { return }
+        guard isImageUnderstandingModelInstalled(id) else { return }
+        selectedImageUnderstandingModelID = id
+        UserDefaults.standard.set(id, forKey: AppPreferences.selectedImageUnderstandingModelKey)
+        reloadState()
+    }
+
     func selectSDModel(id: String) {
         guard Self.supportedSDModels.contains(where: { $0.id == id }) else { return }
         selectedSDModelID = id
         UserDefaults.standard.set(id, forKey: AppPreferences.selectedSDModelKey)
         reloadState()
+    }
+
+    func isImageUnderstandingModelInstalled(_ modelID: String) -> Bool {
+        guard let model = Self.supportedImageUnderstandingModels.first(where: { $0.id == modelID }) else {
+            return false
+        }
+        return isInstalled(path: model.installPath)
+    }
+
+    func isImageUnderstandingModelInstalling(_ modelID: String) -> Bool {
+        activeUnderstandingInstallModelID == modelID && (siglipInstalling || qwenInstalling)
     }
 
     func isSDModelInstalled(_ modelID: String) -> Bool {
@@ -318,23 +428,29 @@ final class ModelManager: ObservableObject {
         reloadState()
     }
 
+    func deleteQwenVLModel() {
+        guard !qwenInstalling else { return }
+        let dir = Self.modelsRoot.appendingPathComponent(Self.qwenVLInstallPath)
+        try? FileManager.default.removeItem(at: dir)
+        reloadState()
+    }
+
     var selectedSDModelDirectory: URL {
         Self.modelsRoot.appendingPathComponent(selectedSDModel.installPath)
     }
-
-    // MARK: - Delete
 
     func deleteAllModels() {
         try? FileManager.default.removeItem(at: Self.modelsRoot)
         reloadState()
     }
 
-    // MARK: - Directory
-
-    private func prepareRoot() throws {
-        let fm = FileManager.default
-        if !fm.fileExists(atPath: Self.modelsRoot.path) {
-            try fm.createDirectory(at: Self.modelsRoot, withIntermediateDirectories: true)
+    private func normalizeSelectedImageUnderstandingModelID() {
+        if !Self.supportedImageUnderstandingModels.contains(where: { $0.id == selectedImageUnderstandingModelID }) {
+            selectedImageUnderstandingModelID = Self.siglipModelID
+            UserDefaults.standard.set(
+                selectedImageUnderstandingModelID,
+                forKey: AppPreferences.selectedImageUnderstandingModelKey
+            )
         }
     }
 
@@ -343,6 +459,24 @@ final class ModelManager: ObservableObject {
             selectedSDModelID = Self.supportedSDModels[0].id
             UserDefaults.standard.set(selectedSDModelID, forKey: AppPreferences.selectedSDModelKey)
         }
+    }
+
+    private func autoSelectInstalledImageUnderstandingModelIfNeeded() {
+        if isInstalled(path: selectedImageUnderstandingModel.installPath) {
+            return
+        }
+
+        guard let installed = Self.supportedImageUnderstandingModels.first(where: {
+            isInstalled(path: $0.installPath)
+        }) else {
+            return
+        }
+
+        selectedImageUnderstandingModelID = installed.id
+        UserDefaults.standard.set(
+            selectedImageUnderstandingModelID,
+            forKey: AppPreferences.selectedImageUnderstandingModelKey
+        )
     }
 
     private func autoSelectInstalledSDModelIfNeeded() {
@@ -361,20 +495,15 @@ final class ModelManager: ObservableObject {
     }
 }
 
-// MARK: - Manifest
-
 extension ModelManager {
     static let manifestURL = URL(
         string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/manifest.json"
     )!
 }
 
-// MARK: - SigLIP2 Model Lookup
-
 extension ModelManager {
 
     func findSigLIPModelURL() throws -> URL {
-
         let fm = FileManager.default
         let root = Self.modelsRoot.appendingPathComponent("SigLIP2")
 
@@ -395,7 +524,7 @@ extension ModelManager {
 
         while let fileURL = enumerator?.nextObject() as? URL {
             if fileURL.pathExtension == "mlmodelc" ||
-               fileURL.pathExtension == "mlpackage" {
+                fileURL.pathExtension == "mlpackage" {
                 return fileURL
             }
         }
@@ -406,6 +535,66 @@ extension ModelManager {
             userInfo: [
                 NSLocalizedDescriptionKey: "SigLIP2 model file not found"
             ]
+        )
+    }
+
+    struct QwenVLModelFiles {
+        let modelURL: URL
+        let mmprojURL: URL
+    }
+
+    func findQwenVLModelFiles() throws -> QwenVLModelFiles {
+        let fm = FileManager.default
+        let root = Self.modelsRoot.appendingPathComponent(Self.qwenVLInstallPath)
+        guard fm.fileExists(atPath: root.path) else {
+            throw NSError(
+                domain: "QwenVisionLanguageService",
+                code: -1,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Qwen model directory not found"
+                ]
+            )
+        }
+
+        let enumerator = fm.enumerator(
+            at: root,
+            includingPropertiesForKeys: nil
+        )
+
+        var modelURL: URL?
+        var mmprojURL: URL?
+
+        while let fileURL = enumerator?.nextObject() as? URL {
+            if fileURL.lastPathComponent == Self.qwenMainModelFile {
+                modelURL = fileURL
+            } else if fileURL.lastPathComponent == Self.qwenMMProjFile {
+                mmprojURL = fileURL
+            }
+        }
+
+        guard let modelURL else {
+            throw NSError(
+                domain: "QwenVisionLanguageService",
+                code: -2,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Qwen main model file not found"
+                ]
+            )
+        }
+
+        guard let mmprojURL else {
+            throw NSError(
+                domain: "QwenVisionLanguageService",
+                code: -3,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Qwen mmproj file not found"
+                ]
+            )
+        }
+
+        return QwenVLModelFiles(
+            modelURL: modelURL,
+            mmprojURL: mmprojURL
         )
     }
 }

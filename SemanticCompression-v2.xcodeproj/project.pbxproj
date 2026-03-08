@@ -293,10 +293,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = YY58VZMU56;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/include",
+				);
 				INFOPLIST_FILE = "SemanticCompression-v2/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Mim;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
@@ -311,14 +315,30 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
-				OTHER_LDFLAGS = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/iphoneos",
+					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/iphonesimulator",
+				);
+				MARKETING_VERSION = 1.1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/$(PLATFORM_NAME)/libllama.a",
+					"-lc++",
+					"-framework",
+					Accelerate,
+					"-framework",
+					Metal,
+					"-framework",
+					Foundation,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.tasuku.mim;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "SemanticCompression-v2/SemanticCompression-v2-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -332,10 +352,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = YY58VZMU56;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/include",
+				);
 				INFOPLIST_FILE = "SemanticCompression-v2/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Mim;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
@@ -350,14 +374,30 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
-				OTHER_LDFLAGS = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/iphoneos",
+					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/iphonesimulator",
+				);
+				MARKETING_VERSION = 1.1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/$(PLATFORM_NAME)/libllama.a",
+					"-lc++",
+					"-framework",
+					Accelerate,
+					"-framework",
+					Metal,
+					"-framework",
+					Foundation,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.tasuku.mim;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "SemanticCompression-v2/SemanticCompression-v2-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

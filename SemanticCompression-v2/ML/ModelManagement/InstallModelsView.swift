@@ -28,13 +28,13 @@ struct InstallModelsView: View {
             // MARK: - Description
             Text(t(
                 ja: """
-画像生成（Stable Diffusion）や画像解析（SigLIP2）を利用するには、
+画像生成（Stable Diffusion）や画像解析（SigLIP2 / Qwen）を利用するには、
 AIモデルのダウンロードが必要です。
 
 必要なモデルは後から個別にインストールできます。
 """,
                 en: """
-To use image generation (Stable Diffusion) and image understanding (SigLIP2),
+To use image generation (Stable Diffusion) and image understanding (SigLIP2 / Qwen),
 you need to download the AI models.
 
 You can install each model later as needed.
@@ -50,7 +50,7 @@ You can install each model later as needed.
             )
             .frame(maxHeight: 460)
             
-            if modelManager.siglipInstalled || modelManager.hasAnySDInstalled {
+            if modelManager.siglipInstalled || modelManager.qwenInstalled || modelManager.hasAnySDInstalled {
                 Text(t(
                     ja: """
 ※ モデルのインストール完了後は、
@@ -70,8 +70,10 @@ After installation completes, please close and restart the app.
 
             // MARK: - Skip Button
             if !modelManager.siglipInstalling &&
+               !modelManager.qwenInstalling &&
                !modelManager.sdInstalling &&
                !modelManager.siglipInstalled &&
+               !modelManager.qwenInstalled &&
                !modelManager.hasAnySDInstalled {
 
                 Button {
@@ -87,7 +89,7 @@ After installation completes, please close and restart the app.
         .padding()
         // インストール中は閉じさせない
         .interactiveDismissDisabled(
-            modelManager.siglipInstalling || modelManager.sdInstalling
+            modelManager.siglipInstalling || modelManager.qwenInstalling || modelManager.sdInstalling
         )
         .safeAreaInset(edge: .bottom) {
             if showInstallCompletedToast {
@@ -109,11 +111,11 @@ After installation completes, please close and restart the app.
         }
         .animation(.easeInOut(duration: 0.2), value: showInstallCompletedToast)
         .onAppear {
-            wasInstalling = modelManager.siglipInstalling || modelManager.sdInstalling
+            wasInstalling = modelManager.siglipInstalling || modelManager.qwenInstalling || modelManager.sdInstalling
         }
-        .onChange(of: modelManager.siglipInstalling || modelManager.sdInstalling) { installing in
+        .onChange(of: modelManager.siglipInstalling || modelManager.qwenInstalling || modelManager.sdInstalling) { installing in
             if wasInstalling && !installing &&
-               (modelManager.siglipInstalled || modelManager.hasAnySDInstalled) {
+               (modelManager.siglipInstalled || modelManager.qwenInstalled || modelManager.hasAnySDInstalled) {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showInstallCompletedToast = true
                 }

@@ -18,6 +18,7 @@ enum AppPreferences {
     static let selectedLanguageKey = "selected_app_language"
     static let selectedPrivacyModeKey = "selected_privacy_mode"
     static let selectedSDModelKey = "selected_sd_model"
+    static let selectedImageUnderstandingModelKey = "selected_image_understanding_model"
     static let onboardingCompletedKey = "onboarding_completed"
     static let acceptedPrivacyVersionKey = "accepted_privacy_version"
     static let acceptedTermsVersionKey = "accepted_terms_version"

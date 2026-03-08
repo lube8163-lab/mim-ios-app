@@ -21,8 +21,10 @@ final class BlockManager: ObservableObject {
     func refreshFromServerIfPossible() async {
         do {
             let ids = try await BlockService.fetchBlockedUsers()
-            blockedUserIDs = Set(ids)
-            saveToDefaults()
+            await MainActor.run {
+                blockedUserIDs = Set(ids)
+                saveToDefaults()
+            }
         } catch {
             #if DEBUG
             print("⚠️ blockedUsers fetch failed:", error)
@@ -32,8 +34,10 @@ final class BlockManager: ObservableObject {
 
     func block(_ blockedUserId: String) async {
         guard blockedUserId != UserManager.shared.currentUser.id else { return }
-        blockedUserIDs.insert(blockedUserId)
-        saveToDefaults()
+        await MainActor.run {
+            blockedUserIDs.insert(blockedUserId)
+            saveToDefaults()
+        }
         do {
             try await BlockService.block(blockedUserId: blockedUserId)
         } catch {
@@ -44,8 +48,10 @@ final class BlockManager: ObservableObject {
     }
 
     func unblock(_ blockedUserId: String) async {
-        blockedUserIDs.remove(blockedUserId)
-        saveToDefaults()
+        await MainActor.run {
+            blockedUserIDs.remove(blockedUserId)
+            saveToDefaults()
+        }
         do {
             try await BlockService.unblock(blockedUserId: blockedUserId)
         } catch {
@@ -68,8 +74,15 @@ final class BlockManager: ObservableObject {
     }
 
     func reloadForCurrentUser() {
-        blockedUserIDs.removeAll()
-        loadFromDefaults()
+        if Thread.isMainThread {
+            blockedUserIDs.removeAll()
+            loadFromDefaults()
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.blockedUserIDs.removeAll()
+                self?.loadFromDefaults()
+            }
+        }
     }
 
     private func saveToDefaults() {

@@ -10,12 +10,15 @@ struct ModelInstallContentView: View {
 
     private enum DeleteTarget: Identifiable {
         case siglip
+        case qwen
         case sd(id: String, title: String)
 
         var id: String {
             switch self {
             case .siglip:
                 return "siglip"
+            case .qwen:
+                return "qwen"
             case .sd(let id, _):
                 return "sd-\(id)"
             }
@@ -25,6 +28,8 @@ struct ModelInstallContentView: View {
             switch self {
             case .siglip:
                 return "SigLIP2 Vision Encoder"
+            case .qwen:
+                return "Qwen3.5-VL-0.8B"
             case .sd(_, let title):
                 return title
             }
@@ -32,53 +37,81 @@ struct ModelInstallContentView: View {
     }
 
     var body: some View {
-        List {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                introCard
 
-            Section(header: Text("Image Understanding")) {
-                modelRow(
-                    modelID: nil,
-                    title: "SigLIP2 Vision Encoder",
-                    size: "170 MB",
-                    installed: modelManager.siglipInstalled,
-                    installing: modelManager.siglipInstalling,
-                    progress: modelManager.siglipProgress,
-                    progressDetailText: siglipProgressText,
-                    installAction: { modelManager.installSigLIP() },
-                    useAction: nil,
-                    deleteAction: modelManager.siglipInstalled ? {
-                        deleteTarget = .siglip
-                    } : nil,
-                    isSelected: false
-                )
-            }
-
-            Section(header: Text("Image Generation")) {
-                ForEach(modelManager.sdModels) { model in
-                    modelRow(
-                        modelID: model.id,
-                        title: model.title,
-                        size: model.sizeLabel,
-                        installed: modelManager.isSDModelInstalled(model.id),
-                        installing: modelManager.isSDModelInstalling(model.id),
-                        progress: modelManager.sdProgress,
-                        progressDetailText: sdProgressText(for: model.id),
-                        installAction: { modelManager.installSD(modelID: model.id) },
-                        useAction: (modelManager.isSDModelInstalled(model.id) &&
-                                    modelManager.selectedSDModelID != model.id) ? {
-                            showRestartRequiredNotice = true
-                            modelManager.selectSDModel(id: model.id)
-                        } : nil,
-                        deleteAction: modelManager.isSDModelInstalled(model.id) ? {
-                            deleteTarget = .sd(id: model.id, title: model.title)
-                        } : nil,
-                        isSelected: modelManager.selectedSDModelID == model.id
+                modelSection(
+                    title: t(ja: "画像理解", en: "Image Understanding"),
+                    subtitle: t(
+                        ja: "投稿時の caption / prompt / tags 生成に使います。",
+                        en: "Used to generate caption, prompt, and tags when posting."
                     )
+                ) {
+                    ForEach(modelManager.imageUnderstandingModels) { model in
+                        modelRow(
+                            modelID: model.id,
+                            title: model.title,
+                            size: model.sizeLabel,
+                            installed: modelManager.isImageUnderstandingModelInstalled(model.id),
+                            installing: modelManager.isImageUnderstandingModelInstalling(model.id),
+                            progress: understandingProgress(for: model.id),
+                            progressDetailText: understandingProgressText(for: model.id),
+                            installAction: {
+                                if model.id == ModelManager.siglipModelID {
+                                    modelManager.installSigLIP()
+                                } else {
+                                    modelManager.installQwenVL()
+                                }
+                            },
+                            useAction: (modelManager.isImageUnderstandingModelInstalled(model.id) &&
+                                modelManager.selectedImageUnderstandingModelID != model.id) ? {
+                                    modelManager.selectImageUnderstandingModel(id: model.id)
+                                } : nil,
+                            deleteAction: modelManager.isImageUnderstandingModelInstalled(model.id) ? {
+                                deleteTarget = model.id == ModelManager.siglipModelID ? .siglip : .qwen
+                            } : nil,
+                            isSelected: modelManager.selectedImageUnderstandingModelID == model.id
+                        )
+                    }
+                }
+
+                modelSection(
+                    title: t(ja: "画像生成", en: "Image Generation"),
+                    subtitle: t(
+                        ja: "タイムライン表示用の再構成画像を生成します。",
+                        en: "Used to render reconstructed images in the timeline."
+                    )
+                ) {
+                    ForEach(modelManager.sdModels) { model in
+                        modelRow(
+                            modelID: model.id,
+                            title: model.title,
+                            size: model.sizeLabel,
+                            installed: modelManager.isSDModelInstalled(model.id),
+                            installing: modelManager.isSDModelInstalling(model.id),
+                            progress: modelManager.sdProgress,
+                            progressDetailText: sdProgressText(for: model.id),
+                            installAction: { modelManager.installSD(modelID: model.id) },
+                            useAction: (modelManager.isSDModelInstalled(model.id) &&
+                                modelManager.selectedSDModelID != model.id) ? {
+                                    showRestartRequiredNotice = true
+                                    modelManager.selectSDModel(id: model.id)
+                                } : nil,
+                            deleteAction: modelManager.isSDModelInstalled(model.id) ? {
+                                deleteTarget = .sd(id: model.id, title: model.title)
+                            } : nil,
+                            isSelected: modelManager.selectedSDModelID == model.id
+                        )
+                    }
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 18)
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(Color.clear)
+        .background(
+            Color(.systemBackground)
+        )
         .alert(item: $deleteTarget) { target in
             Alert(
                 title: Text(t(ja: "モデルを削除しますか？", en: "Delete model?")),
@@ -92,6 +125,8 @@ struct ModelInstallContentView: View {
                     switch target {
                     case .siglip:
                         modelManager.deleteSigLIPModel()
+                    case .qwen:
+                        modelManager.deleteQwenVLModel()
                     case .sd(let id, _):
                         modelManager.deleteSDModel(id)
                     }
@@ -114,15 +149,38 @@ struct ModelInstallContentView: View {
         }
     }
 
-    private var siglipProgressText: String? {
-        guard modelManager.siglipInstalling,
-              modelManager.siglipTotalBytes > 0 else {
+    private func understandingProgress(for modelID: String) -> Double {
+        switch modelID {
+        case ModelManager.siglipModelID:
+            return modelManager.siglipProgress
+        case ModelManager.qwenVLModelID:
+            return modelManager.qwenProgress
+        default:
+            return 0
+        }
+    }
+
+    private func understandingProgressText(for modelID: String) -> String? {
+        switch modelID {
+        case ModelManager.siglipModelID:
+            guard modelManager.siglipInstalling,
+                  modelManager.siglipTotalBytes > 0 else {
+                return nil
+            }
+            let currentMB = Double(modelManager.siglipDownloadedBytes) / 1024 / 1024
+            let totalMB = Double(modelManager.siglipTotalBytes) / 1024 / 1024
+            return String(format: "Downloading… %.0f MB / %.0f MB", currentMB, totalMB)
+        case ModelManager.qwenVLModelID:
+            guard modelManager.qwenInstalling,
+                  modelManager.qwenTotalBytes > 0 else {
+                return nil
+            }
+            let currentMB = Double(modelManager.qwenDownloadedBytes) / 1024 / 1024
+            let totalMB = Double(modelManager.qwenTotalBytes) / 1024 / 1024
+            return String(format: "Downloading… %.0f MB / %.0f MB", currentMB, totalMB)
+        default:
             return nil
         }
-
-        let currentMB = Double(modelManager.siglipDownloadedBytes) / 1024 / 1024
-        let totalMB = Double(modelManager.siglipTotalBytes) / 1024 / 1024
-        return String(format: "Downloading… %.0f MB / %.0f MB", currentMB, totalMB)
     }
 
     private func sdProgressText(for modelID: String) -> String? {
@@ -156,7 +214,6 @@ struct ModelInstallContentView: View {
     ) -> some View {
 
         VStack(alignment: .leading, spacing: 8) {
-
             HStack {
                 VStack(alignment: .leading) {
                     Text(title)
@@ -171,17 +228,31 @@ struct ModelInstallContentView: View {
                 if installed {
                     HStack(spacing: 8) {
                         if isSelected {
-                            Text("Using")
-                                .font(.caption2)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Color.accentColor.opacity(0.16))
-                                .clipShape(Capsule())
+                            statusPill(
+                                text: t(ja: "使用中", en: "Using"),
+                                tint: Color.accentColor
+                            )
                         }
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
                     }
+                } else if installing {
+                    statusPill(
+                        text: t(ja: "取得中", en: "Downloading"),
+                        tint: Color.orange
+                    )
                 }
+            }
+
+            if modelID == ModelManager.qwenVLModelID {
+                Text(
+                    t(
+                        ja: "Qwen は画像から caption / prompt / tags を直接生成します。SigLIP より重いですが、より文脈的な出力を狙えます。",
+                        en: "Qwen generates caption, prompt, and tags directly from the image. It is heavier than SigLIP but can produce more contextual outputs."
+                    )
+                )
+                .font(.caption2)
+                .foregroundColor(.secondary)
             }
 
             if modelID == ModelManager.sd15LCMModelID {
@@ -212,30 +283,89 @@ struct ModelInstallContentView: View {
                 HStack(spacing: 12) {
                     if !installed {
                         Button(action: installAction) {
-                            Text("Download")
+                            Text(t(ja: "ダウンロード", en: "Download"))
                         }
+                        .buttonStyle(.borderedProminent)
                     }
 
                     if let useAction {
                         Button(action: useAction) {
-                            Text("Use")
+                            Text(t(ja: "このモデルを使う", en: "Use this model"))
                         }
+                        .buttonStyle(.bordered)
                     }
 
                     if let deleteAction {
                         Button(role: .destructive, action: deleteAction) {
-                            Text("Delete")
+                            Text(t(ja: "削除", en: "Delete"))
                         }
+                        .buttonStyle(.borderless)
                     }
                 }
-                .buttonStyle(.borderless)
             }
         }
-        .padding(.vertical, 4)
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 0.8)
+        )
     }
 }
 
 private extension ModelInstallContentView {
+    var introCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(t(ja: "AI Models", en: "AI Models"))
+                .font(.title2.weight(.bold))
+            Text(
+                t(
+                    ja: "用途ごとにモデルを管理できます。\"使用中\" のモデルが実際の投稿生成やタイムライン再構成に使われます。",
+                    en: "Manage models by purpose. Models marked as 'Using' are the ones currently used for posting and timeline reconstruction."
+                )
+            )
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 0.8)
+        )
+    }
+
+    func modelSection<Content: View>(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.title3.weight(.bold))
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            VStack(spacing: 14) {
+                content()
+            }
+        }
+    }
+
+    func statusPill(text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(tint.opacity(0.14), in: Capsule())
+            .foregroundColor(tint)
+    }
+
     func t(ja: String, en: String) -> String {
         localizedText(languageCode: selectedLanguage, ja: ja, en: en)
     }

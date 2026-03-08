@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ModelManagementView: View {
 
-    @StateObject private var modelManager = ModelManager()
+    @EnvironmentObject private var modelManager: ModelManager
 
     var body: some View {
         ModelInstallContentView(

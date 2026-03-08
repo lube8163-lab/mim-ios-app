@@ -23,6 +23,12 @@ struct LicenseView: View {
   https://www.apache.org/licenses/LICENSE-2.0
 
 
+• Qwen3.5-VL-0.8B
+  Copyright © Alibaba Cloud / Qwen
+  License: See upstream distribution terms.
+  https://huggingface.co/Qwen
+
+
 • Stable Diffusion v1.5
   License: CreativeML Open RAIL-M
   https://huggingface.co/spaces/CompVis/stable-diffusion-license

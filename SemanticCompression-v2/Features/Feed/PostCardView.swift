@@ -5,6 +5,7 @@ struct PostCardView: View {
 
     @ObservedObject var post: Post
     let isModelInstalled: Bool
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authManager: AuthManager
     var onUserBlocked: ((String) -> Void)? = nil
     var onPostReported: ((String) -> Void)? = nil
@@ -20,6 +21,7 @@ struct PostCardView: View {
     @State private var showReportError = false
     @State private var showBlockConfirm = false
     @State private var showLoginSheet = false
+    @State private var showCaptionDetail = false
 
     var body: some View {
         content
@@ -32,6 +34,9 @@ struct PostCardView: View {
             }
             .sheet(isPresented: $showLoginSheet) {
                 OTPLoginView(allowsSkip: true)
+            }
+            .sheet(isPresented: $showCaptionDetail) {
+                captionDetailSheet
             }
             .confirmationDialog(
                 t(ja: "この投稿を通報しますか？", en: "Report this post?"),
@@ -99,17 +104,19 @@ struct PostCardView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 12) {
-
             headerSection
             textSection
             imageSection
             captionSection
             actionSection
-
-            Divider().padding(.top, 6)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(cardStrokeColor, lineWidth: 0.8)
+        )
+        .shadow(color: Color.black.opacity(0.06), radius: 18, y: 8)
     }
 
     // MARK: - Report submit (temporary)
@@ -144,19 +151,19 @@ extension PostCardView {
                 if let img = phase.image {
                     img.resizable().scaledToFill()
                 } else {
-                    Color.gray.opacity(0.2)
+                    avatarPlaceholder
                 }
             }
-            .frame(width: 36, height: 36)
+            .frame(width: 42, height: 42)
             .clipShape(Circle())
+            .overlay(Circle().stroke(avatarStrokeColor, lineWidth: 1))
 
             VStack(alignment: .leading) {
                 Text(post.displayName ?? t(ja: "ユーザー", en: "User"))
-                    .font(.subheadline)
-                    .bold()
+                    .font(.subheadline.weight(.semibold))
                 Text(post.createdAt.formatted())
                     .font(.caption2)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -178,10 +185,46 @@ extension PostCardView {
             } label: {
                 Image(systemName: "ellipsis")
                     .rotationEffect(.degrees(90))
-                    .padding(8)
+                    .padding(10)
+                    .background(chromeFillColor, in: Circle())
             }
         }
-        .padding(.bottom, 4)
+    }
+
+    private var avatarPlaceholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color.gray.opacity(colorScheme == .dark ? 0.28 : 0.18),
+                    Color.gray.opacity(colorScheme == .dark ? 0.14 : 0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            Text(avatarInitial)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private var avatarInitial: String {
+        let base = (post.displayName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
+            ? post.displayName!
+            : t(ja: "ユーザー", en: "User")
+        return String(base.prefix(1)).uppercased()
+    }
+
+    private var avatarStrokeColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.18) : Color.white.opacity(0.55)
+    }
+
+    private var cardStrokeColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.16) : Color.white.opacity(0.5)
+    }
+
+    private var chromeFillColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)
     }
 }
 
@@ -215,8 +258,9 @@ extension PostCardView {
         Group {
             if let txt = post.userText, !txt.isEmpty {
                 Text(txt)
-                    .font(.body)
+                    .font(.body.weight(.medium))
                     .foregroundColor(.primary)
+                    .padding(.top, 2)
             }
         }
     }
@@ -231,7 +275,7 @@ extension PostCardView {
                 Image(uiImage: img)
                     .resizable()
                     .scaledToFit()
-                    .cornerRadius(12)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                     .transition(.opacity)
                 modeBadge
             }
@@ -241,7 +285,7 @@ extension PostCardView {
                 Image(uiImage: preview)
                     .resizable()
                     .scaledToFit()
-                    .cornerRadius(12)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 if isModelInstalled {
                     VStack(spacing: 6) {
                         RainbowAILoader()
@@ -312,10 +356,21 @@ extension PostCardView {
     @ViewBuilder
     private var captionSection: some View {
         if let cap = post.caption {
-            Text("-\(cap)")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-                .padding(.top, 4)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("-\(cap)")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+
+                if cap.count > 140 {
+                    Button(t(ja: "続きを読む", en: "Read more")) {
+                        showCaptionDetail = true
+                    }
+                    .font(.caption)
+                    .buttonStyle(.plain)
+                    .foregroundColor(.accentColor)
+                }
+            }
         }
     }
 }
@@ -324,7 +379,6 @@ extension PostCardView {
 extension PostCardView {
     private var actionSection: some View {
         HStack(spacing: 24) {
-
             HStack(spacing: 6) {
                 Button {
                     LikeManager.shared.toggleLike(for: post)
@@ -337,15 +391,47 @@ extension PostCardView {
                     .font(.subheadline)
                     .foregroundColor((post.isLikedByCurrentUser ?? false) ? .red : .secondary)
             }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(chromeFillColor, in: Capsule())
 
             Button { showShare = true } label: {
                 Image(systemName: "square.and.arrow.up")
             }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(chromeFillColor, in: Capsule())
 
             Spacer()
         }
         .font(.subheadline)
         .padding(.top, 4)
+    }
+}
+
+extension PostCardView {
+    @ViewBuilder
+    private var captionDetailSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(post.caption ?? "")
+                        .font(.body)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+                .padding(16)
+            }
+            .navigationTitle(t(ja: "キャプション全文", en: "Full Caption"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(t(ja: "閉じる", en: "Close")) {
+                        showCaptionDetail = false
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -12,6 +12,8 @@ struct NewPostView: View {
 
     @EnvironmentObject var taggerHolder: TaggerHolder
     @EnvironmentObject var modelManager: ModelManager
+    var onSemanticProcessingWillStart: (() -> Void)? = nil
+    var onSemanticProcessingDidFinish: (() -> Void)? = nil
 
     // UI state
     @State private var selectedItem: PhotosPickerItem?
@@ -24,7 +26,7 @@ struct NewPostView: View {
     @State private var extractedTags: [String] = []
     @State private var showSemanticCompletionMessage = false
     @State private var showL2PrimeWarning = false
-    @State private var showSiglipRequiredAlert = false
+    @State private var showImageUnderstandingRequiredAlert = false
     @State private var showModeSheet = false
     @State private var hasAcknowledgedCurrentL4Selection = true
     @State private var warningTriggeredFromPostAction = false
@@ -44,34 +46,37 @@ struct NewPostView: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
+            ZStack {
+                newPostBackground
 
-                // ===== 上：スクロール領域（画像プレビューなど） =====
-                ScrollView {
-                    VStack(spacing: 12) {
+                VStack(spacing: 0) {
 
-                        if let img = selectedImage {
-                            imagePreview(img)
+                    // ===== 上：スクロール領域（画像プレビューなど） =====
+                    ScrollView {
+                        VStack(spacing: 14) {
+
+                            if let img = selectedImage {
+                                imagePreview(img)
+                            }
+
+                            if selectedImage != nil {
+                                imageUnderstandingStatusCard
+                            }
+
+                            if isPosting, selectedImage != nil {
+                                postingTagStreamSection
+                            }
                         }
-
-                        if selectedImage != nil {
-                            Text(t(ja: "意味を抽出して再構成します", en: "Extracting semantics and reconstructing"))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal)
-                        }
-
-                        if isPosting, selectedImage != nil {
-                            postingTagStreamSection
-                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 14)
+                        .padding(.bottom, 12)
                     }
-                    .padding(.top, 12)
+
+                    Divider()
+
+                    // ===== 下：常に操作できるComposer（TextEditorはここ） =====
+                    composerArea
                 }
-
-                Divider()
-
-                // ===== 下：常に操作できるComposer（TextEditorはここ） =====
-                composerArea
             }
             .navigationTitle(t(ja: "新規投稿", en: "New Post"))
             .navigationBarTitleDisplayMode(.inline)
@@ -141,10 +146,10 @@ struct NewPostView: View {
         }
         .alert(
             t(
-                ja: "SigLIP2 が未インストールです",
-                en: "SigLIP2 is not installed"
+                ja: "\(modelManager.selectedImageUnderstandingModel.title) が未インストールです",
+                en: "\(modelManager.selectedImageUnderstandingModel.title) is not installed"
             ),
-            isPresented: $showSiglipRequiredAlert
+            isPresented: $showImageUnderstandingRequiredAlert
         ) {
             Button(t(ja: "テキストのみ投稿", en: "Post text only")) {
                 Task { await handlePost(forceTextOnly: true) }
@@ -153,8 +158,8 @@ struct NewPostView: View {
         } message: {
             Text(
                 t(
-                    ja: "画像の意味抽出ができないため、このままでは画像投稿は反映されません。テキストのみで投稿しますか？",
-                    en: "Image semantic extraction is unavailable. Image posts may not appear correctly. Post as text-only?"
+                    ja: "選択中の画像理解モデルが利用できないため、このままでは画像投稿は反映されません。テキストのみで投稿しますか？",
+                    en: "The selected image understanding model is unavailable. Post as text-only?"
                 )
             )
         }
@@ -170,8 +175,7 @@ extension NewPostView {
             HStack(spacing: 10) {
                 RainbowAILoader()
                 Text(t(ja: "意味情報を送信中…", en: "Sending semantic data..."))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.subheadline.weight(.semibold))
             }
 
             Text(t(ja: "サーバーへ送信中の情報", en: "What's being sent"))
@@ -193,45 +197,66 @@ extension NewPostView {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.horizontal)
-        .padding(.top, 6)
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.white.opacity(0.55), lineWidth: 0.8)
+        )
+        .shadow(color: Color.black.opacity(0.05), radius: 16, y: 8)
     }
 
     private var composerArea: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
 
             HStack(alignment: .top, spacing: 12) {
 
                 userAvatar
 
-                ZStack(alignment: .topLeading) {
-                    if userText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(t(ja: "いまどうしてる？", en: "What's happening?"))
-                            .foregroundColor(.secondary)
-                            .padding(.top, 10)
-                            .padding(.leading, 6)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text(UserManager.shared.currentUser.displayName)
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                        if selectedImage != nil {
+                            Label(t(ja: "画像あり", en: "Image attached"), systemImage: "photo")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.secondary)
+                        }
                     }
 
-                    TextEditor(text: $userText)
-                        .frame(minHeight: 80, maxHeight: 120)
-                        .padding(4)
-                        .scrollContentBackground(.hidden)
-                        .onChange(of: userText) { newValue in
-                            if newValue.count > maxPostTextLength {
-                                userText = String(newValue.prefix(maxPostTextLength))
-                            }
+                    ZStack(alignment: .topLeading) {
+                        if userText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            Text(t(ja: "いまどうしてる？", en: "What's happening?"))
+                                .foregroundColor(.secondary)
+                                .padding(.top, 10)
+                                .padding(.leading, 6)
                         }
+
+                        TextEditor(text: $userText)
+                            .frame(minHeight: 88, maxHeight: 128)
+                            .padding(4)
+                            .scrollContentBackground(.hidden)
+                            .onChange(of: userText) { newValue in
+                                if newValue.count > maxPostTextLength {
+                                    userText = String(newValue.prefix(maxPostTextLength))
+                                }
+                            }
+                    }
                 }
             }
 
             HStack {
                 PhotosPicker(selection: $selectedItem, matching: .images) {
                     Label(t(ja: "画像", en: "Image"), systemImage: "photo")
-                        .font(.subheadline)
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.accentColor.opacity(0.12), in: Capsule())
                 }
 
                 Spacer()
-                
+
                 if selectedImage != nil {
                     VStack(alignment: .trailing, spacing: 4) {
                         Button {
@@ -270,17 +295,37 @@ extension NewPostView {
                     .foregroundColor(.red)
                     .font(.caption)
             }
-            
+
             HStack {
+                if selectedImage != nil {
+                    Label(
+                        t(ja: "意味圧縮を適用", en: "Semantic compression enabled"),
+                        systemImage: "sparkles"
+                    )
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+
                 Spacer()
+
                 Text("\(userText.count)/\(maxPostTextLength)")
                     .font(.caption2)
                     .foregroundColor(userText.count >= maxPostTextLength ? .orange : .secondary)
             }
 
         }
-        .padding(12)
-        .background(.ultraThinMaterial)
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(Color.white.opacity(0.55), lineWidth: 0.8)
+        )
+        .shadow(color: Color.black.opacity(0.08), radius: 20, y: 8)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
         .onChange(of: selectedItem) { _ in loadImage() }
         .sheet(isPresented: $showModeSheet) {
             modeSelectionSheet
@@ -393,10 +438,15 @@ extension NewPostView {
             Image(uiImage: img)
                 .resizable()
                 .scaledToFill()
-                .frame(height: 220)
+                .frame(height: 250)
+                .frame(maxWidth: .infinity)
                 .clipped()
-                .cornerRadius(14)
-                .padding(.horizontal)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(Color.white.opacity(0.55), lineWidth: 0.8)
+                )
+                .shadow(color: Color.black.opacity(0.08), radius: 20, y: 10)
 
             Button {
                 selectedItem = nil
@@ -412,6 +462,37 @@ extension NewPostView {
             .accessibilityLabel(t(ja: "画像を削除", en: "Remove image"))
         }
     }
+
+    private var imageUnderstandingStatusCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(
+                t(ja: "意味を抽出して再構成します", en: "Extracting semantics and reconstructing"),
+                systemImage: "sparkles.rectangle.stack"
+            )
+            .font(.subheadline.weight(.semibold))
+
+            Text(
+                t(
+                    ja: "現在の解析モデル: \(modelManager.selectedImageUnderstandingModel.title)",
+                    en: "Current image model: \(modelManager.selectedImageUnderstandingModel.title)"
+                )
+            )
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.white.opacity(0.55), lineWidth: 0.8)
+        )
+    }
+
+    private var newPostBackground: some View {
+        Color(.systemBackground)
+            .ignoresSafeArea()
+    }
 }
 
 // MARK: - Logic
@@ -419,8 +500,9 @@ extension NewPostView {
 extension NewPostView {
 
     private func requestPost() {
-        if selectedImage != nil && !modelManager.siglipInstalled {
-            showSiglipRequiredAlert = true
+        if selectedImage != nil &&
+            !modelManager.isImageUnderstandingModelInstalled(modelManager.selectedImageUnderstandingModelID) {
+            showImageUnderstandingRequiredAlert = true
             return
         }
         if selectedImage != nil && selectedMode == .l2Prime && !hasAcknowledgedCurrentL4Selection {
@@ -519,14 +601,21 @@ extension NewPostView {
             posts.insert(tempPost, at: 0)
         }
 
+        if imageForPost != nil {
+            onSemanticProcessingWillStart?()
+            defer {
+                onSemanticProcessingDidFinish?()
+            }
+        }
+
         // ② Semantic Extraction（画像があるときだけ）
         if imageForPost != nil {
-            SemanticExtractionTask.shared.process(
+            await SemanticExtractionTask.shared.process(
                 post: tempPost,
                 taggers: taggerHolder
             ) { tags in
-                Task { @MainActor in
-                    for tag in tags where !extractedTags.contains(tag) {
+                for tag in tags where !extractedTags.contains(tag) {
+                    Task { @MainActor in
                         withAnimation(.easeIn(duration: 0.3)) {
                             extractedTags.append(tag)
                         }
@@ -542,6 +631,15 @@ extension NewPostView {
         // ③ Upload
         do {
             try await uploader.upload(post: tempPost)
+            if tempPost.hasImage {
+                do {
+                    try await SemanticExtractionTask.shared.syncGeneratedMetadata(post: tempPost)
+                } catch {
+                    #if DEBUG
+                    print("⚠️ Metadata sync failed:", error)
+                    #endif
+                }
+            }
             if tempPost.hasImage {
                 await MainActor.run {
                     withAnimation(.easeIn(duration: 0.2)) {

@@ -62,6 +62,7 @@ struct ContentView: View {
     @State private var generationQueue: [Post] = []
     @State private var isGenerating = false
     @State private var generationTask: Task<Void, Never>?
+    @State private var isGenerationSuspendedForPosting = false
     @State private var showReportToast = false
     @State private var showBlockToast = false
     @State private var showLoginSheet = false
@@ -144,6 +145,7 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 ZStack {
+                    timelineBackground
                     feedBody
                     floatingNewPostButton
                 }
@@ -224,7 +226,15 @@ struct ContentView: View {
             .tag(HomeTab.profile)
         }
         .sheet(isPresented: $showNewPost) {
-            NewPostView(posts: $postList.items)
+            NewPostView(
+                posts: $postList.items,
+                onSemanticProcessingWillStart: {
+                    Task { await suspendImageGenerationForPosting() }
+                },
+                onSemanticProcessingDidFinish: {
+                    Task { await resumeImageGenerationAfterPosting() }
+                }
+            )
         }
         .sheet(isPresented: $showLoginSheet) {
             OTPLoginView(allowsSkip: true)
@@ -304,8 +314,8 @@ extension ContentView {
                     LazyVStack(spacing: 16) {
                         if !authManager.isAuthenticated {
                             guestLoginBanner
-                                .padding(.horizontal, 12)
-                                .padding(.top, 8)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 12)
                         }
                         ForEach(postList.items) { post in
                             PostCardView(
@@ -321,7 +331,8 @@ extension ContentView {
                             }
                         }
                     }
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
                 }
                 .refreshable {
                     await refreshFeed()
@@ -352,11 +363,26 @@ extension ContentView {
                     }
                     .accessibilityLabel(t(ja: "画像を再生成", en: "Regenerate images"))
                     Text(genLog)
+                        .lineLimit(1)
                     Spacer(minLength: 0)
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.45), lineWidth: 0.8)
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
             } else {
                 Text(t(ja: "⚠️ モデル未インストール（画像生成は無効）", en: "⚠️ Model not installed (image generation disabled)"))
                     .foregroundColor(.orange)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
             }
         }
         .font(.footnote)
@@ -377,11 +403,25 @@ extension ContentView {
                     }
                 }) {
                     if authManager.isAuthenticated {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 56))
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, Color.accentColor)
-                            .shadow(radius: 3)
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.accentColor,
+                                            Color.accentColor.opacity(0.78)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 62, height: 62)
+                                .shadow(color: Color.accentColor.opacity(0.28), radius: 18, y: 10)
+
+                            Image(systemName: "plus")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                        }
                     } else {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.fill")
@@ -436,8 +476,11 @@ extension ContentView {
             .buttonStyle(.borderedProminent)
         }
         .padding(12)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.white.opacity(0.5), lineWidth: 0.8)
+        )
     }
 
     @ViewBuilder
@@ -473,7 +516,8 @@ extension ContentView {
                             }
                     }
                 }
-                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
             }
             .refreshable {
                 await onRefresh()
@@ -503,6 +547,12 @@ extension ContentView {
             .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 24)
+    }
+
+    private var timelineBackground: some View {
+        Color(.systemBackground)
+            .ignoresSafeArea()
     }
 
     private func removeBlockedUserFromLists(_ blockedUserId: String) {
@@ -697,6 +747,7 @@ extension ContentView {
 
     @MainActor
     func enqueueImages(for posts: [Post]) {
+        guard !isGenerationSuspendedForPosting else { return }
         let canGenerate = modelManager.sdInstalled
         let modelID = modelManager.selectedSDModelID
         for post in posts {
@@ -736,6 +787,7 @@ extension ContentView {
         }
 
         while !generationQueue.isEmpty {
+            if isGenerationSuspendedForPosting { return }
             if Task.isCancelled { return }
             let post = generationQueue.removeFirst()
             guard let prompt = post.effectivePrompt else { continue }
@@ -852,6 +904,7 @@ extension ContentView {
 extension ContentView {
     @MainActor
     private func maybeReloadGeneratorForSelectedModel() async {
+        guard !isGenerationSuspendedForPosting else { return }
         guard modelManager.sdInstalled else { return }
         guard loadedSDModelID != modelManager.selectedSDModelID || generator == nil else { return }
         await reloadGeneratorForSelectedModel()
@@ -859,6 +912,7 @@ extension ContentView {
 
     @MainActor
     private func reloadGeneratorForSelectedModel() async {
+        guard !isGenerationSuspendedForPosting else { return }
         let previousModelID = loadedSDModelID
 
         generationTask?.cancel()
@@ -910,6 +964,37 @@ extension ContentView {
             }
             post.localImage = nil
             post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
+        }
+    }
+
+    @MainActor
+    private func suspendImageGenerationForPosting() async {
+        guard !isGenerationSuspendedForPosting else { return }
+        isGenerationSuspendedForPosting = true
+
+        generationTask?.cancel()
+        generationTask = nil
+        generationQueue.removeAll()
+        isGenerating = false
+
+        if let current = generator {
+            await current.unloadResources()
+            generator = nil
+            isGeneratorReady = false
+        }
+
+        genLog = t(ja: "投稿処理中のため再生成を一時停止", en: "Image generation paused during posting")
+    }
+
+    @MainActor
+    private func resumeImageGenerationAfterPosting() async {
+        guard isGenerationSuspendedForPosting else { return }
+        isGenerationSuspendedForPosting = false
+
+        await maybeReloadGeneratorForSelectedModel()
+        enqueueImages(for: postList.items + myPostList.items + likedPostList.items)
+        if modelManager.sdInstalled {
+            genLog = t(ja: "準備完了", en: "Ready")
         }
     }
 }

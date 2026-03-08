@@ -16,9 +16,11 @@ actor PostStore {
 
     /// サーバーから decode された Post を受け取り、
     /// 既存の Post があればそれを更新して返す。
-    func resolve(_ incoming: Post) -> Post {
+    func resolve(_ incoming: Post) async -> Post {
         if let existing = map[incoming.id] {
-            update(existing, with: incoming)
+            await MainActor.run {
+                Self.applyUpdate(existing, with: incoming)
+            }
             return existing
         } else {
             map[incoming.id] = incoming
@@ -27,7 +29,8 @@ actor PostStore {
     }
 
     /// すでに UI が保持している Post を更新する（必要なフィールドだけ）
-    private func update(_ target: Post, with incoming: Post) {
+    @MainActor
+    private static func applyUpdate(_ target: Post, with incoming: Post) {
         target.caption = incoming.caption
         target.semanticPrompt = incoming.semanticPrompt
         target.regionTags = incoming.regionTags

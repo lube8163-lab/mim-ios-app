@@ -11,7 +11,7 @@ actor SemanticExtractionTask {
     static let shared = SemanticExtractionTask()
     init() {}
 
-    private static let bannedTokens: Set<String> = [
+    static let bannedTokens: Set<String> = [
         "seductive", "intimate", "intimacy", "lover", "lust",
         "nude", "naked", "porn", "porno", "sex", "sexual", "erotic", "nsfw",
         "breast", "breasts", "nipple", "nipples", "genital", "genitals",
@@ -24,7 +24,7 @@ actor SemanticExtractionTask {
         post: Post,
         taggers: TaggerHolder,
         onTagsExtracted: (([String]) -> Void)? = nil
-    ) {
+    ) async {
 
         guard let image = post.localImage else {
             #if DEBUG
@@ -33,137 +33,151 @@ actor SemanticExtractionTask {
             return
         }
 
-        post.status = .processing
+        await MainActor.run {
+            post.status = .processing
+        }
 
-        Task.detached(priority: .background) { [weak post] in
-            guard let post else { return }
+        do {
+            let backend = ImageUnderstandingModel(
+                rawValue: UserDefaults.standard.string(
+                    forKey: AppPreferences.selectedImageUnderstandingModelKey
+                ) ?? ImageUnderstandingModel.siglip2.rawValue
+            ) ?? .siglip2
 
-            do {
-                // 1️⃣ regionTags（object辞書のみ）
-                let regionTags = try await Self.extractRegionTags(
-                    from: image,
-                    tagger: taggers.objectTagger
+            switch backend {
+            case .siglip2:
+                try await Self.processWithSigLIP(
+                    post: post,
+                    image: image,
+                    taggers: taggers,
+                    onTagsExtracted: onTagsExtracted
                 )
-                let safeRegionTags = Self.sanitizeRegionTags(regionTags)
-
-                // 2️⃣ caption（人向け：regionTagsから）
-                let caption: String
-                do {
-                    caption = try await VisionLanguageCaptioner.shared
-                        .generateCaption(from: safeRegionTags)
-                } catch {
-                    #if DEBUG
-                    print("⚠️ VisionLanguageCaptioner failed:", error)
-                    #endif
-                    caption = ""
-                }
-/*
-                // 3️⃣ SD base prompt（安全な最小構成）
-                let flatTags = regionTags.flatMap { $0.tags }
-
-                let basePrompt: String
-                do {
-                    basePrompt = try await SDPromptGenerator.shared
-                        .generatePrompt(from: regionTags)
-                } catch {
-                    print("⚠️ SDPromptGenerator failed:", error)
-                    basePrompt = Self.fallbackSDPrompt(from: flatTags)
-                }
-*/
-                
-                // 3️⃣ object / phrase tags（修飾用：複数）
-                let objectFlatTags = safeRegionTags.flatMap { $0.tags }
-
-                let cleanedObjects = objectFlatTags
-                    .map { $0.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { $0.count >= 3 }
-
-                let rankedObjects = Dictionary(grouping: cleanedObjects, by: { $0 })
-                    .mapValues { $0.count }
-                    .sorted { $0.value > $1.value }
-                    .map { $0.key }
-
-                var streamedTags: [String] = []
-                for tag in rankedObjects.prefix(6) {
-                    streamedTags.append(tag)
-                    await MainActor.run {
-                        onTagsExtracted?(streamedTags)
-                    }
-                }
-
-                let objectTop = Array(streamedTags.prefix(6))
-
-                // 4️⃣ style + caption 辞書（画像全体embedding）
-                guard let cgImage = image.cgImage else {
-                    throw NSError(
-                        domain: "SemanticExtractionTask",
-                        code: -30,
-                        userInfo: [NSLocalizedDescriptionKey: "Failed to get CGImage"]
-                    )
-                }
-
-                let globalVec = try await SigLIP2Service.shared.embed(image: cgImage)
-
-                let styleTags = Self.sanitizeTags(
-                    taggers.styleTagger.tags(from: globalVec, topK: 3)
+            case .qwen35vl:
+                try await Self.processWithQwen(
+                    post: post,
+                    image: image,
+                    onTagsExtracted: onTagsExtracted
                 )
-                let captionTags = Self.sanitizeTags(
-                    taggers.captionTagger.tags(from: globalVec, topK: 1)
-                )
-
-                // 5️⃣ Final SD prompt 合成
-/*                let finalPrompt = (styleTags + [basePrompt] + captionTags)
-                    .joined(separator: ", ")
-*/
-                // style → object修飾 → caption文脈 の順
-                let finalPrompt = (styleTags + objectTop + captionTags)
-                    .joined(separator: ", ")
-
-                // 6️⃣ Post 更新（UI反映）
-                await MainActor.run {
-                    post.regionTags = safeRegionTags
-                    post.caption = caption
-                    post.semanticPrompt = finalPrompt
-                    post.tags = objectTop
-                    post.status = .completed
-                }
-
-                // 7️⃣ サーバーへ送信
-                try await Self.upload(post: post)
-
-                #if DEBUG
-                print("✅ Semantic extraction completed for post \(post.id)")
-                #endif
-
-            } catch {
-                #if DEBUG
-                print("❌ SemanticExtractionTask failed:", error)
-                #endif
-
-                await MainActor.run {
-                    post.status = .failed
-                }
-
-                // fallback upload
-                do {
-                    await MainActor.run {
-                        if post.semanticPrompt?.isEmpty ?? true {
-                            post.semanticPrompt = "simple scene"
-                        }
-                        if post.caption?.isEmpty ?? true {
-                            post.caption = ""
-                        }
-                    }
-                    try await Self.upload(post: post)
-                    await MainActor.run {
-                        post.status = .completed
-                    }
-                } catch {
-                    #if DEBUG
-                    print("⚠️ Upload fallback also failed:", error)
-                    #endif
-                }
             }
+
+            #if DEBUG
+            print("✅ Semantic extraction completed for post \(post.id)")
+            #endif
+
+        } catch {
+            #if DEBUG
+            print("❌ SemanticExtractionTask failed:", error)
+            #endif
+
+            await MainActor.run {
+                post.status = .failed
+            }
+            await MainActor.run {
+                if post.semanticPrompt?.isEmpty ?? true {
+                    post.semanticPrompt = "simple scene"
+                }
+                if post.caption?.isEmpty ?? true {
+                    post.caption = ""
+                }
+                post.status = .completed
+            }
+        }
+    }
+
+    func syncGeneratedMetadata(post: Post) async throws {
+        try await Self.upload(post: post)
+    }
+
+    private static func processWithSigLIP(
+        post: Post,
+        image: UIImage,
+        taggers: TaggerHolder,
+        onTagsExtracted: (([String]) -> Void)? = nil
+    ) async throws {
+        let regionTags = try await Self.extractRegionTags(
+            from: image,
+            tagger: taggers.objectTagger
+        )
+        let safeRegionTags = Self.sanitizeRegionTags(regionTags)
+
+        let caption: String
+        do {
+            caption = try await VisionLanguageCaptioner.shared
+                .generateCaption(from: safeRegionTags)
+        } catch {
+            #if DEBUG
+            print("⚠️ VisionLanguageCaptioner failed:", error)
+            #endif
+            caption = ""
+        }
+
+        let objectFlatTags = safeRegionTags.flatMap { $0.tags }
+        let cleanedObjects = objectFlatTags
+            .map { $0.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { $0.count >= 3 }
+
+        let rankedObjects = Dictionary(grouping: cleanedObjects, by: { $0 })
+            .mapValues { $0.count }
+            .sorted { $0.value > $1.value }
+            .map { $0.key }
+
+        var streamedTags: [String] = []
+        for tag in rankedObjects.prefix(6) {
+            streamedTags.append(tag)
+            await MainActor.run {
+                onTagsExtracted?(streamedTags)
+            }
+        }
+
+        let objectTop = Array(streamedTags.prefix(6))
+
+        guard let cgImage = image.cgImage else {
+            throw NSError(
+                domain: "SemanticExtractionTask",
+                code: -30,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to get CGImage"]
+            )
+        }
+
+        let globalVec = try await SigLIP2Service.shared.embed(image: cgImage)
+        let styleTags = Self.sanitizeTags(
+            taggers.styleTagger.tags(from: globalVec, topK: 3)
+        )
+        let captionTags = Self.sanitizeTags(
+            taggers.captionTagger.tags(from: globalVec, topK: 1)
+        )
+        let finalPrompt = (styleTags + objectTop + captionTags)
+            .joined(separator: ", ")
+
+        await MainActor.run {
+            post.regionTags = safeRegionTags
+            post.caption = caption
+            post.semanticPrompt = finalPrompt
+            post.tags = objectTop
+            post.status = .completed
+        }
+    }
+
+    private static func processWithQwen(
+        post: Post,
+        image: UIImage,
+        onTagsExtracted: (([String]) -> Void)? = nil
+    ) async throws {
+        let metadata = try await QwenVisionLanguageService.shared.generateMetadata(from: image)
+        let safeTags = Array(Self.sanitizeTags(metadata.tags).prefix(6))
+
+        if !safeTags.isEmpty {
+            await MainActor.run {
+                onTagsExtracted?(safeTags)
+            }
+        }
+
+        await MainActor.run {
+            post.regionTags = nil
+            post.caption = metadata.caption
+            post.semanticPrompt = metadata.semanticPrompt
+            post.tags = safeTags
+            post.status = .completed
         }
     }
 

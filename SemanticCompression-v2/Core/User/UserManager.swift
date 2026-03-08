@@ -45,6 +45,39 @@ final class UserManager: ObservableObject {
     }
 
     func saveUser(_ user: LocalUser) {
+        if Thread.isMainThread {
+            applyUser(user)
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.applyUser(user)
+            }
+        }
+    }
+    
+    func resetUser() {
+        let guestUser = LocalUser(
+            id: "",
+            displayName: "Anyone",
+            avatarUrl: "",
+            email: nil,
+            deleteToken: ""
+        )
+
+        if Thread.isMainThread {
+            clearStoredUser()
+            currentUser = guestUser
+            BlockManager.shared.reloadForCurrentUser()
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.clearStoredUser()
+                self.currentUser = guestUser
+                BlockManager.shared.reloadForCurrentUser()
+            }
+        }
+    }
+
+    private func applyUser(_ user: LocalUser) {
         currentUser = user
         defaults.set(user.id, forKey: key_userId)
         defaults.set(user.displayName, forKey: key_displayName)
@@ -52,21 +85,12 @@ final class UserManager: ObservableObject {
         defaults.set(user.email, forKey: key_email)
         defaults.set(user.deleteToken, forKey: key_deleteToken)
     }
-    
-    func resetUser() {
+
+    private func clearStoredUser() {
         defaults.removeObject(forKey: key_userId)
         defaults.removeObject(forKey: key_displayName)
         defaults.removeObject(forKey: key_avatarUrl)
         defaults.removeObject(forKey: key_email)
         defaults.removeObject(forKey: key_deleteToken)
-
-        currentUser = LocalUser(
-            id: "",
-            displayName: "Anyone",
-            avatarUrl: "",
-            email: nil,
-            deleteToken: ""
-        )
-        BlockManager.shared.reloadForCurrentUser()
     }
 }
