@@ -19,6 +19,8 @@ enum AppPreferences {
     static let selectedPrivacyModeKey = "selected_privacy_mode"
     static let selectedSDModelKey = "selected_sd_model"
     static let selectedImageUnderstandingModelKey = "selected_image_understanding_model"
+    static let proModeEnabledKey = "pro_mode_enabled"
+    static let proModeCacheLimitMBKey = "pro_mode_cache_limit_mb"
     static let onboardingCompletedKey = "onboarding_completed"
     static let acceptedPrivacyVersionKey = "accepted_privacy_version"
     static let acceptedTermsVersionKey = "accepted_terms_version"
@@ -33,4 +35,8 @@ enum AppPreferences {
     static let termsOfServiceURL = URL(
         string: "https://lube8163-lab.github.io/mim-ios/terms.html"
     )!
+}
+
+extension Notification.Name {
+    static let semanticCacheMaintenanceRequested = Notification.Name("semantic_cache_maintenance_requested")
 }

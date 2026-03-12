@@ -13,7 +13,7 @@ struct AppInfoView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 28) {
 
                 Text("Semantic Compression")
                     .font(.title2)
@@ -44,6 +44,7 @@ struct AppInfoView: View {
                     bodyJA: """
                     SigLIP2:
                     画像からタグや特徴量を抽出し、比較的軽量に caption / prompt を組み立てます。
+                    プロモードでは、再生成画像との意味保持率評価にも使われます。
 
                     Qwen3.5-VL-0.8B:
                     画像から caption / prompt / tags を直接生成します。
@@ -56,6 +57,7 @@ struct AppInfoView: View {
                     bodyEN: """
                     SigLIP2:
                     Extracts tags and visual features, then builds captions and prompts with a lightweight pipeline.
+                    In Pro Mode, it is also used to score semantic fidelity against regenerated images.
 
                     Qwen3.5-VL-0.8B:
                     Directly generates captions, prompts, and tags from the image.
@@ -73,6 +75,7 @@ struct AppInfoView: View {
                     bodyJA: """
                     Stable Diffusion 1.5:
                     タイムラインや投稿一覧で再構成画像を生成します。
+                    元画像ベースの img2img を使えるため、品質重視の比較や確認に向いています。
 
                     Stable Diffusion 1.5 (LCM):
                     高速な再構成向けです。通常モデルより速い一方、img2img ベースの挙動は使いません。
@@ -83,6 +86,7 @@ struct AppInfoView: View {
                     bodyEN: """
                     Stable Diffusion 1.5:
                     Generates reconstructed images for the timeline and post lists.
+                    Because it supports the starting-image img2img workflow, it is better suited for quality-focused comparisons.
 
                     Stable Diffusion 1.5 (LCM):
                     Optimized for faster reconstruction. It is faster than the standard model, but does not use the img2img-style workflow.
@@ -106,6 +110,31 @@ struct AppInfoView: View {
                     Lighter modes favor privacy, while stronger modes allow easier reconstruction.
 
                     Reconstruction quality depends on the selected mode, the active model, and the content of the original image.
+                    """
+                )
+
+                infoSection(
+                    titleJA: "プロモード",
+                    titleEN: "Pro Mode",
+                    bodyJA: """
+                    プロモードでは、自分の投稿に対して再生成画像との意味保持率を表示できます。
+                    あわせて、prompt 生成時間、画像生成時間、メモリ使用量も確認できます。
+
+                    これらの表示は比較や検証をしやすくするためのもので、
+                    メモリ値はピークではなく、各処理が完了した時点のフットプリントです。
+
+                    意味保持率の計算には SigLIP2 が必要です。
+                    必要に応じて設定画面からキャッシュ容量を調整できます。
+                    """,
+                    bodyEN: """
+                    Pro Mode shows a semantic fidelity score for your own posts by comparing regenerated images with the original.
+                    It also exposes prompt-generation time, image-generation time, and memory usage for inspection.
+
+                    These readouts are intended for comparison and evaluation.
+                    Memory is shown as the footprint measured when each step completes, not as a peak value.
+
+                    SigLIP2 is required for semantic fidelity scoring.
+                    You can also adjust the cache budget from Settings when needed.
                     """
                 )
 
@@ -136,10 +165,12 @@ struct AppInfoView: View {
 
     @ViewBuilder
     private func infoSection(titleJA: String, titleEN: String, bodyJA: String, bodyEN: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(t(ja: titleJA, en: titleEN))
                 .font(.headline)
             Text(t(ja: bodyJA, en: bodyEN))
+                .lineSpacing(6)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

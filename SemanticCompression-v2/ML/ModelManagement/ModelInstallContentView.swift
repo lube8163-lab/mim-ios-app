@@ -256,6 +256,28 @@ struct ModelInstallContentView: View {
                 .foregroundColor(.secondary)
             }
 
+            if modelID == ModelManager.siglipModelID {
+                Text(
+                    t(
+                        ja: "SigLIP2 は画像から特徴量とタグを抽出する軽量モデルです。caption / prompt の組み立てに使われ、プロモードの意味保持率評価にも必要です。",
+                        en: "SigLIP2 is a lightweight vision model that extracts embeddings and tags from images. It is used for caption/prompt assembly and is also required for Pro Mode semantic fidelity scoring."
+                    )
+                )
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            }
+
+            if modelID == ModelManager.sd15ModelID {
+                Text(
+                    t(
+                        ja: "通常版 SD1.5 は品質重視の再構成向けです。元画像ベースの img2img を使えるため、モード差の比較にも向いています。",
+                        en: "The standard SD 1.5 model prioritizes reconstruction quality. It supports the starting-image img2img workflow, which makes it better for comparing privacy modes."
+                    )
+                )
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            }
+
             if modelID == ModelManager.sd15LCMModelID {
                 Text(
                     t(

@@ -37,6 +37,8 @@ actor SemanticExtractionTask {
             post.status = .processing
         }
 
+        let promptStart = Date()
+
         do {
             let backend = ImageUnderstandingModel(
                 rawValue: UserDefaults.standard.string(
@@ -64,6 +66,19 @@ actor SemanticExtractionTask {
             print("✅ Semantic extraction completed for post \(post.id)")
             #endif
 
+            let duration = Date().timeIntervalSince(promptStart)
+            let memory = currentMemoryFootprintMB()
+            await MainActor.run {
+                post.updatePromptGenerationDiagnostics(duration: duration, memoryMB: memory)
+                let key = regenerationEvaluationCacheKey(
+                    postID: post.id,
+                    modelID: ModelManager.shared.selectedSDModelID
+                )
+                if let evaluation = post.regenerationEvaluation {
+                    ImageCacheManager.shared.saveRegenerationEvaluation(evaluation, for: key)
+                }
+            }
+
         } catch {
             #if DEBUG
             print("❌ SemanticExtractionTask failed:", error)
@@ -78,6 +93,16 @@ actor SemanticExtractionTask {
                 }
                 if post.caption?.isEmpty ?? true {
                     post.caption = ""
+                }
+                let duration = Date().timeIntervalSince(promptStart)
+                let memory = currentMemoryFootprintMB()
+                post.updatePromptGenerationDiagnostics(duration: duration, memoryMB: memory)
+                let key = regenerationEvaluationCacheKey(
+                    postID: post.id,
+                    modelID: ModelManager.shared.selectedSDModelID
+                )
+                if let evaluation = post.regenerationEvaluation {
+                    ImageCacheManager.shared.saveRegenerationEvaluation(evaluation, for: key)
                 }
                 post.status = .completed
             }

@@ -9,6 +9,8 @@ struct NewPostView: View {
     private var selectedLanguage = AppLanguage.japanese.rawValue
     @AppStorage(AppPreferences.selectedPrivacyModeKey)
     private var selectedPrivacyModeRaw = PrivacyMode.l2.storageValue
+    @AppStorage(AppPreferences.proModeEnabledKey)
+    private var isProModeEnabled = false
 
     @EnvironmentObject var taggerHolder: TaggerHolder
     @EnvironmentObject var modelManager: ModelManager
@@ -597,6 +599,14 @@ extension NewPostView {
             localImage: imageForPost
         )
 
+        if let imageForPost, isProModeEnabled {
+            ImageCacheManager.shared.save(
+                imageForPost,
+                for: tempPost.id,
+                namespace: .originalImages
+            )
+        }
+
         await MainActor.run {
             posts.insert(tempPost, at: 0)
         }
@@ -656,6 +666,9 @@ extension NewPostView {
             #if DEBUG
             print("⚠️ Upload failed:", error)
             #endif
+            if imageForPost != nil && isProModeEnabled {
+                ImageCacheManager.shared.remove(for: tempPost.id, namespace: .originalImages)
+            }
             await MainActor.run {
                 posts.removeAll { $0.id == tempPost.id }
                 showSemanticCompletionMessage = false

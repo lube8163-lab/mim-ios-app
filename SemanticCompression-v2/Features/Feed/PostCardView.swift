@@ -109,6 +109,7 @@ struct PostCardView: View {
             imageSection
             captionSection
             actionSection
+            semanticFidelitySection
         }
         .padding(16)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
@@ -233,6 +234,76 @@ extension PostCardView {
         guard let postUserId = post.userId else { return false }
         return postUserId != UserManager.shared.currentUser.id
             && !BlockManager.shared.isBlocked(postUserId)
+    }
+
+    @ViewBuilder
+    private var semanticFidelitySection: some View {
+        if isCurrentUsersPost, let evaluation = post.regenerationEvaluation {
+            VStack(alignment: .leading, spacing: 4) {
+                if let score = evaluation.score {
+                    HStack(spacing: 6) {
+                        Image(systemName: "waveform.path.ecg")
+                            .font(.caption2)
+                        Text(
+                            t(
+                                ja: "意味保持率 \(Int((score * 100).rounded()))%",
+                                en: "Semantic fidelity \(Int((score * 100).rounded()))%"
+                            )
+                        )
+                        .font(.caption2.weight(.semibold))
+                    }
+                }
+
+                if let promptLine = diagnosticLine(
+                    labelJA: "Prompt",
+                    labelEN: "Prompt",
+                    duration: evaluation.promptGenerationDuration,
+                    memoryMB: evaluation.promptGenerationMemoryMB
+                ) {
+                    Text(promptLine)
+                        .font(.caption2)
+                }
+
+                if let imageLine = diagnosticLine(
+                    labelJA: "生成",
+                    labelEN: "Image",
+                    duration: evaluation.imageGenerationDuration,
+                    memoryMB: evaluation.imageGenerationMemoryMB
+                ) {
+                    Text(imageLine)
+                        .font(.caption2)
+                }
+            }
+            .foregroundColor(.secondary)
+        }
+    }
+
+    private var isCurrentUsersPost: Bool {
+        guard let postUserId = post.userId else { return false }
+        return postUserId == UserManager.shared.currentUser.id
+    }
+
+    private func diagnosticLine(
+        labelJA: String,
+        labelEN: String,
+        duration: TimeInterval?,
+        memoryMB: Double?
+    ) -> String? {
+        guard duration != nil || memoryMB != nil else { return nil }
+
+        let durationText = duration.map { String(format: "%.1fs", $0) } ?? "-"
+        let memoryText = memoryMB.map { formatMemory($0) } ?? "-"
+        return t(
+            ja: "\(labelJA) \(durationText) / \(memoryText)",
+            en: "\(labelEN) \(durationText) / \(memoryText)"
+        )
+    }
+
+    private func formatMemory(_ valueMB: Double) -> String {
+        if valueMB >= 1024 {
+            return String(format: "%.2f GB", valueMB / 1024)
+        }
+        return String(format: "%.0f MB", valueMB)
     }
 
     private func blockAuthorIfNeeded() {

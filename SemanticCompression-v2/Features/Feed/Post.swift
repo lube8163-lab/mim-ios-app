@@ -6,10 +6,25 @@
 import Foundation
 import UIKit
 import Combine
+import Darwin
 
 // MARK: - Status
 enum PostStatus: String, Codable {
     case normal, pending, processing, completed, failed
+}
+
+enum RegenerationEvaluationMetric: String, Codable {
+    case siglipCosine = "siglip_cosine"
+    case lpips = "lpips"
+}
+
+struct RegenerationEvaluation: Codable {
+    var metric: RegenerationEvaluationMetric = .siglipCosine
+    var score: Double?
+    var promptGenerationDuration: TimeInterval?
+    var promptGenerationMemoryMB: Double?
+    var imageGenerationDuration: TimeInterval?
+    var imageGenerationMemoryMB: Double?
 }
 
 // MARK: - Region tag
@@ -51,6 +66,7 @@ final class Post: Identifiable, ObservableObject, Codable {
     // Local image
     @Published var localImage: UIImage?
     @Published var previewImage: UIImage?
+    @Published var regenerationEvaluation: RegenerationEvaluation?
 
     enum CodingKeys: String, CodingKey {
         case id, userId, displayName, avatarUrl
@@ -110,6 +126,7 @@ final class Post: Identifiable, ObservableObject, Codable {
 
         localImage = nil
         previewImage = nil
+        regenerationEvaluation = nil
     }
 
     // MARK: - Create new
@@ -148,9 +165,71 @@ final class Post: Identifiable, ObservableObject, Codable {
         self.createdAt = createdAt
         self.localImage = localImage
         self.previewImage = nil
+        self.regenerationEvaluation = nil
         self.likeCount = 0
         self.isLikedByCurrentUser = false
     }
+}
+
+extension Post {
+    var semanticFidelityScore: Double? {
+        get { regenerationEvaluation?.score }
+        set {
+            var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
+            evaluation.metric = .siglipCosine
+            evaluation.score = newValue
+            regenerationEvaluation = (newValue == nil &&
+                                      evaluation.promptGenerationDuration == nil &&
+                                      evaluation.imageGenerationDuration == nil)
+                ? nil
+                : evaluation
+        }
+    }
+
+    func updatePromptGenerationDiagnostics(duration: TimeInterval?, memoryMB: Double?) {
+        var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
+        evaluation.promptGenerationDuration = duration
+        evaluation.promptGenerationMemoryMB = memoryMB
+        regenerationEvaluation = evaluation
+    }
+
+    func updateImageGenerationDiagnostics(duration: TimeInterval?, memoryMB: Double?) {
+        var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
+        evaluation.imageGenerationDuration = duration
+        evaluation.imageGenerationMemoryMB = memoryMB
+        regenerationEvaluation = evaluation
+    }
+
+    func clearRegenerationEvaluation() {
+        regenerationEvaluation = nil
+    }
+}
+
+func regenerationEvaluationCacheKey(
+    postID: String,
+    modelID: String,
+    metric: RegenerationEvaluationMetric = .siglipCosine
+) -> String {
+    "\(modelID)::\(postID)::\(metric.rawValue)"
+}
+
+func currentMemoryFootprintMB() -> Double? {
+    var info = task_vm_info_data_t()
+    var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size) / 4
+
+    let result = withUnsafeMutablePointer(to: &info) { ptr in
+        ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { intPtr in
+            task_info(
+                mach_task_self_,
+                task_flavor_t(TASK_VM_INFO),
+                intPtr,
+                &count
+            )
+        }
+    }
+
+    guard result == KERN_SUCCESS else { return nil }
+    return Double(info.phys_footprint) / (1024 * 1024)
 }
 
 // MARK: - Encode

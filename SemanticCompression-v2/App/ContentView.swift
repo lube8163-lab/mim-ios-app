@@ -67,6 +67,7 @@ struct ContentView: View {
     @State private var showBlockToast = false
     @State private var showLoginSheet = false
     @State private var showRegenerateConfirm = false
+    @State private var semanticScoreTasks: Set<String> = []
 
     // MARK: - Body
 
@@ -100,6 +101,9 @@ struct ContentView: View {
         .onChange(of: scenePhase) { phase in
             guard phase == .active else { return }
             Task { await maybeReloadGeneratorForSelectedModel() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .semanticCacheMaintenanceRequested)) { _ in
+            Task { await clearAllImageCachesAndRegenerate() }
         }
         .overlay(alignment: .top) {
             VStack(spacing: 8) {
@@ -753,13 +757,20 @@ extension ContentView {
         for post in posts {
             guard post.hasImage else {
                 post.previewImage = nil
+                post.clearRegenerationEvaluation()
                 continue
             }
-            let cacheKey = post.effectivePrompt.map { "\(modelID)::\(post.mode)::\($0)" }
+            let evaluationKey = regenerationEvaluationCacheKey(postID: post.id, modelID: modelID)
+            if let savedEvaluation = ImageCacheManager.shared.loadRegenerationEvaluation(for: evaluationKey) {
+                post.regenerationEvaluation = savedEvaluation
+            }
+            let cacheKey = post.effectivePrompt.map { generatedCacheKey(for: post, modelID: modelID, prompt: $0) }
             if let cacheKey,
                let cached = ImageCacheManager.shared.load(for: cacheKey) {
                 post.localImage = cached
+                scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: cached, modelID: modelID)
             } else {
+                post.semanticFidelityScore = nil
                 if post.previewImage == nil {
                     post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
                 }
@@ -802,7 +813,8 @@ extension ContentView {
                 ? "blurry, soft focus, low detail, lowres, out of focus"
                 : ""
             let profile = SDModeProfile.forMode(post.privacyMode, modelID: modelID)
-            let cacheKey = "\(modelID)::\(post.mode)::\(prompt)"
+            let cacheKey = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
+            let generationStart = Date()
 
             do {
                 let img = try await generator.generateImage(
@@ -816,6 +828,13 @@ extension ContentView {
                 post.localImage = img
                 post.previewImage = nil
                 ImageCacheManager.shared.save(img, for: cacheKey)
+                ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
+                scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: img, modelID: modelID)
+                post.updateImageGenerationDiagnostics(
+                    duration: Date().timeIntervalSince(generationStart),
+                    memoryMB: currentMemoryFootprintMB()
+                )
+                persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
             } catch {
                 #if DEBUG
                 print("⚠️ Image generation failed:", error)
@@ -831,10 +850,22 @@ extension ContentView {
                     post.localImage = fallback
                     post.previewImage = nil
                     ImageCacheManager.shared.save(fallback, for: cacheKey)
+                    ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
+                    scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: fallback, modelID: modelID)
+                    post.updateImageGenerationDiagnostics(
+                        duration: Date().timeIntervalSince(generationStart),
+                        memoryMB: currentMemoryFootprintMB()
+                    )
+                    persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
                 } catch {
                     #if DEBUG
                     print("⚠️ Fallback generation failed:", error)
                     #endif
+                    post.updateImageGenerationDiagnostics(
+                        duration: Date().timeIntervalSince(generationStart),
+                        memoryMB: currentMemoryFootprintMB()
+                    )
+                    persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
                     post.previewImage = nil
                 }
             }
@@ -882,13 +913,15 @@ extension ContentView {
     @MainActor
     private func regenerateImagesForSelectedModel() async {
         let modelID = modelManager.selectedSDModelID
-        let allPosts = postList.items + myPostList.items + likedPostList.items
+        let allPosts = allKnownPosts
 
         for post in allPosts {
             guard let prompt = post.effectivePrompt else { continue }
-            let key = "\(modelID)::\(post.mode)::\(prompt)"
+            let key = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
             ImageCacheManager.shared.remove(for: key)
+            ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
             post.localImage = nil
+            post.clearRegenerationEvaluation()
             if post.hasImage {
                 post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
             } else {
@@ -902,6 +935,128 @@ extension ContentView {
 }
 
 extension ContentView {
+    private var allKnownPosts: [Post] {
+        var seen: Set<String> = []
+        var result: [Post] = []
+        for post in postList.items + myPostList.items + likedPostList.items {
+            if seen.insert(post.id).inserted {
+                result.append(post)
+            }
+        }
+        return result
+    }
+
+    private func isCurrentUsersPost(_ post: Post) -> Bool {
+        guard let userID = post.userId, !userID.isEmpty else { return false }
+        return userID == UserManager.shared.currentUser.id
+    }
+
+    private func semanticScoreKey(for post: Post, modelID: String) -> String {
+        regenerationEvaluationCacheKey(postID: post.id, modelID: modelID)
+    }
+
+    private func generatedCacheKey(for post: Post, modelID: String, prompt: String) -> String {
+        "\(modelID)::\(post.mode)::\(post.id)::\(prompt)"
+    }
+
+    @MainActor
+    private func scheduleSemanticFidelityUpdateIfNeeded(for post: Post, generatedImage: UIImage, modelID: String) {
+        guard post.hasImage, isCurrentUsersPost(post) else {
+            post.semanticFidelityScore = nil
+            return
+        }
+
+        guard let originalImage = ImageCacheManager.shared.load(for: post.id, namespace: .originalImages) else {
+            post.semanticFidelityScore = nil
+            return
+        }
+
+        let scoreKey = semanticScoreKey(for: post, modelID: modelID)
+        if let cachedScore = ImageCacheManager.shared.loadSemanticScore(for: scoreKey) {
+            post.semanticFidelityScore = cachedScore
+            return
+        }
+
+        guard !semanticScoreTasks.contains(scoreKey) else { return }
+        semanticScoreTasks.insert(scoreKey)
+
+        Task {
+            let score = await computeSemanticFidelityScore(original: originalImage, regenerated: generatedImage)
+            await MainActor.run {
+                semanticScoreTasks.remove(scoreKey)
+                guard let score else {
+                    post.semanticFidelityScore = nil
+                    persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
+                    return
+                }
+                post.semanticFidelityScore = score
+                persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
+            }
+        }
+    }
+
+    @MainActor
+    private func persistRegenerationEvaluationIfAvailable(for post: Post, modelID: String) {
+        let key = regenerationEvaluationCacheKey(postID: post.id, modelID: modelID)
+        if let evaluation = post.regenerationEvaluation {
+            ImageCacheManager.shared.saveRegenerationEvaluation(evaluation, for: key)
+        } else {
+            ImageCacheManager.shared.removeSemanticScore(for: key)
+        }
+    }
+
+    private func computeSemanticFidelityScore(original: UIImage, regenerated: UIImage) async -> Double? {
+        do {
+            let originalEmbedding = try await SigLIP2Service.shared.embed(image: original)
+            let regeneratedEmbedding = try await SigLIP2Service.shared.embed(image: regenerated)
+            return cosineSimilarity(originalEmbedding, regeneratedEmbedding)
+        } catch {
+            #if DEBUG
+            print("⚠️ Semantic fidelity scoring failed:", error)
+            #endif
+            return nil
+        }
+    }
+
+    private func cosineSimilarity(_ lhs: [Float], _ rhs: [Float]) -> Double? {
+        guard lhs.count == rhs.count, !lhs.isEmpty else { return nil }
+
+        var dot: Double = 0
+        var lhsNorm: Double = 0
+        var rhsNorm: Double = 0
+
+        for index in lhs.indices {
+            let a = Double(lhs[index])
+            let b = Double(rhs[index])
+            dot += a * b
+            lhsNorm += a * a
+            rhsNorm += b * b
+        }
+
+        let denom = lhsNorm.squareRoot() * rhsNorm.squareRoot()
+        guard denom > 0 else { return nil }
+        return max(0, min(dot / denom, 1))
+    }
+
+    @MainActor
+    private func clearAllImageCachesAndRegenerate() async {
+        ImageCacheManager.shared.clearAllCaches()
+
+        for post in allKnownPosts {
+            post.localImage = nil
+            post.clearRegenerationEvaluation()
+            if post.hasImage {
+                post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
+            } else {
+                post.previewImage = nil
+            }
+        }
+
+        generationQueue.removeAll()
+        semanticScoreTasks.removeAll()
+        enqueueImages(for: allKnownPosts)
+    }
+
     @MainActor
     private func maybeReloadGeneratorForSelectedModel() async {
         guard !isGenerationSuspendedForPosting else { return }
@@ -938,7 +1093,7 @@ extension ContentView {
             if previousModelID != nil && previousModelID != loadedSDModelID {
                 clearDisplayedImagesForModelSwitch()
             }
-            enqueueImages(for: postList.items + myPostList.items + likedPostList.items)
+            enqueueImages(for: allKnownPosts)
         } catch {
             #if DEBUG
             print("❌ SD re-init failed:", error)
@@ -955,15 +1110,17 @@ extension ContentView {
 
     @MainActor
     private func clearDisplayedImagesForModelSwitch() {
-        let allPosts = postList.items + myPostList.items + likedPostList.items
+        let allPosts = allKnownPosts
         for post in allPosts {
             guard post.hasImage else {
                 post.localImage = nil
                 post.previewImage = nil
+                post.clearRegenerationEvaluation()
                 continue
             }
             post.localImage = nil
             post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
+            post.clearRegenerationEvaluation()
         }
     }
 
@@ -975,6 +1132,7 @@ extension ContentView {
         generationTask?.cancel()
         generationTask = nil
         generationQueue.removeAll()
+        semanticScoreTasks.removeAll()
         isGenerating = false
 
         if let current = generator {
@@ -992,7 +1150,7 @@ extension ContentView {
         isGenerationSuspendedForPosting = false
 
         await maybeReloadGeneratorForSelectedModel()
-        enqueueImages(for: postList.items + myPostList.items + likedPostList.items)
+        enqueueImages(for: allKnownPosts)
         if modelManager.sdInstalled {
             genLog = t(ja: "準備完了", en: "Ready")
         }
