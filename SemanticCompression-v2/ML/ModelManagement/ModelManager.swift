@@ -37,6 +37,7 @@ final class ModelManager: ObservableObject {
         let sizeLabel: String
         let installPath: String
         let downloadURL: URL
+        let sha256: String?
     }
 
     struct ImageUnderstandingModelConfig: Identifiable, Hashable {
@@ -45,6 +46,7 @@ final class ModelManager: ObservableObject {
         let sizeLabel: String
         let installPath: String
         let downloadURL: URL
+        let sha256: String?
     }
 
     static let sd15ModelID = "sd15"
@@ -71,7 +73,8 @@ final class ModelManager: ObservableObject {
             installPath: "StableDiffusion/sd15",
             downloadURL: URL(
                 string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/SD/sd15/sd15_coreml_v2.zip"
-            )!
+            )!,
+            sha256: "37e4f91b81ac501a9ef7f30ccbc216367de4f5a14a963441fc6ee8abce16e7ed"
         ),
         SDModelConfig(
             id: sd15LCMModelID,
@@ -80,7 +83,8 @@ final class ModelManager: ObservableObject {
             installPath: "StableDiffusion/sd15_lcm",
             downloadURL: URL(
                 string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/SD/sd15/sd15_lcm_coreml_v1_mlmodelc.zip"
-            )!
+            )!,
+            sha256: "a45129822a1b199bb639ae1d822a05044f28d7aa911e87bba28879d86a0e49e7"
         )
     ]
 
@@ -92,7 +96,8 @@ final class ModelManager: ObservableObject {
             installPath: "SigLIP2",
             downloadURL: URL(
                 string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/siglip2/siglip2-vision-v2.zip"
-            )!
+            )!,
+            sha256: "b39bffde52c58646de7d8c7f117ec37441e59b09f6005073027259c8fbabd8b4"
         ),
         ImageUnderstandingModelConfig(
             id: qwenVLModelID,
@@ -101,7 +106,8 @@ final class ModelManager: ObservableObject {
             installPath: qwenVLInstallPath,
             downloadURL: URL(
                 string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/qwen/qwen3_5_vl_0_8b_gguf.zip"
-            )!
+            )!,
+            sha256: "c06035552b3cd5322ae0dffb851cc283a04f15f8fad9aeeba13c240cd7a67208"
         )
     ]
 
@@ -241,7 +247,8 @@ final class ModelManager: ObservableObject {
 
         let installer = ModelInstaller(
             modelURL: model.downloadURL,
-            modelName: model.installPath
+            modelName: model.installPath,
+            expectedSHA256: model.sha256
         )
 
         if model.id == Self.siglipModelID {
@@ -338,7 +345,8 @@ final class ModelManager: ObservableObject {
 
         let installer = ModelInstaller(
             modelURL: model.downloadURL,
-            modelName: model.installPath
+            modelName: model.installPath,
+            expectedSHA256: model.sha256
         )
         sdInstaller = installer
 

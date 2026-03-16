@@ -11,6 +11,7 @@
 import Foundation
 import Combine
 import ZIPFoundation
+import CryptoKit
 
 @MainActor
 final class ModelInstaller: NSObject, ObservableObject {
@@ -35,6 +36,7 @@ final class ModelInstaller: NSObject, ObservableObject {
 
     private let modelURL: URL
     private let modelName: String
+    private let expectedSHA256: String?
 
     // MARK: - Paths
 
@@ -55,9 +57,12 @@ final class ModelInstaller: NSObject, ObservableObject {
 
     // MARK: - Init
 
-    init(modelURL: URL, modelName: String) {
+    init(modelURL: URL, modelName: String, expectedSHA256: String? = nil) {
         self.modelURL = modelURL
         self.modelName = modelName
+        self.expectedSHA256 = expectedSHA256?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
 
         let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
@@ -89,6 +94,7 @@ final class ModelInstaller: NSObject, ObservableObject {
 
                 status = .downloading
                 try await download()
+                try verifyDownloadIfNeeded()
 
                 status = .installing
                 try install()
@@ -344,6 +350,24 @@ extension ModelInstaller {
         try FileManager.default.moveItem(at: partFileURL, to: zipFileURL)
     }
 
+    private func verifyDownloadIfNeeded() throws {
+        guard let expectedSHA256, !expectedSHA256.isEmpty else { return }
+
+        let actualSHA256 = try sha256Hex(for: zipFileURL)
+        guard actualSHA256 == expectedSHA256 else {
+            try? FileManager.default.removeItem(at: zipFileURL)
+            try? FileManager.default.removeItem(at: partFileURL)
+            throw NSError(
+                domain: "Installer",
+                code: -33,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Downloaded file verification failed. Expected SHA-256 \(expectedSHA256), got \(actualSHA256)."
+                ]
+            )
+        }
+    }
+
     private var isAlreadyInstalled: Bool {
         FileManager.default.fileExists(
             atPath: baseDir.appendingPathComponent(".installed").path
@@ -368,4 +392,19 @@ extension ModelInstaller {
             #endif
         }
     }
+}
+
+private func sha256Hex(for fileURL: URL) throws -> String {
+    let handle = try FileHandle(forReadingFrom: fileURL)
+    defer { try? handle.close() }
+
+    var hasher = SHA256()
+    while autoreleasepool(invoking: {
+        let data = handle.readData(ofLength: 1024 * 1024)
+        if data.isEmpty { return false }
+        hasher.update(data: data)
+        return true
+    }) {}
+
+    return hasher.finalize().map { String(format: "%02x", $0) }.joined()
 }
