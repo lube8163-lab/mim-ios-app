@@ -5,6 +5,7 @@
 
 import Foundation
 import Combine
+import Security
 
 struct LocalUser: Codable {
     let id: String
@@ -17,6 +18,8 @@ struct LocalUser: Codable {
 final class UserManager: ObservableObject {
 
     static let shared = UserManager()
+    private static let deleteTokenService = "com.semanticcompression.user"
+    private static let deleteTokenAccount = "user_delete_token"
 
     @Published private(set) var currentUser: LocalUser
 
@@ -33,7 +36,7 @@ final class UserManager: ObservableObject {
         let avatar = defaults.string(forKey: key_avatarUrl)
             ?? "https://example.com/avatar/default.png"
         let email = defaults.string(forKey: key_email)
-        let deleteToken = defaults.string(forKey: key_deleteToken) ?? ""
+        let deleteToken = Self.loadDeleteToken(defaults: defaults, legacyKey: key_deleteToken)
 
         self.currentUser = LocalUser(
             id: id,
@@ -83,7 +86,8 @@ final class UserManager: ObservableObject {
         defaults.set(user.displayName, forKey: key_displayName)
         defaults.set(user.avatarUrl, forKey: key_avatarUrl)
         defaults.set(user.email, forKey: key_email)
-        defaults.set(user.deleteToken, forKey: key_deleteToken)
+        Self.saveDeleteToken(user.deleteToken)
+        defaults.removeObject(forKey: key_deleteToken)
     }
 
     private func clearStoredUser() {
@@ -92,5 +96,69 @@ final class UserManager: ObservableObject {
         defaults.removeObject(forKey: key_avatarUrl)
         defaults.removeObject(forKey: key_email)
         defaults.removeObject(forKey: key_deleteToken)
+        Self.clearDeleteToken()
+    }
+
+    private static func loadDeleteToken(defaults: UserDefaults, legacyKey: String) -> String {
+        if let token = loadDeleteTokenFromKeychain(), !token.isEmpty {
+            defaults.removeObject(forKey: legacyKey)
+            return token
+        }
+
+        let legacyToken = defaults.string(forKey: legacyKey) ?? ""
+        if !legacyToken.isEmpty {
+            saveDeleteTokenToKeychain(legacyToken)
+            defaults.removeObject(forKey: legacyKey)
+        }
+        return legacyToken
+    }
+
+    private static func saveDeleteToken(_ token: String) {
+        guard !token.isEmpty else {
+            clearDeleteToken()
+            return
+        }
+        saveDeleteTokenToKeychain(token)
+    }
+
+    private static func clearDeleteToken() {
+        let deleteQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: Self.deleteTokenService,
+            kSecAttrAccount as String: Self.deleteTokenAccount
+        ]
+        SecItemDelete(deleteQuery as CFDictionary)
+    }
+
+    private static func loadDeleteTokenFromKeychain() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: Self.deleteTokenService,
+            kSecAttrAccount as String: Self.deleteTokenAccount,
+            kSecReturnData as String: true
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+
+        guard status == errSecSuccess,
+              let data = item as? Data,
+              let value = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        return value
+    }
+
+    private static func saveDeleteTokenToKeychain(_ token: String) {
+        let data = Data(token.utf8)
+        clearDeleteToken()
+
+        let addQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: Self.deleteTokenService,
+            kSecAttrAccount as String: Self.deleteTokenAccount,
+            kSecValueData as String: data
+        ]
+        SecItemAdd(addQuery as CFDictionary, nil)
     }
 }

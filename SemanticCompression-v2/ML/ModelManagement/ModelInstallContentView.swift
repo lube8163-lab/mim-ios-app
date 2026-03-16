@@ -148,6 +148,15 @@ struct ModelInstallContentView: View {
                 )
             )
         }
+        .alert(item: $modelManager.installError) { context in
+            Alert(
+                title: Text(t(ja: "インストールに失敗しました", en: "Installation failed")),
+                message: Text(installErrorMessage(for: context)),
+                dismissButton: .default(Text("OK")) {
+                    modelManager.clearInstallError()
+                }
+            )
+        }
     }
 
     private func understandingProgress(for modelID: String) -> Double {
@@ -196,6 +205,21 @@ struct ModelInstallContentView: View {
             return String(format: "Downloading… %.0f MB / %.0f MB", currentMB, totalMB)
         } else {
             return "Installing…"
+        }
+    }
+
+    private func installErrorMessage(for context: ModelManager.InstallErrorContext) -> String {
+        switch context.reason {
+        case .integrityCheckFailed:
+            return t(
+                ja: "\(context.modelTitle) のダウンロード後検証に失敗しました。ファイルが壊れているか、配布内容が想定と一致していません。時間をおいて再ダウンロードしてください。",
+                en: "Verification failed after downloading \(context.modelTitle). The file may be corrupted or different from the expected package. Please try downloading it again later."
+            )
+        case .generic(let message):
+            return t(
+                ja: "\(context.modelTitle) のインストールに失敗しました。\n\(message)",
+                en: "Failed to install \(context.modelTitle).\n\(message)"
+            )
         }
     }
 

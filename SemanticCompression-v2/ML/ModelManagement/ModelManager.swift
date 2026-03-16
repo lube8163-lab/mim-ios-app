@@ -4,6 +4,17 @@ import Foundation
 @MainActor
 final class ModelManager: ObservableObject {
 
+    struct InstallErrorContext: Identifiable {
+        enum Reason {
+            case integrityCheckFailed
+            case generic(String)
+        }
+
+        let id = UUID()
+        let modelTitle: String
+        let reason: Reason
+    }
+
     static let shared = ModelManager()
     private var cancellables = Set<AnyCancellable>()
 
@@ -131,6 +142,7 @@ final class ModelManager: ObservableObject {
     @Published var qwenTotalBytes: Int64 = 0
     @Published var sdDownloadedBytes: Int64 = 0
     @Published var sdTotalBytes: Int64 = 0
+    @Published var installError: InstallErrorContext?
 
     var imageUnderstandingModels: [ImageUnderstandingModelConfig] {
         Self.supportedImageUnderstandingModels
@@ -220,6 +232,7 @@ final class ModelManager: ObservableObject {
         guard let model = Self.supportedImageUnderstandingModels.first(where: { $0.id == id }) else {
             return
         }
+        installError = nil
 
         // Old SigLIP installs may have only the model payload and .installed marker.
         // Remove incomplete directories so the installer does a full redownload.
@@ -310,7 +323,19 @@ final class ModelManager: ObservableObject {
                     self.activeUnderstandingInstallModelID = nil
                     self.reloadState()
 
-                case .failed, .cancelled:
+                case .failed(let message):
+                    if model.id == Self.siglipModelID {
+                        self.siglipInstalling = false
+                    } else if model.id == Self.qwenVLModelID {
+                        self.qwenInstalling = false
+                    }
+                    self.activeUnderstandingInstallModelID = nil
+                    self.installError = InstallErrorContext(
+                        modelTitle: model.title,
+                        reason: self.installErrorReason(from: message)
+                    )
+
+                case .cancelled:
                     if model.id == Self.siglipModelID {
                         self.siglipInstalling = false
                     } else if model.id == Self.qwenVLModelID {
@@ -336,6 +361,7 @@ final class ModelManager: ObservableObject {
         guard let model = Self.supportedSDModels.first(where: { $0.id == modelID }) else {
             return
         }
+        installError = nil
 
         sdInstalling = true
         sdProgress = 0.01
@@ -383,7 +409,15 @@ final class ModelManager: ObservableObject {
                     self.activeSDInstallModelID = nil
                     self.reloadState()
 
-                case .failed, .cancelled:
+                case .failed(let message):
+                    self.sdInstalling = false
+                    self.activeSDInstallModelID = nil
+                    self.installError = InstallErrorContext(
+                        modelTitle: model.title,
+                        reason: self.installErrorReason(from: message)
+                    )
+
+                case .cancelled:
                     self.sdInstalling = false
                     self.activeSDInstallModelID = nil
 
@@ -430,6 +464,18 @@ final class ModelManager: ObservableObject {
             return false
         }
         return isInstalled(path: model.installPath)
+    }
+
+    func clearInstallError() {
+        installError = nil
+    }
+
+    private func installErrorReason(from message: String) -> InstallErrorContext.Reason {
+        let normalized = message.lowercased()
+        if normalized.contains("verification failed") || normalized.contains("sha-256") {
+            return .integrityCheckFailed
+        }
+        return .generic(message)
     }
 
     func isSDModelInstalling(_ modelID: String) -> Bool {
