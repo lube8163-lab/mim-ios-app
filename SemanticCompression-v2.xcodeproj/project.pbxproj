@@ -322,7 +322,7 @@
 					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphoneos",
 					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphonesimulator",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/$(PLATFORM_NAME)/libllama.a",
@@ -383,7 +383,7 @@
 					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphoneos",
 					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphonesimulator",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/$(PLATFORM_NAME)/libllama.a",

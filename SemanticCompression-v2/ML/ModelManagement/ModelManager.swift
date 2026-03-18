@@ -45,7 +45,8 @@ final class ModelManager: ObservableObject {
     struct SDModelConfig: Identifiable, Hashable {
         let id: String
         let title: String
-        let sizeLabel: String
+        let sizeLabelJA: String
+        let sizeLabelEN: String
         let installPath: String
         let downloadURL: URL
         let sha256: String?
@@ -54,7 +55,8 @@ final class ModelManager: ObservableObject {
     struct ImageUnderstandingModelConfig: Identifiable, Hashable {
         let id: String
         let title: String
-        let sizeLabel: String
+        let sizeLabelJA: String
+        let sizeLabelEN: String
         let installPath: String
         let downloadURL: URL
         let sha256: String?
@@ -80,7 +82,8 @@ final class ModelManager: ObservableObject {
         SDModelConfig(
             id: sd15ModelID,
             title: "Stable Diffusion 1.5",
-            sizeLabel: "約2 GB（Wi-Fi 推奨）",
+            sizeLabelJA: "約2 GB（Wi-Fi 推奨）",
+            sizeLabelEN: "About 2 GB (Wi-Fi recommended)",
             installPath: "StableDiffusion/sd15",
             downloadURL: URL(
                 string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/SD/sd15/sd15_coreml_v2.zip"
@@ -90,7 +93,8 @@ final class ModelManager: ObservableObject {
         SDModelConfig(
             id: sd15LCMModelID,
             title: "Stable Diffusion 1.5 (LCM)",
-            sizeLabel: "約2 GB（Wi-Fi 推奨）",
+            sizeLabelJA: "約2 GB（Wi-Fi 推奨）",
+            sizeLabelEN: "About 2 GB (Wi-Fi recommended)",
             installPath: "StableDiffusion/sd15_lcm",
             downloadURL: URL(
                 string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/SD/sd15/sd15_lcm_coreml_v1_mlmodelc.zip"
@@ -103,7 +107,8 @@ final class ModelManager: ObservableObject {
         ImageUnderstandingModelConfig(
             id: siglipModelID,
             title: "SigLIP2 Vision Encoder",
-            sizeLabel: "199 MB",
+            sizeLabelJA: "199 MB",
+            sizeLabelEN: "199 MB",
             installPath: "SigLIP2",
             downloadURL: URL(
                 string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/siglip2/siglip2-vision-v2.zip"
@@ -113,7 +118,8 @@ final class ModelManager: ObservableObject {
         ImageUnderstandingModelConfig(
             id: qwenVLModelID,
             title: "Qwen3.5-VL-0.8B",
-            sizeLabel: "703 MB",
+            sizeLabelJA: "703 MB",
+            sizeLabelEN: "703 MB",
             installPath: qwenVLInstallPath,
             downloadURL: URL(
                 string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/qwen/qwen3_5_vl_0_8b_gguf.zip"

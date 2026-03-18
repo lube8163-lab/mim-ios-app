@@ -5,8 +5,7 @@ struct ModelInstallContentView: View {
     @ObservedObject var modelManager: ModelManager
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
-    @State private var deleteTarget: DeleteTarget?
-    @State private var showRestartRequiredNotice = false
+    @State private var activeAlert: ActiveAlert?
 
     private enum DeleteTarget: Identifiable {
         case siglip
@@ -36,6 +35,23 @@ struct ModelInstallContentView: View {
         }
     }
 
+    private enum ActiveAlert: Identifiable {
+        case delete(DeleteTarget)
+        case restartRequired
+        case installError(ModelManager.InstallErrorContext)
+
+        var id: String {
+            switch self {
+            case .delete(let target):
+                return "delete-\(target.id)"
+            case .restartRequired:
+                return "restart-required"
+            case .installError(let context):
+                return "install-error-\(context.id)"
+            }
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -52,7 +68,7 @@ struct ModelInstallContentView: View {
                         modelRow(
                             modelID: model.id,
                             title: model.title,
-                            size: model.sizeLabel,
+                            size: localizedSizeLabel(ja: model.sizeLabelJA, en: model.sizeLabelEN),
                             installed: modelManager.isImageUnderstandingModelInstalled(model.id),
                             installing: modelManager.isImageUnderstandingModelInstalling(model.id),
                             progress: understandingProgress(for: model.id),
@@ -66,11 +82,13 @@ struct ModelInstallContentView: View {
                             },
                             useAction: (modelManager.isImageUnderstandingModelInstalled(model.id) &&
                                 modelManager.selectedImageUnderstandingModelID != model.id) ? {
-                                    showRestartRequiredNotice = true
+                                    activeAlert = .restartRequired
                                     modelManager.selectImageUnderstandingModel(id: model.id)
                                 } : nil,
                             deleteAction: modelManager.isImageUnderstandingModelInstalled(model.id) ? {
-                                deleteTarget = model.id == ModelManager.siglipModelID ? .siglip : .qwen
+                                activeAlert = .delete(
+                                    model.id == ModelManager.siglipModelID ? .siglip : .qwen
+                                )
                             } : nil,
                             isSelected: modelManager.selectedImageUnderstandingModelID == model.id
                         )
@@ -88,7 +106,7 @@ struct ModelInstallContentView: View {
                         modelRow(
                             modelID: model.id,
                             title: model.title,
-                            size: model.sizeLabel,
+                            size: localizedSizeLabel(ja: model.sizeLabelJA, en: model.sizeLabelEN),
                             installed: modelManager.isSDModelInstalled(model.id),
                             installing: modelManager.isSDModelInstalling(model.id),
                             progress: modelManager.sdProgress,
@@ -96,11 +114,11 @@ struct ModelInstallContentView: View {
                             installAction: { modelManager.installSD(modelID: model.id) },
                             useAction: (modelManager.isSDModelInstalled(model.id) &&
                                 modelManager.selectedSDModelID != model.id) ? {
-                                    showRestartRequiredNotice = true
+                                    activeAlert = .restartRequired
                                     modelManager.selectSDModel(id: model.id)
                                 } : nil,
                             deleteAction: modelManager.isSDModelInstalled(model.id) ? {
-                                deleteTarget = .sd(id: model.id, title: model.title)
+                                activeAlert = .delete(.sd(id: model.id, title: model.title))
                             } : nil,
                             isSelected: modelManager.selectedSDModelID == model.id
                         )
@@ -113,49 +131,54 @@ struct ModelInstallContentView: View {
         .background(
             Color(.systemBackground)
         )
-        .alert(item: $deleteTarget) { target in
-            Alert(
-                title: Text(t(ja: "モデルを削除しますか？", en: "Delete model?")),
-                message: Text(
-                    t(
-                        ja: "\(target.title) をこの端末から削除します。",
-                        en: "This will remove \(target.title) from this device."
-                    )
-                ),
-                primaryButton: .destructive(Text(t(ja: "削除", en: "Delete"))) {
-                    switch target {
-                    case .siglip:
-                        modelManager.deleteSigLIPModel()
-                    case .qwen:
-                        modelManager.deleteQwenVLModel()
-                    case .sd(let id, _):
-                        modelManager.deleteSDModel(id)
-                    }
-                },
-                secondaryButton: .cancel(Text(t(ja: "キャンセル", en: "Cancel")))
-            )
+        .onChange(of: modelManager.installError?.id) { _ in
+            if let context = modelManager.installError {
+                activeAlert = .installError(context)
+            }
         }
-        .alert(
-            t(ja: "モデル切替を反映しました", en: "Model switch applied"),
-            isPresented: $showRestartRequiredNotice
-        ) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(
-                t(
-                    ja: "切替を確実に反映するため、アプリを再起動してください。",
-                    en: "Please restart the app to ensure the new model is fully applied."
+        .alert(item: $activeAlert) { alert in
+            switch alert {
+            case .delete(let target):
+                Alert(
+                    title: Text(t(ja: "モデルを削除しますか？", en: "Delete model?")),
+                    message: Text(
+                        t(
+                            ja: "\(target.title) をこの端末から削除します。",
+                            en: "This will remove \(target.title) from this device."
+                        )
+                    ),
+                    primaryButton: .destructive(Text(t(ja: "削除", en: "Delete"))) {
+                        switch target {
+                        case .siglip:
+                            modelManager.deleteSigLIPModel()
+                        case .qwen:
+                            modelManager.deleteQwenVLModel()
+                        case .sd(let id, _):
+                            modelManager.deleteSDModel(id)
+                        }
+                    },
+                    secondaryButton: .cancel(Text(t(ja: "キャンセル", en: "Cancel")))
                 )
-            )
-        }
-        .alert(item: $modelManager.installError) { context in
-            Alert(
-                title: Text(t(ja: "インストールに失敗しました", en: "Installation failed")),
-                message: Text(installErrorMessage(for: context)),
-                dismissButton: .default(Text("OK")) {
-                    modelManager.clearInstallError()
-                }
-            )
+            case .restartRequired:
+                Alert(
+                    title: Text(t(ja: "モデル切替を反映しました", en: "Model switch applied")),
+                    message: Text(
+                        t(
+                            ja: "切替を確実に反映するため、アプリを再起動してください。",
+                            en: "Please restart the app to ensure the new model is fully applied."
+                        )
+                    ),
+                    dismissButton: .default(Text("OK"))
+                )
+            case .installError(let context):
+                Alert(
+                    title: Text(t(ja: "インストールに失敗しました", en: "Installation failed")),
+                    message: Text(installErrorMessage(for: context)),
+                    dismissButton: .default(Text("OK")) {
+                        modelManager.clearInstallError()
+                    }
+                )
+            }
         }
     }
 
@@ -221,6 +244,10 @@ struct ModelInstallContentView: View {
                 en: "Failed to install \(context.modelTitle).\n\(message)"
             )
         }
+    }
+
+    private func localizedSizeLabel(ja: String, en: String) -> String {
+        t(ja: ja, en: en)
     }
 
     @ViewBuilder
