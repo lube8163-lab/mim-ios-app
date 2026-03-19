@@ -108,12 +108,12 @@ struct ContentView: View {
         .overlay(alignment: .top) {
             VStack(spacing: 8) {
                 if showReportToast {
-                    Text(t(ja: "通報を受け付けました。投稿を非表示にしました。", en: "Report submitted. The post was hidden."))
+                    Text(t(ja: "通報を受け付けました。投稿を非表示にしました。", en: "Report submitted. The post was hidden.", zh: "举报已提交，帖子已被隐藏。"))
                         .toastStyle()
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 if showBlockToast {
-                    Text(t(ja: "ユーザーをブロックしました。投稿を非表示にしました。", en: "User blocked. Posts were hidden."))
+                    Text(t(ja: "ユーザーをブロックしました。投稿を非表示にしました。", en: "User blocked. Posts were hidden.", zh: "用户已被屏蔽，相关帖子已隐藏。"))
                         .toastStyle()
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
@@ -125,19 +125,21 @@ struct ContentView: View {
         .alert(
             t(
                 ja: "現在のモデルで画像を再生成しますか？",
-                en: "Regenerate images for the current model?"
+                en: "Regenerate images for the current model?",
+                zh: "要使用当前模型重新生成图片吗？"
             ),
             isPresented: $showRegenerateConfirm
         ) {
-            Button(t(ja: "再生成", en: "Regenerate"), role: .destructive) {
+            Button(t(ja: "再生成", en: "Regenerate", zh: "重新生成"), role: .destructive) {
                 Task { await regenerateImagesForSelectedModel() }
             }
-            Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
+            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {}
         } message: {
             Text(
                 t(
                     ja: "現在表示中の投稿画像キャッシュを削除して、選択中モデルで再生成します。",
-                    en: "Cached post images will be removed and regenerated with the selected model."
+                    en: "Cached post images will be removed and regenerated with the selected model.",
+                    zh: "当前显示的帖子图片缓存将被删除，并使用所选模型重新生成。"
                 )
             )
         }
@@ -169,14 +171,14 @@ struct ContentView: View {
                         postsListContent(
                             posts: blockManager.filterBlocked(from: myPostList.items),
                             isLoading: isLoadingMyPosts,
-                            emptyText: t(ja: "自分の投稿はまだありません", en: "No posts yet"),
+                            emptyText: t(ja: "自分の投稿はまだありません", en: "No posts yet", zh: "还没有帖子"),
                             onRefresh: loadMyPosts,
                             onLoadNext: loadNextMyPage
                         )
                     } else {
                         loginRequiredView(
-                            title: t(ja: "投稿履歴を見るにはログイン", en: "Sign in to see your posts"),
-                            description: t(ja: "この端末で投稿した履歴や下書きを管理できます。", en: "Manage your post history on this device.")
+                            title: t(ja: "投稿履歴を見るにはログイン", en: "Sign in to see your posts", zh: "登录后查看你的帖子"),
+                            description: t(ja: "この端末で投稿した履歴や下書きを管理できます。", en: "Manage your post history on this device.", zh: "可以管理你在此设备上的发帖记录和草稿。")
                         )
                     }
                 }
@@ -198,14 +200,14 @@ struct ContentView: View {
                         postsListContent(
                             posts: blockManager.filterBlocked(from: likedPostList.items),
                             isLoading: isLoadingLikedPosts,
-                            emptyText: t(ja: "いいねした投稿はまだありません", en: "No liked posts yet"),
+                            emptyText: t(ja: "いいねした投稿はまだありません", en: "No liked posts yet", zh: "还没有点赞的帖子"),
                             onRefresh: loadLikedPosts,
                             onLoadNext: loadNextLikedPage
                         )
                     } else {
                         loginRequiredView(
-                            title: t(ja: "いいね履歴を見るにはログイン", en: "Sign in to see liked posts"),
-                            description: t(ja: "気になった投稿を後から見返せます。", en: "Save and revisit posts you liked.")
+                            title: t(ja: "いいね履歴を見るにはログイン", en: "Sign in to see liked posts", zh: "登录后查看点赞记录"),
+                            description: t(ja: "気になった投稿を後から見返せます。", en: "Save and revisit posts you liked.", zh: "保存并重新查看你点赞过的帖子。")
                         )
                     }
                 }
