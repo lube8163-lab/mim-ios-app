@@ -44,35 +44,35 @@ struct UserProfileView: View {
             // MARK: - DANGER ZONE
             dangerZoneSection
         }
-        .navigationTitle(t(ja: "プロフィール", en: "Profile"))
+        .navigationTitle(t(ja: "プロフィール", en: "Profile", zh: "个人资料"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(showsCloseButton)
         .toolbar {
             if showsCloseButton {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(t(ja: "閉じる", en: "Close")) { dismiss() }
+                    Button(t(ja: "閉じる", en: "Close", zh: "关闭")) { dismiss() }
                 }
             }
         }
-        .alert(t(ja: "コピーしました", en: "Copied!"), isPresented: $showCopied) {
+        .alert(t(ja: "コピーしました", en: "Copied!", zh: "已复制"), isPresented: $showCopied) {
             Button("OK", role: .cancel) {}
         }
-        .alert(t(ja: "アカウント", en: "Account"), isPresented: $showAccountAlert) {
+        .alert(t(ja: "アカウント", en: "Account", zh: "账户"), isPresented: $showAccountAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(accountAlertMessage)
         }
         .confirmationDialog(
-            t(ja: "アカウントを削除しますか？", en: "Delete this account?"),
+            t(ja: "アカウントを削除しますか？", en: "Delete this account?", zh: "要删除此账户吗？"),
             isPresented: $showDeleteConfirm,
             titleVisibility: .visible
         ) {
-            Button(t(ja: "削除する", en: "Delete"), role: .destructive) {
+            Button(t(ja: "削除する", en: "Delete", zh: "删除"), role: .destructive) {
                 Task { await deleteAccount() }
             }
-            Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
+            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {}
         } message: {
-            Text(t(ja: "この操作は取り消せません。投稿は匿名化されます。", en: "This action cannot be undone. Posts will be anonymized."))
+            Text(t(ja: "この操作は取り消せません。投稿は匿名化されます。", en: "This action cannot be undone. Posts will be anonymized.", zh: "此操作无法撤销。帖子将被匿名化。"))
         }
         .onAppear {
             newName = userManager.currentUser.displayName
@@ -85,18 +85,18 @@ struct UserProfileView: View {
     // MARK: - Sections
 
     private var userInfoSection: some View {
-        Section(header: Text(t(ja: "ユーザー", en: "User"))) {
+        Section(header: Text(t(ja: "ユーザー", en: "User", zh: "用户"))) {
             if !authManager.isAuthenticated {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(t(ja: "現在はゲストモードです", en: "You are in guest mode"))
+                    Text(t(ja: "現在はゲストモードです", en: "You are in guest mode", zh: "当前为访客模式"))
                         .font(.subheadline.weight(.semibold))
-                    Text(t(ja: "ログインすると投稿、いいね、ブロック機能が有効になります。", en: "Sign in to enable posting, likes, and block features."))
+                    Text(t(ja: "ログインすると投稿、いいね、ブロック機能が有効になります。", en: "Sign in to enable posting, likes, and block features.", zh: "登录后即可使用发帖、点赞和屏蔽功能。"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Button {
                         showLoginSheet = true
                     } label: {
-                        Text(t(ja: "メールでログイン", en: "Sign in with Email"))
+                        Text(t(ja: "メールでログイン", en: "Sign in with Email", zh: "使用邮箱登录"))
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -127,7 +127,7 @@ struct UserProfileView: View {
                             .font(.caption)
                             .foregroundColor(.gray)
                             .contextMenu {
-                                Button(t(ja: "ユーザーIDをコピー", en: "Copy User ID")) {
+                                Button(t(ja: "ユーザーIDをコピー", en: "Copy User ID", zh: "复制用户 ID")) {
                                     UIPasteboard.general.string =
                                         userManager.currentUser.id
                                     showCopied = true
@@ -151,15 +151,15 @@ struct UserProfileView: View {
                 selection: $selectedPhoto,
                 matching: .images
             ) {
-                Label(t(ja: "アバターを変更", en: "Change Avatar"), systemImage: "photo")
+                Label(t(ja: "アバターを変更", en: "Change Avatar", zh: "更改头像"), systemImage: "photo")
             }
             if selectedPhoto != nil {
-                Text(t(ja: "新しいアバターは保存時に反映されます。", en: "The new avatar will be applied when you save."))
+                Text(t(ja: "新しいアバターは保存時に反映されます。", en: "The new avatar will be applied when you save.", zh: "新头像会在保存时应用。"))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
-            TextField(t(ja: "表示名", en: "Display Name"), text: $newName)
+            TextField(t(ja: "表示名", en: "Display Name", zh: "显示名称"), text: $newName)
 
             Button {
                 Task { await saveChanges() }
@@ -167,29 +167,29 @@ struct UserProfileView: View {
                 if isSavingChanges {
                     ProgressView()
                 } else {
-                    Text(t(ja: "変更を保存", en: "Save Changes"))
+                    Text(t(ja: "変更を保存", en: "Save Changes", zh: "保存更改"))
                 }
             }
             .disabled(isSavingChanges || !hasPendingChanges || !authManager.isAuthenticated)
             .frame(maxWidth: .infinity, alignment: .center)
         } header: {
-            Text(t(ja: "アカウント", en: "Account"))
+            Text(t(ja: "アカウント", en: "Account", zh: "账户"))
         } footer: {
             Text(
                 authManager.isAuthenticated
-                ? t(ja: "メール認証済みアカウントです。", en: "Signed in with email OTP.")
-                : t(ja: "編集や投稿にはログインが必要です。", en: "Sign in is required for editing and posting.")
+                ? t(ja: "メール認証済みアカウントです。", en: "Signed in with email OTP.", zh: "已通过邮箱验证码登录。")
+                : t(ja: "編集や投稿にはログインが必要です。", en: "Sign in is required for editing and posting.", zh: "编辑和发帖需要先登录。")
             )
         }
     }
 
     private var appSettingsSection: some View {
-        Section(header: Text(t(ja: "アプリ", en: "App"))) {
+        Section(header: Text(t(ja: "アプリ", en: "App", zh: "应用"))) {
 
             NavigationLink {
                 SettingsView()
             } label: {
-                Label(t(ja: "設定", en: "Settings"), systemImage: "gear")
+                Label(t(ja: "設定", en: "Settings", zh: "设置"), systemImage: "gear")
             }
 
             NavigationLink {
@@ -201,7 +201,7 @@ struct UserProfileView: View {
             NavigationLink {
                 BlockedUsersView()
             } label: {
-                Label(t(ja: "ブロック管理", en: "Blocked Users"), systemImage: "person.2.slash")
+                Label(t(ja: "ブロック管理", en: "Blocked Users", zh: "屏蔽管理"), systemImage: "person.2.slash")
             }
         }
     }
@@ -212,26 +212,26 @@ struct UserProfileView: View {
                 Button(role: .destructive) {
                     Task { await authManager.logout() }
                 } label: {
-                    Text(t(ja: "ログアウト", en: "Log Out"))
+                    Text(t(ja: "ログアウト", en: "Log Out", zh: "退出登录"))
                 }
 
                 Button(role: .destructive) {
                     showDeleteConfirm = true
                 } label: {
-                    Text(t(ja: "アカウントを削除", en: "Delete Account"))
+                    Text(t(ja: "アカウントを削除", en: "Delete Account", zh: "删除账户"))
                 }
             } else {
                 Button {
                     showLoginSheet = true
                 } label: {
-                    Text(t(ja: "メールでログイン", en: "Sign in with Email"))
+                    Text(t(ja: "メールでログイン", en: "Sign in with Email", zh: "使用邮箱登录"))
                 }
             }
         }
     }
 
-    private func t(ja: String, en: String) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en)
+    private func t(ja: String, en: String, zh: String? = nil) -> String {
+        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
     }
 
     // MARK: - Avatar Upload

@@ -159,7 +159,7 @@ struct ContentView: View {
                 }
             }
             .tabItem {
-                Label(t(ja: "ホーム", en: "Home"), systemImage: "house")
+                Label(t(ja: "ホーム", en: "Home", zh: "首页"), systemImage: "house")
             }
             .tag(HomeTab.timeline)
 
@@ -180,11 +180,11 @@ struct ContentView: View {
                         )
                     }
                 }
-                .navigationTitle(t(ja: "自分の投稿", en: "My Posts"))
+                .navigationTitle(t(ja: "自分の投稿", en: "My Posts", zh: "我的帖子"))
                 .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
-                Label(t(ja: "投稿", en: "Posts"), systemImage: "person.text.rectangle")
+                Label(t(ja: "投稿", en: "Posts", zh: "帖子"), systemImage: "person.text.rectangle")
             }
             .tag(HomeTab.myPosts)
             .task {
@@ -209,11 +209,11 @@ struct ContentView: View {
                         )
                     }
                 }
-                .navigationTitle(t(ja: "いいね", en: "Liked"))
+                .navigationTitle(t(ja: "いいね", en: "Liked", zh: "已点赞"))
                 .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
-                Label(t(ja: "いいね", en: "Liked"), systemImage: "heart")
+                Label(t(ja: "いいね", en: "Liked", zh: "已点赞"), systemImage: "heart")
             }
             .tag(HomeTab.liked)
             .task {
@@ -225,7 +225,7 @@ struct ContentView: View {
                 UserProfileView(showsCloseButton: false)
             }
             .tabItem {
-                Label(t(ja: "プロフィール", en: "Profile"), systemImage: "person.circle")
+                Label(t(ja: "プロフィール", en: "Profile", zh: "个人资料"), systemImage: "person.circle")
             }
             .tag(HomeTab.profile)
         }
@@ -874,8 +874,8 @@ extension ContentView {
         }
     }
 
-    private func t(ja: String, en: String) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en)
+    private func t(ja: String, en: String, zh: String? = nil) -> String {
+        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
     }
 
     private func localizeGenLogIfNeeded() {

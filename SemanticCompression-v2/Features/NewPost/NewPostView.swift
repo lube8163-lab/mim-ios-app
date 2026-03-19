@@ -267,7 +267,7 @@ extension NewPostView {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: selectedMode.iconName)
-                                Text(selectedMode.titleEN)
+                                Text(selectedMode.title(languageCode: selectedLanguage))
                                     .font(.caption)
                             }
                             .padding(.horizontal, 10)
@@ -370,7 +370,7 @@ extension NewPostView {
                             Image(systemName: mode.iconName)
                                 .frame(width: 18)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(t(ja: mode.titleJA, en: mode.titleEN))
+                                Text(mode.title(languageCode: selectedLanguage))
                                     .font(.body)
                                 Text(modeDescription(mode))
                                     .font(.caption)
