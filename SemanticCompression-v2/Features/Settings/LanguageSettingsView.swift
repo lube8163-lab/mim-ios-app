@@ -7,11 +7,12 @@ struct LanguageSettingsView: View {
     var body: some View {
         Form {
             Section(t(ja: "表示言語", en: "Language", zh: "显示语言")) {
-                Picker(t(ja: "言語", en: "Language", zh: "语言"), selection: $selectedLanguage) {
+                Picker("", selection: $selectedLanguage) {
                     ForEach(AppLanguage.allCases) { language in
                         Text(language.label).tag(language.rawValue)
                     }
                 }
+                .labelsHidden()
                 .pickerStyle(.inline)
             }
         }
