@@ -38,6 +38,7 @@ actor SemanticExtractionTask {
         }
 
         let promptStart = Date()
+        let isProModeEnabled = UserDefaults.standard.bool(forKey: AppPreferences.proModeEnabledKey)
 
         do {
             let backend = ImageUnderstandingModel(
@@ -66,16 +67,18 @@ actor SemanticExtractionTask {
             print("✅ Semantic extraction completed for post \(post.id)")
             #endif
 
-            let duration = Date().timeIntervalSince(promptStart)
-            let memory = currentMemoryFootprintMB()
-            await MainActor.run {
-                post.updatePromptGenerationDiagnostics(duration: duration, memoryMB: memory)
-                let key = regenerationEvaluationCacheKey(
-                    postID: post.id,
-                    modelID: ModelManager.shared.selectedSDModelID
-                )
-                if let evaluation = post.regenerationEvaluation {
-                    ImageCacheManager.shared.saveRegenerationEvaluation(evaluation, for: key)
+            if isProModeEnabled {
+                let duration = Date().timeIntervalSince(promptStart)
+                let memory = currentMemoryFootprintMB()
+                await MainActor.run {
+                    post.updatePromptGenerationDiagnostics(duration: duration, memoryMB: memory)
+                    let key = regenerationEvaluationCacheKey(
+                        postID: post.id,
+                        modelID: ModelManager.shared.selectedSDModelID
+                    )
+                    if let evaluation = post.regenerationEvaluation {
+                        ImageCacheManager.shared.saveRegenerationEvaluation(evaluation, for: key)
+                    }
                 }
             }
 
@@ -94,15 +97,17 @@ actor SemanticExtractionTask {
                 if post.caption?.isEmpty ?? true {
                     post.caption = ""
                 }
-                let duration = Date().timeIntervalSince(promptStart)
-                let memory = currentMemoryFootprintMB()
-                post.updatePromptGenerationDiagnostics(duration: duration, memoryMB: memory)
-                let key = regenerationEvaluationCacheKey(
-                    postID: post.id,
-                    modelID: ModelManager.shared.selectedSDModelID
-                )
-                if let evaluation = post.regenerationEvaluation {
-                    ImageCacheManager.shared.saveRegenerationEvaluation(evaluation, for: key)
+                if isProModeEnabled {
+                    let duration = Date().timeIntervalSince(promptStart)
+                    let memory = currentMemoryFootprintMB()
+                    post.updatePromptGenerationDiagnostics(duration: duration, memoryMB: memory)
+                    let key = regenerationEvaluationCacheKey(
+                        postID: post.id,
+                        modelID: ModelManager.shared.selectedSDModelID
+                    )
+                    if let evaluation = post.regenerationEvaluation {
+                        ImageCacheManager.shared.saveRegenerationEvaluation(evaluation, for: key)
+                    }
                 }
                 post.status = .completed
             }

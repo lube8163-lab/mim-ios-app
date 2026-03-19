@@ -11,6 +11,8 @@ struct PostCardView: View {
     var onPostReported: ((String) -> Void)? = nil
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
+    @AppStorage(AppPreferences.proModeEnabledKey)
+    private var isProModeEnabled = false
 
     @State private var showShare = false
     @State private var refreshID = UUID()
@@ -259,24 +261,26 @@ extension PostCardView {
                     }
                 }
 
-                if let promptLine = diagnosticLine(
-                    labelJA: "Prompt",
-                    labelEN: "Prompt",
-                    duration: evaluation.promptGenerationDuration,
-                    memoryMB: evaluation.promptGenerationMemoryMB
-                ) {
-                    Text(promptLine)
-                        .font(.caption2)
-                }
+                if isProModeEnabled {
+                    if let promptLine = diagnosticLine(
+                        labelJA: "Prompt",
+                        labelEN: "Prompt",
+                        duration: evaluation.promptGenerationDuration,
+                        memoryMB: evaluation.promptGenerationMemoryMB
+                    ) {
+                        Text(promptLine)
+                            .font(.caption2)
+                    }
 
-                if let imageLine = diagnosticLine(
-                    labelJA: "生成",
-                    labelEN: "Image",
-                    duration: evaluation.imageGenerationDuration,
-                    memoryMB: evaluation.imageGenerationMemoryMB
-                ) {
-                    Text(imageLine)
-                        .font(.caption2)
+                    if let imageLine = diagnosticLine(
+                        labelJA: "生成",
+                        labelEN: "Image",
+                        duration: evaluation.imageGenerationDuration,
+                        memoryMB: evaluation.imageGenerationMemoryMB
+                    ) {
+                        Text(imageLine)
+                            .font(.caption2)
+                    }
                 }
             }
             .foregroundColor(.secondary)

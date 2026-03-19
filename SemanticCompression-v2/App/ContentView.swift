@@ -832,11 +832,7 @@ extension ContentView {
                 ImageCacheManager.shared.save(img, for: cacheKey)
                 ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
                 scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: img, modelID: modelID)
-                post.updateImageGenerationDiagnostics(
-                    duration: Date().timeIntervalSince(generationStart),
-                    memoryMB: currentMemoryFootprintMB()
-                )
-                persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
+                updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
             } catch {
                 #if DEBUG
                 print("⚠️ Image generation failed:", error)
@@ -854,20 +850,12 @@ extension ContentView {
                     ImageCacheManager.shared.save(fallback, for: cacheKey)
                     ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
                     scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: fallback, modelID: modelID)
-                    post.updateImageGenerationDiagnostics(
-                        duration: Date().timeIntervalSince(generationStart),
-                        memoryMB: currentMemoryFootprintMB()
-                    )
-                    persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
+                    updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
                 } catch {
                     #if DEBUG
                     print("⚠️ Fallback generation failed:", error)
                     #endif
-                    post.updateImageGenerationDiagnostics(
-                        duration: Date().timeIntervalSince(generationStart),
-                        memoryMB: currentMemoryFootprintMB()
-                    )
-                    persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
+                    updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
                     post.previewImage = nil
                 }
             }
@@ -1018,6 +1006,24 @@ extension ContentView {
             #endif
             return nil
         }
+    }
+
+    private var isProModeEnabled: Bool {
+        UserDefaults.standard.bool(forKey: AppPreferences.proModeEnabledKey)
+    }
+
+    @MainActor
+    private func updateImageGenerationDiagnosticsIfNeeded(
+        for post: Post,
+        generationStart: Date,
+        modelID: String
+    ) {
+        guard isProModeEnabled else { return }
+        post.updateImageGenerationDiagnostics(
+            duration: Date().timeIntervalSince(generationStart),
+            memoryMB: currentMemoryFootprintMB()
+        )
+        persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
     }
 
     private func cosineSimilarity(_ lhs: [Float], _ rhs: [Float]) -> Double? {
