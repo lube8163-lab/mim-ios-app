@@ -29,6 +29,10 @@ enum PrivacyMode: Int, Codable, CaseIterable, Identifiable {
         }
     }
 
+    func title(languageCode: String) -> String {
+        localizedText(languageCode: languageCode, ja: titleJA, en: titleEN)
+    }
+
     var iconName: String {
         switch self {
         case .l1: return "lock.fill"

@@ -6,19 +6,19 @@ struct LanguageSettingsView: View {
 
     var body: some View {
         Form {
-            Section(t(ja: "表示言語", en: "Language")) {
-                Picker(t(ja: "言語", en: "Language"), selection: $selectedLanguage) {
+            Section(t(ja: "表示言語", en: "Language", zh: "显示语言")) {
+                Picker(t(ja: "言語", en: "Language", zh: "语言"), selection: $selectedLanguage) {
                     ForEach(AppLanguage.allCases) { language in
                         Text(language.label).tag(language.rawValue)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.inline)
             }
         }
-        .navigationTitle(t(ja: "言語設定", en: "Language"))
+        .navigationTitle(t(ja: "言語設定", en: "Language", zh: "语言设置"))
     }
 
-    private func t(ja: String, en: String) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en)
+    private func t(ja: String, en: String, zh: String? = nil) -> String {
+        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
     }
 }

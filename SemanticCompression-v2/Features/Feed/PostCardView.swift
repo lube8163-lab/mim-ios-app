@@ -86,14 +86,19 @@ struct PostCardView: View {
         var id: String { rawValue }
 
         func label(languageCode: String) -> String {
-            let isEnglish = languageCode.hasPrefix(AppLanguage.english.rawValue)
             switch self {
-            case .inappropriate: return isEnglish ? "Inappropriate content" : "不適切な画像"
-            case .violence: return isEnglish ? "Violence or gore" : "暴力・残虐"
-            case .sexual: return isEnglish ? "Sexual content" : "性的コンテンツ"
-            case .hate: return isEnglish ? "Hate or discrimination" : "ヘイト・差別"
-            case .spam: return isEnglish ? "Spam" : "スパム"
-            case .other: return isEnglish ? "Other" : "その他"
+            case .inappropriate:
+                return localizedText(languageCode: languageCode, ja: "不適切な画像", en: "Inappropriate content")
+            case .violence:
+                return localizedText(languageCode: languageCode, ja: "暴力・残虐", en: "Violence or gore")
+            case .sexual:
+                return localizedText(languageCode: languageCode, ja: "性的コンテンツ", en: "Sexual content")
+            case .hate:
+                return localizedText(languageCode: languageCode, ja: "ヘイト・差別", en: "Hate or discrimination")
+            case .spam:
+                return localizedText(languageCode: languageCode, ja: "スパム", en: "Spam")
+            case .other:
+                return localizedText(languageCode: languageCode, ja: "その他", en: "Other")
             }
         }
 
@@ -409,7 +414,7 @@ extension PostCardView {
         HStack(spacing: 4) {
             Image(systemName: post.privacyMode.iconName)
                 .font(.caption2)
-            Text(post.privacyMode.titleEN)
+            Text(post.privacyMode.title(languageCode: selectedLanguage))
                 .font(.caption2)
                 .fontWeight(.semibold)
         }
