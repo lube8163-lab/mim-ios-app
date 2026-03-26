@@ -39,6 +39,7 @@ actor PostStore {
         target.hasImage = incoming.hasImage
         target.likeCount = incoming.likeCount
         target.isLikedByCurrentUser = incoming.isLikedByCurrentUser
+        target.commentCount = incoming.commentCount
         target.status = incoming.status
     }
 }

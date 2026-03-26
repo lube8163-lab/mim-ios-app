@@ -9,6 +9,7 @@ import SwiftUI
 
 @main
 struct SemanticCompressionApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
@@ -21,6 +22,7 @@ struct SemanticCompressionApp: App {
 
     @StateObject private var taggerHolder = TaggerHolder()
     @StateObject private var authManager = AuthManager.shared
+    @StateObject private var pushNotificationManager = PushNotificationManager.shared
 
     @StateObject private var modelManager =
         ModelManager()
@@ -54,10 +56,21 @@ struct SemanticCompressionApp: App {
             }
             .task {
                 await authManager.restoreIfNeeded()
+                await pushNotificationManager.handleAuthenticationStateChanged(
+                    isAuthenticated: authManager.isAuthenticated
+                )
+            }
+            .onChange(of: authManager.isAuthenticated) { _, authenticated in
+                Task {
+                    await pushNotificationManager.handleAuthenticationStateChanged(
+                        isAuthenticated: authenticated
+                    )
+                }
             }
             .environmentObject(taggerHolder)
             .environmentObject(modelManager)
             .environmentObject(authManager)
+            .environmentObject(pushNotificationManager)
             .environment(\.locale, Locale(identifier: selectedLanguage))
         }
     }
