@@ -33,15 +33,18 @@ struct PublicProfileView: View {
             .padding(.vertical, 16)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
-        .navigationTitle(t(ja: "プロフィール", en: "Profile"))
+        .navigationTitle(t(ja: "プロフィール", en: "Profile", zh: "个人资料"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(t(ja: "閉じる", en: "Close")) { dismiss() }
+                Button(t(ja: "閉じる", en: "Close", zh: "关闭")) { dismiss() }
             }
         }
         .task {
             await loadAll()
+        }
+        .onDisappear {
+            NotificationCenter.default.post(name: .generationPriorityChanged, object: [Post](), userInfo: ["postIDs": []])
         }
         .sheet(isPresented: $showLoginSheet) {
             OTPLoginView(allowsSkip: true)
@@ -62,21 +65,17 @@ struct PublicProfileView: View {
                 .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(profile?.displayName ?? t(ja: "読み込み中…", en: "Loading..."))
+                    Text(profile?.displayName ?? t(ja: "読み込み中…", en: "Loading...", zh: "加载中…"))
                         .font(.title3.weight(.bold))
-                    Text(userId)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .textSelection(.enabled)
                 }
 
                 Spacer()
             }
 
             HStack(spacing: 18) {
-                statView(value: profile?.postCount ?? 0, labelJA: "投稿", labelEN: "Posts")
-                statView(value: profile?.followerCount ?? 0, labelJA: "フォロワー", labelEN: "Followers")
-                statView(value: profile?.followingCount ?? 0, labelJA: "フォロー中", labelEN: "Following")
+                statView(value: profile?.postCount ?? 0, labelJA: "投稿", labelEN: "Posts", labelZH: "帖子")
+                statView(value: profile?.followerCount ?? 0, labelJA: "フォロワー", labelEN: "Followers", labelZH: "粉丝")
+                statView(value: profile?.followingCount ?? 0, labelJA: "フォロー中", labelEN: "Following", labelZH: "关注中")
             }
 
             if shouldShowFollowButton {
@@ -87,7 +86,9 @@ struct PublicProfileView: View {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                     } else {
-                        Text((profile?.isFollowing ?? false) ? t(ja: "フォロー解除", en: "Unfollow") : t(ja: "フォロー", en: "Follow"))
+                        Text((profile?.isFollowing ?? false)
+                             ? t(ja: "フォロー解除", en: "Unfollow", zh: "取消关注")
+                             : t(ja: "フォロー", en: "Follow", zh: "关注"))
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                     }
@@ -104,7 +105,7 @@ struct PublicProfileView: View {
     private var postsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text(t(ja: "投稿", en: "Posts"))
+                Text(t(ja: "投稿", en: "Posts", zh: "帖子"))
                     .font(.headline)
                 Spacer()
                 if isLoadingPosts {
@@ -114,14 +115,18 @@ struct PublicProfileView: View {
             .padding(.horizontal, 16)
 
             if !isLoadingPosts && posts.isEmpty {
-                Text(t(ja: "まだ投稿はありません", en: "No posts yet"))
+                Text(t(ja: "まだ投稿はありません", en: "No posts yet", zh: "还没有帖子"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 16)
             } else {
                 LazyVStack(spacing: 16) {
                     ForEach(posts) { post in
-                        PostCardView(post: post, isModelInstalled: modelManager.sdInstalled)
+                        PostCardView(
+                            post: post,
+                            isModelInstalled: modelManager.sdInstalled,
+                            priorityContextPostIDs: posts.map(\.id)
+                        )
                     }
                 }
                 .padding(.horizontal, 16)
@@ -140,8 +145,13 @@ struct PublicProfileView: View {
             isLoadingPosts = true
             defer { isLoadingPosts = false }
             posts = try await FeedLoader.fetchMyPosts(userId: userId, page: 0, pageSize: 20)
+            NotificationCenter.default.post(
+                name: .generationPriorityChanged,
+                object: posts,
+                userInfo: ["postIDs": posts.map(\.id)]
+            )
         } catch {
-            errorMessage = t(ja: "プロフィールの取得に失敗しました", en: "Failed to load profile")
+            errorMessage = t(ja: "プロフィールの取得に失敗しました", en: "Failed to load profile", zh: "加载个人资料失败")
         }
     }
 
@@ -168,23 +178,23 @@ struct PublicProfileView: View {
             if !message.isEmpty, message != URLError(.badServerResponse).localizedDescription {
                 errorMessage = message
             } else {
-                errorMessage = t(ja: "フォロー状態の更新に失敗しました", en: "Failed to update follow state")
+                errorMessage = t(ja: "フォロー状態の更新に失敗しました", en: "Failed to update follow state", zh: "更新关注状态失败")
             }
         }
     }
 
-    private func statView(value: Int, labelJA: String, labelEN: String) -> some View {
+    private func statView(value: Int, labelJA: String, labelEN: String, labelZH: String? = nil) -> some View {
         VStack(spacing: 4) {
             Text("\(value)")
                 .font(.headline.weight(.bold))
-            Text(t(ja: labelJA, en: labelEN))
+            Text(t(ja: labelJA, en: labelEN, zh: labelZH))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
     }
 
-    private func t(ja: String, en: String) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en)
+    private func t(ja: String, en: String, zh: String? = nil) -> String {
+        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
     }
 }

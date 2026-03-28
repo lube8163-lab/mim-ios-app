@@ -6,6 +6,7 @@ struct PostCardView: View {
     @ObservedObject var post: Post
     let isModelInstalled: Bool
     var showsCommentButton: Bool = true
+    var priorityContextPostIDs: [String]? = nil
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authManager: AuthManager
     var onUserBlocked: ((String) -> Void)? = nil
@@ -47,7 +48,8 @@ struct PostCardView: View {
                 NavigationStack {
                     PostDetailView(
                         post: post,
-                        isModelInstalled: isModelInstalled
+                        isModelInstalled: isModelInstalled,
+                        restorePriorityPostIDs: priorityContextPostIDs
                     )
                 }
             }
@@ -130,9 +132,7 @@ struct PostCardView: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: 12) {
             headerSection
-            textSection
-            imageSection
-            captionSection
+            detailOpenSection
             actionSection
             semanticFidelitySection
         }
@@ -143,6 +143,19 @@ struct PostCardView: View {
                 .stroke(cardStrokeColor, lineWidth: 0.8)
         )
         .shadow(color: Color.black.opacity(0.06), radius: 18, y: 8)
+    }
+
+    @ViewBuilder
+    private var detailOpenSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            textSection
+            imageSection
+            captionSection
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            openPostDetail()
+        }
     }
 
     // MARK: - Report submit (temporary)
@@ -358,6 +371,10 @@ extension PostCardView {
         showAuthorProfile = true
     }
 
+    private func openPostDetail() {
+        showComments = true
+    }
+
     private func t(ja: String, en: String) -> String {
         localizedText(languageCode: selectedLanguage, ja: ja, en: en)
     }
@@ -508,7 +525,7 @@ extension PostCardView {
 
             if showsCommentButton {
                 Button {
-                    showComments = true
+                    openPostDetail()
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "bubble.right")

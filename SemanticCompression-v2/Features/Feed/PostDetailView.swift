@@ -3,6 +3,7 @@ import SwiftUI
 struct PostDetailView: View {
     @ObservedObject var post: Post
     let isModelInstalled: Bool
+    var restorePriorityPostIDs: [String]? = nil
 
     @EnvironmentObject private var authManager: AuthManager
     @AppStorage(AppPreferences.selectedLanguageKey)
@@ -32,14 +33,41 @@ struct PostDetailView: View {
             .padding(16)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
-        .navigationTitle(t(ja: "投稿", en: "Post"))
+        .navigationTitle(t(ja: "投稿", en: "Post", zh: "帖子"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isModelInstalled && post.hasImage {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(t(ja: "再生成", en: "Regenerate", zh: "重新生成")) {
+                        NotificationCenter.default.post(
+                            name: .regenerateSinglePostRequested,
+                            object: post,
+                            userInfo: ["postID": post.id]
+                        )
+                    }
+                }
+            }
+        }
         .safeAreaInset(edge: .bottom) {
             composerBar
                 .background(.ultraThinMaterial)
         }
         .task {
             await loadComments()
+        }
+        .onAppear {
+            NotificationCenter.default.post(
+                name: .generationPriorityChanged,
+                object: [post],
+                userInfo: ["postIDs": [post.id]]
+            )
+        }
+        .onDisappear {
+            NotificationCenter.default.post(
+                name: .generationPriorityChanged,
+                object: [Post](),
+                userInfo: ["postIDs": restorePriorityPostIDs ?? []]
+            )
         }
         .sheet(isPresented: $showLoginSheet) {
             OTPLoginView(allowsSkip: true)
@@ -50,7 +78,7 @@ struct PostDetailView: View {
     private var commentSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text(t(ja: "コメント", en: "Comments"))
+                Text(t(ja: "コメント", en: "Comments", zh: "评论"))
                     .font(.headline)
                 Spacer()
                 if isLoading {
@@ -66,7 +94,7 @@ struct PostDetailView: View {
             }
 
             if !isLoading && comments.isEmpty {
-                Text(t(ja: "まだコメントはありません", en: "No comments yet"))
+                Text(t(ja: "まだコメントはありません", en: "No comments yet", zh: "还没有评论"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.vertical, 12)
@@ -91,7 +119,7 @@ struct PostDetailView: View {
                 Button {
                     showLoginSheet = true
                 } label: {
-                    Text(t(ja: "ログインしてコメント", en: "Sign in to comment"))
+                    Text(t(ja: "ログインしてコメント", en: "Sign in to comment", zh: "登录后评论"))
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                 }
@@ -112,7 +140,7 @@ struct PostDetailView: View {
 
                         Spacer()
 
-                        Button(t(ja: "キャンセル", en: "Cancel")) {
+                        Button(t(ja: "キャンセル", en: "Cancel", zh: "取消")) {
                             self.replyTarget = nil
                         }
                         .font(.caption)
@@ -122,7 +150,7 @@ struct PostDetailView: View {
 
                 HStack(alignment: .bottom, spacing: 10) {
                     TextField(
-                        t(ja: "コメントを書く", en: "Write a comment"),
+                        t(ja: "コメントを書く", en: "Write a comment", zh: "写评论"),
                         text: $composerText,
                         axis: .vertical
                     )
@@ -141,7 +169,7 @@ struct PostDetailView: View {
                             ProgressView()
                                 .controlSize(.small)
                         } else {
-                            Text(t(ja: "送信", en: "Send"))
+                            Text(t(ja: "送信", en: "Send", zh: "发送"))
                                 .font(.subheadline.weight(.semibold))
                         }
                     }
@@ -165,7 +193,7 @@ struct PostDetailView: View {
             comments = try await CommentService.fetchComments(postId: post.id)
             post.commentCount = comments.count
         } catch {
-            errorMessage = t(ja: "コメントの読み込みに失敗しました", en: "Failed to load comments")
+            errorMessage = t(ja: "コメントの読み込みに失敗しました", en: "Failed to load comments", zh: "加载评论失败")
         }
     }
 
@@ -194,7 +222,7 @@ struct PostDetailView: View {
             replyTarget = nil
             post.commentCount = comments.count
         } catch {
-            errorMessage = t(ja: "コメントの送信に失敗しました", en: "Failed to send comment")
+            errorMessage = t(ja: "コメントの送信に失敗しました", en: "Failed to send comment", zh: "发送评论失败")
         }
     }
 
@@ -222,8 +250,8 @@ struct PostDetailView: View {
         return result
     }
 
-    private func t(ja: String, en: String) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en)
+    private func t(ja: String, en: String, zh: String? = nil) -> String {
+        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
     }
 }
 
@@ -262,7 +290,7 @@ private struct CommentRowView: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(comment.displayName ?? localizedText(languageCode: languageCode, ja: "ユーザー", en: "User"))
+                    Text(comment.displayName ?? localizedText(languageCode: languageCode, ja: "ユーザー", en: "User", zh: "用户"))
                         .font(.subheadline.weight(.semibold))
                     Text(relativeTime)
                         .font(.caption)
@@ -276,7 +304,7 @@ private struct CommentRowView: View {
                     .textSelection(.enabled)
 
                 Button(action: onReply) {
-                    Text(localizedText(languageCode: languageCode, ja: "返信", en: "Reply"))
+                    Text(localizedText(languageCode: languageCode, ja: "返信", en: "Reply", zh: "回复"))
                         .font(.caption.weight(.semibold))
                 }
                 .buttonStyle(.plain)

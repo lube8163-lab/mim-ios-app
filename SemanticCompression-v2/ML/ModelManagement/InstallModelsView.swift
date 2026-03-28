@@ -21,7 +21,7 @@ struct InstallModelsView: View {
         VStack(spacing: 24) {
 
             // MARK: - Title
-            Text(t(ja: "AIモデルのインストール", en: "Install AI Models"))
+            Text(t(ja: "AIモデルのインストール", en: "Install AI Models", zh: "安装 AI 模型"))
                 .font(.largeTitle.bold())
                 .padding(.top, 40)
 
@@ -38,6 +38,12 @@ To use image generation (Stable Diffusion) and image understanding (SigLIP2 / Qw
 you need to download the AI models.
 
 You can install each model later as needed.
+""",
+                zh: """
+要使用图像生成（Stable Diffusion）和图像理解（SigLIP2 / Qwen），
+需要先下载 AI 模型。
+
+之后也可以按需分别安装。
 """
             ))
                 .font(.body)
@@ -58,6 +64,9 @@ You can install each model later as needed.
 """,
                     en: """
 After installation completes, please close and restart the app.
+""",
+                    zh: """
+安装完成后，请关闭并重新启动应用。
 """
                 ))
                     .font(.footnote)
@@ -79,7 +88,7 @@ After installation completes, please close and restart the app.
                 Button {
                     dismiss()
                 } label: {
-                    Text(t(ja: "今はスキップ", en: "Skip for now"))
+                    Text(t(ja: "今はスキップ", en: "Skip for now", zh: "暂时跳过"))
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
@@ -96,7 +105,8 @@ After installation completes, please close and restart the app.
                 Text(
                     t(
                         ja: "インストールが完了しました。安定動作のためアプリを再起動してください。",
-                        en: "Installation completed. Please restart the app for stable behavior."
+                        en: "Installation completed. Please restart the app for stable behavior.",
+                        zh: "安装完成。为了稳定运行，请重新启动应用。"
                     )
                 )
                 .font(.footnote)
@@ -130,8 +140,8 @@ After installation completes, please close and restart the app.
         }
     }
 
-    private func t(ja: String, en: String) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en)
+    private func t(ja: String, en: String, zh: String? = nil) -> String {
+        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
     }
 }
 

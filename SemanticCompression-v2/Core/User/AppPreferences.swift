@@ -41,4 +41,7 @@ enum AppPreferences {
 
 extension Notification.Name {
     static let semanticCacheMaintenanceRequested = Notification.Name("semantic_cache_maintenance_requested")
+    static let regenerateImagesRequested = Notification.Name("regenerate_images_requested")
+    static let generationPriorityChanged = Notification.Name("generation_priority_changed")
+    static let regenerateSinglePostRequested = Notification.Name("regenerate_single_post_requested")
 }

@@ -32,6 +32,7 @@ struct ContentView: View {
     @StateObject private var myPostList = PostList()
     @StateObject private var likedPostList = PostList()
     @StateObject private var blockManager = BlockManager.shared
+    @StateObject private var userManager = UserManager.shared
     @EnvironmentObject private var authManager: AuthManager
     @EnvironmentObject var modelManager: ModelManager
     @Environment(\.scenePhase) private var scenePhase
@@ -79,6 +80,7 @@ struct ContentView: View {
     @State private var profileDrawerDragTranslation: CGFloat = 0
     @State private var isChromeHidden = false
     @State private var currentProfileStats: PublicUserProfile?
+    @State private var externallyPrioritizedPostIDs: [String] = []
 
     // MARK: - Body
 
@@ -122,6 +124,20 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .semanticCacheMaintenanceRequested)) { _ in
             Task { await clearAllImageCachesAndRegenerate() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .regenerateImagesRequested)) { _ in
+            showRegenerateConfirm = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .generationPriorityChanged)) { notification in
+            let ids = notification.userInfo?["postIDs"] as? [String] ?? []
+            externallyPrioritizedPostIDs = ids
+            let prioritizedPosts = notification.object as? [Post] ?? []
+            prioritizeGenerationForCurrentContext(using: prioritizedPosts)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .regenerateSinglePostRequested)) { notification in
+            guard let postID = notification.userInfo?["postID"] as? String else { return }
+            let post = notification.object as? Post
+            Task { await regenerateImage(for: postID, post: post) }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .pushNotificationDidChange)) { _ in
             Task { await refreshUnreadNotificationsIfNeeded(force: true) }
         }
@@ -129,6 +145,7 @@ struct ContentView: View {
             withAnimation(.easeInOut(duration: 0.18)) {
                 isChromeHidden = false
             }
+            prioritizeGenerationForCurrentContext()
         }
         .onChange(of: showProfileDrawer) { shown in
             if shown {
@@ -153,12 +170,12 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.2), value: showReportToast)
         .animation(.easeInOut(duration: 0.2), value: showBlockToast)
         .overlay {
-            if showProfileDrawer {
+            if appBootState == .ready {
                 profileDrawerOverlay
             }
         }
         .overlay(alignment: .leading) {
-            if !showProfileDrawer {
+            if appBootState == .ready && !showProfileDrawer {
                 Color.clear
                     .frame(width: 24)
                     .contentShape(Rectangle())
@@ -395,7 +412,7 @@ extension ContentView {
         genLog = t(ja: "準備完了", en: "Ready")
 
         // ユーザー登録
-        let user = UserManager.shared.currentUser
+        let user = userManager.currentUser
         if !user.id.isEmpty {
             await UserService.register(user)
             await blockManager.refreshFromServerIfPossible()
@@ -466,7 +483,7 @@ extension ContentView {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
-                    .padding(.bottom, 136)
+                    .padding(.bottom, 94)
                 }
                 .refreshable {
                     await refreshFeed()
@@ -478,52 +495,6 @@ extension ContentView {
 }
 
 extension ContentView {
-
-    private var bottomStatusBar: some View {
-        Group {
-            if modelManager.sdInstalled {
-                HStack(spacing: 10) {
-                    Button {
-                        showRegenerateConfirm = true
-                    } label: {
-                        Label(t(ja: "再生成", en: "Regenerate"), systemImage: "arrow.clockwise")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.accentColor.opacity(0.14))
-                            .clipShape(Capsule())
-                    }
-                    .accessibilityLabel(t(ja: "画像を再生成", en: "Regenerate images"))
-                    Text(genLog)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.45), lineWidth: 0.8)
-                )
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-            } else {
-                Text(t(ja: "⚠️ モデル未インストール（画像生成は無効）", en: "⚠️ Model not installed (image generation disabled)"))
-                    .foregroundColor(.orange)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .padding(.horizontal, 16)
-                    .padding(.top, 10)
-            }
-        }
-        .font(.footnote)
-        .foregroundColor(.gray)
-        .padding(.bottom, 6)
-        .opacity(isChromeHidden ? 0 : 1)
-        .offset(y: isChromeHidden ? 16 : 0)
-    }
-
     private var floatingNewPostButton: some View {
         VStack {
             Spacer()
@@ -579,11 +550,6 @@ extension ContentView {
 
     private var bottomOverlay: some View {
         VStack(spacing: 0) {
-            if selectedTab == .timeline && !isChromeHidden {
-                bottomStatusBar
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-
             if !isChromeHidden {
                 customTabBar
                     .padding(.horizontal, 20)
@@ -660,14 +626,9 @@ extension ContentView {
                     showProfileDrawer = true
                 }
             } label: {
-                if let url = URL(string: UserManager.shared.currentUser.avatarUrl),
-                   !UserManager.shared.currentUser.avatarUrl.isEmpty {
-                    AsyncImage(url: url) { phase in
-                        if let image = phase.image {
-                            image.resizable().scaledToFill()
-                        } else {
-                            profileToolbarFallback
-                        }
+                if !userManager.currentUser.avatarUrl.isEmpty {
+                    CachedAvatarView(urlString: userManager.currentUser.avatarUrl) {
+                        profileToolbarFallback
                     }
                     .frame(width: 30, height: 30)
                     .clipShape(Circle())
@@ -740,8 +701,9 @@ extension ContentView {
 
     private var profileDrawerOverlay: some View {
         ZStack(alignment: .leading) {
-            Color.black.opacity(0.4)
+            Color.black.opacity(showProfileDrawer ? 0.4 : 0)
                 .ignoresSafeArea()
+                .allowsHitTesting(showProfileDrawer)
                 .onTapGesture {
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
                         showProfileDrawer = false
@@ -754,10 +716,15 @@ extension ContentView {
             .frame(width: min(UIScreen.main.bounds.width * 0.82, 340))
             .frame(maxHeight: .infinity)
             .background(drawerBackgroundColor)
-            .offset(x: min(profileDrawerDragTranslation, 0))
-            .highPriorityGesture(profileDrawerSwipeGesture)
-            .transition(.move(edge: .leading))
+            .offset(x: drawerOffsetX)
+            // Keep the drawer's close swipe without stealing vertical drags from
+            // nested ScrollViews such as the AI Models screen.
+            .simultaneousGesture(profileDrawerSwipeGesture)
+            .shadow(color: Color.black.opacity(showProfileDrawer ? 0.18 : 0), radius: 18, x: 8, y: 0)
         }
+        .allowsHitTesting(showProfileDrawer)
+        .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.88), value: showProfileDrawer)
+        .animation(.interactiveSpring(response: 0.22, dampingFraction: 0.92), value: profileDrawerDragTranslation)
     }
 
     private var profileDrawerMenu: some View {
@@ -786,14 +753,9 @@ extension ContentView {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
                 Group {
-                    if let url = URL(string: UserManager.shared.currentUser.avatarUrl),
-                       !UserManager.shared.currentUser.avatarUrl.isEmpty {
-                        AsyncImage(url: url) { phase in
-                            if let image = phase.image {
-                                image.resizable().scaledToFill()
-                            } else {
-                                Circle().fill(drawerSecondaryFillColor)
-                            }
+                    if !userManager.currentUser.avatarUrl.isEmpty {
+                        CachedAvatarView(urlString: userManager.currentUser.avatarUrl) {
+                            Circle().fill(drawerSecondaryFillColor)
                         }
                     } else {
                         Circle()
@@ -825,19 +787,19 @@ extension ContentView {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(UserManager.shared.currentUser.displayName)
+                Text(userManager.currentUser.displayName)
                     .font(.title2.weight(.bold))
                     .foregroundColor(drawerPrimaryTextColor)
                     .lineLimit(2)
 
-                if !UserManager.shared.currentUser.id.isEmpty {
-                    Text("@\(UserManager.shared.currentUser.id)")
+                if !userManager.currentUser.id.isEmpty {
+                    Text("@\(userManager.currentUser.id)")
                         .font(.subheadline)
                         .foregroundColor(drawerSecondaryTextColor)
                         .textSelection(.enabled)
                 }
 
-                if let email = UserManager.shared.currentUser.email, !email.isEmpty {
+                if let email = userManager.currentUser.email, !email.isEmpty {
                     Text(email)
                         .font(.caption)
                         .foregroundColor(drawerTertiaryTextColor)
@@ -848,11 +810,11 @@ extension ContentView {
             HStack(spacing: 24) {
                 profileStatText(
                     value: currentProfileStats?.followingCount ?? 0,
-                    label: t(ja: "フォロー中", en: "Following")
+                    label: t(ja: "フォロー中", en: "Following", zh: "关注中")
                 )
                 profileStatText(
                     value: currentProfileStats?.followerCount ?? 0,
-                    label: t(ja: "フォロワー", en: "Followers")
+                    label: t(ja: "フォロワー", en: "Followers", zh: "粉丝")
                 )
             }
             .padding(.top, 4)
@@ -862,21 +824,21 @@ extension ContentView {
     private var profileDrawerPrimarySection: some View {
         VStack(alignment: .leading, spacing: 8) {
             profileDrawerLink(
-                title: t(ja: "プロフィール", en: "Profile"),
+                title: t(ja: "プロフィール", en: "Profile", zh: "个人资料"),
                 systemImage: "person"
             ) {
                 UserProfileView(showsCloseButton: false, showAppSettings: false)
             }
 
             profileDrawerLink(
-                title: t(ja: "AIモデル", en: "AI Models"),
+                title: t(ja: "AIモデル", en: "AI Models", zh: "AI 模型"),
                 systemImage: "cpu"
             ) {
                 ModelManagementView()
             }
 
             profileDrawerLink(
-                title: t(ja: "ブロック管理", en: "Blocked Users"),
+                title: t(ja: "ブロック管理", en: "Blocked Users", zh: "屏蔽管理"),
                 systemImage: "person.2.slash"
             ) {
                 BlockedUsersView()
@@ -887,7 +849,7 @@ extension ContentView {
     private var profileDrawerSecondarySection: some View {
         VStack(alignment: .leading, spacing: 8) {
             profileDrawerLink(
-                title: t(ja: "設定とプライバシー", en: "Settings and Privacy"),
+                title: t(ja: "設定とプライバシー", en: "Settings and Privacy", zh: "设置与隐私"),
                 systemImage: "gearshape"
             ) {
                 SettingsView()
@@ -901,7 +863,7 @@ extension ContentView {
                     }
                 } label: {
                     profileDrawerRow(
-                        title: t(ja: "ログアウト", en: "Log Out"),
+                        title: t(ja: "ログアウト", en: "Log Out", zh: "退出登录"),
                         systemImage: "rectangle.portrait.and.arrow.right",
                         isDestructive: true
                     )
@@ -915,7 +877,7 @@ extension ContentView {
                     }
                 } label: {
                     profileDrawerRow(
-                        title: t(ja: "メールでログイン", en: "Sign in with Email"),
+                        title: t(ja: "メールでログイン", en: "Sign in with Email", zh: "使用邮箱登录"),
                         systemImage: "envelope"
                     )
                 }
@@ -987,12 +949,32 @@ extension ContentView {
         Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.08)
     }
 
+    private var drawerWidth: CGFloat {
+        min(UIScreen.main.bounds.width * 0.82, 340)
+    }
+
+    private var drawerOffsetX: CGFloat {
+        if showProfileDrawer {
+            return min(profileDrawerDragTranslation, 0)
+        }
+        return -drawerWidth
+    }
+
     private var profileDrawerEdgeGesture: some Gesture {
         DragGesture(minimumDistance: 18, coordinateSpace: .global)
+            .onChanged { value in
+                guard !showProfileDrawer else { return }
+                guard value.startLocation.x <= 28 else { return }
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                if value.translation.width > 0 {
+                    profileDrawerDragTranslation = max(value.translation.width - drawerWidth, -drawerWidth)
+                }
+            }
             .onEnded { value in
+                defer { profileDrawerDragTranslation = 0 }
                 guard value.startLocation.x <= 28 else { return }
                 guard value.translation.width > 70 else { return }
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
+                withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.88)) {
                     showProfileDrawer = true
                 }
             }
@@ -1016,14 +998,14 @@ extension ContentView {
 
                 if showProfileDrawer {
                     guard horizontal < -70 else { return }
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
+                    withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.88)) {
                         showProfileDrawer = false
                     }
                     return
                 }
 
                 guard value.startLocation.x <= 28, horizontal > 70 else { return }
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
+                withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.88)) {
                     showProfileDrawer = true
                 }
             }
@@ -1036,7 +1018,8 @@ extension ContentView {
             Text(
                 t(
                     ja: "投稿・いいね・ブロックはログイン後に利用できます。",
-                    en: "Posting, likes, and block controls are available after sign-in."
+                    en: "Posting, likes, and block controls are available after sign-in.",
+                    zh: "发帖、点赞和屏蔽功能需登录后使用。"
                 )
             )
             .font(.caption)
@@ -1044,7 +1027,7 @@ extension ContentView {
             Button {
                 showLoginSheet = true
             } label: {
-                Text(t(ja: "メールでログイン", en: "Sign in with Email"))
+                Text(t(ja: "メールでログイン", en: "Sign in with Email", zh: "使用邮箱登录"))
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
@@ -1082,7 +1065,7 @@ extension ContentView {
             currentProfileStats = nil
             return
         }
-        let userId = UserManager.shared.currentUser.id
+        let userId = userManager.currentUser.id
         guard !userId.isEmpty else {
             currentProfileStats = nil
             return
@@ -1094,8 +1077,8 @@ extension ContentView {
             if currentProfileStats == nil {
                 currentProfileStats = PublicUserProfile(
                     id: userId,
-                    displayName: UserManager.shared.currentUser.displayName,
-                    avatarUrl: UserManager.shared.currentUser.avatarUrl,
+                    displayName: userManager.currentUser.displayName,
+                    avatarUrl: userManager.currentUser.avatarUrl,
                     followerCount: 0,
                     followingCount: 0,
                     postCount: 0,
@@ -1338,7 +1321,7 @@ extension ContentView {
 
     func loadMyPosts() async {
         guard !isLoadingMyPosts else { return }
-        let userId = UserManager.shared.currentUser.id
+        let userId = userManager.currentUser.id
         guard !userId.isEmpty else {
             myPostList.items = []
             hasLoadedMyPosts = true
@@ -1361,14 +1344,14 @@ extension ContentView {
             enqueueImages(for: filtered)
         } catch {
             genLog = t(ja: "⚠️ 自分の投稿の読み込みに失敗", en: "⚠️ Failed to load my posts")
-            let userId = UserManager.shared.currentUser.id
+            let userId = userManager.currentUser.id
             myPostList.items = blockManager.filterBlocked(from: postList.items.filter { $0.userId == userId })
         }
     }
 
     func loadNextMyPage() async {
         guard !isLoadingMyPosts else { return }
-        let userId = UserManager.shared.currentUser.id
+        let userId = userManager.currentUser.id
         guard !userId.isEmpty else { return }
         isLoadingMyPosts = true
         defer { isLoadingMyPosts = false }
@@ -1392,7 +1375,7 @@ extension ContentView {
 
     func loadLikedPosts() async {
         guard !isLoadingLikedPosts else { return }
-        let userId = UserManager.shared.currentUser.id
+        let userId = userManager.currentUser.id
         guard !userId.isEmpty else {
             likedPostList.items = []
             hasLoadedLikedPosts = true
@@ -1421,7 +1404,7 @@ extension ContentView {
 
     func loadNextLikedPage() async {
         guard !isLoadingLikedPosts else { return }
-        let userId = UserManager.shared.currentUser.id
+        let userId = userManager.currentUser.id
         guard !userId.isEmpty else { return }
         isLoadingLikedPosts = true
         defer { isLoadingLikedPosts = false }
@@ -1473,6 +1456,8 @@ extension ContentView {
                 }
             }
         }
+
+        prioritizeGenerationForCurrentContext()
 
         guard canGenerate else { return }
         guard !isGenerating else { return }
@@ -1620,7 +1605,7 @@ extension ContentView {
     private var allKnownPosts: [Post] {
         var seen: Set<String> = []
         var result: [Post] = []
-        for post in postList.items + myPostList.items + likedPostList.items {
+        for post in postList.items + followingPostList.items + myPostList.items + likedPostList.items {
             if seen.insert(post.id).inserted {
                 result.append(post)
             }
@@ -1628,9 +1613,75 @@ extension ContentView {
         return result
     }
 
+    private var postsForSelectedTab: [Post] {
+        switch selectedTab {
+        case .timeline:
+            return postList.items
+        case .following:
+            return followingPostList.items
+        case .myPosts:
+            return myPostList.items
+        case .liked:
+            return likedPostList.items
+        }
+    }
+
     private func isCurrentUsersPost(_ post: Post) -> Bool {
         guard let userID = post.userId, !userID.isEmpty else { return false }
-        return userID == UserManager.shared.currentUser.id
+        return userID == userManager.currentUser.id
+    }
+
+    @MainActor
+    private func prioritizeGenerationForCurrentContext(using supplementalPosts: [Post] = []) {
+        let ids = externallyPrioritizedPostIDs.isEmpty
+            ? postsForSelectedTab.map(\.id)
+            : externallyPrioritizedPostIDs
+        let prioritizedIDs = Set(ids)
+        guard !prioritizedIDs.isEmpty else { return }
+
+        let supplementalByID = Dictionary(uniqueKeysWithValues: supplementalPosts.map { ($0.id, $0) })
+        for id in ids.reversed() {
+            guard let post = supplementalByID[id] else { continue }
+            guard post.hasImage, post.effectivePrompt != nil else { continue }
+            guard post.localImage == nil else { continue }
+            if !generationQueue.contains(where: { $0.id == id }) {
+                generationQueue.insert(post, at: 0)
+            }
+        }
+
+        let prioritized = generationQueue.filter { prioritizedIDs.contains($0.id) }
+        let remaining = generationQueue.filter { !prioritizedIDs.contains($0.id) }
+        generationQueue = prioritized + remaining
+
+        if !generationQueue.isEmpty, !isGenerating, generator != nil {
+            isGenerating = true
+            generationTask = Task { await processQueue() }
+        }
+    }
+
+    @MainActor
+    private func regenerateImage(for postID: String, post explicitPost: Post? = nil) async {
+        let post = explicitPost ?? allKnownPosts.first(where: { $0.id == postID })
+        guard let post else { return }
+        guard let prompt = post.effectivePrompt else { return }
+
+        let modelID = modelManager.selectedSDModelID
+        let key = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
+        ImageCacheManager.shared.remove(for: key)
+        ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
+        post.localImage = nil
+        post.clearRegenerationEvaluation()
+        post.previewImage = post.hasImage
+            ? post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
+            : nil
+
+        generationQueue.removeAll { $0.id == postID }
+        generationQueue.insert(post, at: 0)
+
+        if !isGenerating, modelManager.sdInstalled {
+            isGenerating = true
+            generationTask = Task { await processQueue() }
+        }
     }
 
     private func semanticScoreKey(for post: Post, modelID: String) -> String {
