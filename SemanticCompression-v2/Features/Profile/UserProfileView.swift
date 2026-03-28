@@ -24,9 +24,11 @@ struct UserProfileView: View {
     @State private var showDeleteConfirm = false
     @State private var isDeleting = false
     let showsCloseButton: Bool
+    let showAppSettings: Bool
 
-    init(showsCloseButton: Bool = true) {
+    init(showsCloseButton: Bool = true, showAppSettings: Bool = true) {
         self.showsCloseButton = showsCloseButton
+        self.showAppSettings = showAppSettings
     }
 
     var body: some View {
@@ -39,7 +41,9 @@ struct UserProfileView: View {
             profileEditSection
 
             // MARK: - APP / SETTINGS
-            appSettingsSection
+            if showAppSettings {
+                appSettingsSection
+            }
 
             // MARK: - DANGER ZONE
             dangerZoneSection

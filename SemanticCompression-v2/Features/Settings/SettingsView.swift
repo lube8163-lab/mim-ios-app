@@ -37,6 +37,30 @@ struct SettingsView: View {
                 }
             }
 
+            if modelManager.sdInstalled {
+                Section(t(ja: "画像生成", en: "Image Generation", zh: "图像生成")) {
+                    Button {
+                        NotificationCenter.default.post(name: .regenerateImagesRequested, object: nil)
+                    } label: {
+                        HStack {
+                            Text(t(ja: "表示中の画像を再生成", en: "Regenerate Visible Images", zh: "重新生成当前图片"))
+                            Spacer()
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+
+                    Text(
+                        t(
+                            ja: "現在表示している投稿画像のキャッシュを削除し、選択中の画像生成モデルで再生成します。",
+                            en: "Clear cached images for currently visible posts and regenerate them with the selected image-generation model.",
+                            zh: "清除当前可见帖子图片的缓存，并使用当前选中的图像生成模型重新生成。"
+                        )
+                    )
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+            }
+
             Section(t(ja: "プロ機能", en: "Pro Features", zh: "专业功能")) {
                 Toggle(isOn: proModeBinding) {
                     VStack(alignment: .leading, spacing: 4) {

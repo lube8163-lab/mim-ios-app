@@ -80,17 +80,17 @@ struct NewPostView: View {
                     composerArea
                 }
             }
-            .navigationTitle(t(ja: "新規投稿", en: "New Post"))
+            .navigationTitle(t(ja: "新規投稿", en: "New Post", zh: "新帖子"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
 
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(t(ja: "閉じる", en: "Close")) { dismiss() }
+                    Button(t(ja: "閉じる", en: "Close", zh: "关闭")) { dismiss() }
                         .disabled(isPosting)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isPosting ? t(ja: "投稿中…", en: "Posting...") : t(ja: "投稿", en: "Post")) {
+                    Button(isPosting ? t(ja: "投稿中…", en: "Posting...", zh: "发布中…") : t(ja: "投稿", en: "Post", zh: "发布")) {
                         requestPost()
                     }
                     .disabled(
@@ -106,7 +106,8 @@ struct NewPostView: View {
                 Text(
                     t(
                         ja: "この投稿は、見る人の端末で意味情報から再生成されます。",
-                        en: "This post will be reconstructed from semantic data on each viewer's device."
+                        en: "This post will be reconstructed from semantic data on each viewer's device.",
+                        zh: "这条帖子会在每位查看者的设备上根据语义数据重建。"
                     )
                 )
                 .font(.footnote)
@@ -122,11 +123,12 @@ struct NewPostView: View {
         .alert(
             t(
                 ja: "L4 は再現性が高い一方、プライバシーは弱くなります。続行しますか？",
-                en: "L4 improves reconstruction but weakens privacy. Continue?"
+                en: "L4 improves reconstruction but weakens privacy. Continue?",
+                zh: "L4 会提升重建效果，但会削弱隐私保护。要继续吗？"
             ),
             isPresented: $showL2PrimeWarning
         ) {
-            Button(t(ja: "続行", en: "Continue"), role: .destructive) {
+            Button(t(ja: "続行", en: "Continue", zh: "继续"), role: .destructive) {
                 hasAcknowledgedCurrentL4Selection = true
                 previousModeBeforeL4Warning = nil
                 if warningTriggeredFromPostAction {
@@ -134,7 +136,7 @@ struct NewPostView: View {
                     Task { await handlePost() }
                 }
             }
-            Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {
+            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {
                 if let prev = previousModeBeforeL4Warning {
                     selectedMode = prev
                     hasAcknowledgedCurrentL4Selection = true
@@ -149,19 +151,21 @@ struct NewPostView: View {
         .alert(
             t(
                 ja: "\(modelManager.selectedImageUnderstandingModel.title) が未インストールです",
-                en: "\(modelManager.selectedImageUnderstandingModel.title) is not installed"
+                en: "\(modelManager.selectedImageUnderstandingModel.title) is not installed",
+                zh: "\(modelManager.selectedImageUnderstandingModel.title) 尚未安装"
             ),
             isPresented: $showImageUnderstandingRequiredAlert
         ) {
-            Button(t(ja: "テキストのみ投稿", en: "Post text only")) {
+            Button(t(ja: "テキストのみ投稿", en: "Post text only", zh: "仅发布文本")) {
                 Task { await handlePost(forceTextOnly: true) }
             }
-            Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
+            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {}
         } message: {
             Text(
                 t(
                     ja: "選択中の画像理解モデルが利用できないため、このままでは画像投稿は反映されません。テキストのみで投稿しますか？",
-                    en: "The selected image understanding model is unavailable. Post as text-only?"
+                    en: "The selected image understanding model is unavailable. Post as text-only?",
+                    zh: "当前选择的图像理解模型不可用。是否仅发布文本？"
                 )
             )
         }
@@ -176,11 +180,11 @@ extension NewPostView {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 RainbowAILoader()
-                Text(t(ja: "意味情報を送信中…", en: "Sending semantic data..."))
+                Text(t(ja: "意味情報を送信中…", en: "Sending semantic data...", zh: "正在发送语义信息…"))
                     .font(.subheadline.weight(.semibold))
             }
 
-            Text(t(ja: "サーバーへ送信中の情報", en: "What's being sent"))
+            Text(t(ja: "サーバーへ送信中の情報", en: "What's being sent", zh: "正在发送到服务器的信息"))
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -221,7 +225,7 @@ extension NewPostView {
                             .font(.subheadline.weight(.semibold))
                         Spacer()
                         if selectedImage != nil {
-                            Label(t(ja: "画像あり", en: "Image attached"), systemImage: "photo")
+                            Label(t(ja: "画像あり", en: "Image attached", zh: "已附图片"), systemImage: "photo")
                                 .font(.caption.weight(.semibold))
                                 .foregroundColor(.secondary)
                         }
@@ -229,7 +233,7 @@ extension NewPostView {
 
                     ZStack(alignment: .topLeading) {
                         if userText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            Text(t(ja: "いまどうしてる？", en: "What's happening?"))
+                            Text(t(ja: "いまどうしてる？", en: "What's happening?", zh: "现在发生了什么？"))
                                 .foregroundColor(.secondary)
                                 .padding(.top, 10)
                                 .padding(.leading, 6)
@@ -250,7 +254,7 @@ extension NewPostView {
 
             HStack {
                 PhotosPicker(selection: $selectedItem, matching: .images) {
-                    Label(t(ja: "画像", en: "Image"), systemImage: "photo")
+                    Label(t(ja: "画像", en: "Image", zh: "图片"), systemImage: "photo")
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
@@ -281,7 +285,8 @@ extension NewPostView {
                             Text(
                                 t(
                                     ja: "LCM 使用中: モード切替不可 / img2img 無効",
-                                    en: "LCM active: mode switch disabled / img2img off"
+                                    en: "LCM active: mode switch disabled / img2img off",
+                                    zh: "LCM 使用中：无法切换模式 / img2img 已关闭"
                                 )
                             )
                             .font(.caption2)
@@ -301,7 +306,7 @@ extension NewPostView {
             HStack {
                 if selectedImage != nil {
                     Label(
-                        t(ja: "意味圧縮を適用", en: "Semantic compression enabled"),
+                        t(ja: "意味圧縮を適用", en: "Semantic compression enabled", zh: "已启用语义压缩"),
                         systemImage: "sparkles"
                     )
                     .font(.caption)
@@ -386,11 +391,11 @@ extension NewPostView {
                     .disabled(!PrivacyModeAccessPolicy.canUse(mode: mode))
                 }
             }
-            .navigationTitle(t(ja: "投稿モード", en: "Post Mode"))
+            .navigationTitle(t(ja: "投稿モード", en: "Post Mode", zh: "发帖模式"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(t(ja: "閉じる", en: "Close")) { showModeSheet = false }
+                    Button(t(ja: "閉じる", en: "Close", zh: "关闭")) { showModeSheet = false }
                 }
             }
         }
@@ -399,13 +404,13 @@ extension NewPostView {
     private func modeDescription(_ mode: PrivacyMode) -> String {
         switch mode {
         case .l1:
-            return t(ja: "画像情報なし", en: "No image data")
+            return t(ja: "画像情報なし", en: "No image data", zh: "不包含图像数据")
         case .l2:
-            return t(ja: "軽量要約", en: "Compact summary")
+            return t(ja: "軽量要約", en: "Compact summary", zh: "轻量摘要")
         case .l3:
-            return t(ja: "低周波係数", en: "Low-frequency DCT")
+            return t(ja: "低周波係数", en: "Low-frequency DCT", zh: "低频 DCT")
         case .l2Prime:
-            return t(ja: "極低解像ピクセル", en: "Extreme low-res pixels")
+            return t(ja: "極低解像ピクセル", en: "Extreme low-res pixels", zh: "超低分辨率像素")
         }
     }
 
@@ -461,14 +466,14 @@ extension NewPostView {
                     .shadow(radius: 4)
                     .padding(18)
             }
-            .accessibilityLabel(t(ja: "画像を削除", en: "Remove image"))
+            .accessibilityLabel(t(ja: "画像を削除", en: "Remove image", zh: "移除图片"))
         }
     }
 
     private var imageUnderstandingStatusCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label(
-                t(ja: "意味を抽出して再構成します", en: "Extracting semantics and reconstructing"),
+                t(ja: "意味を抽出して再構成します", en: "Extracting semantics and reconstructing", zh: "正在提取语义并重建"),
                 systemImage: "sparkles.rectangle.stack"
             )
             .font(.subheadline.weight(.semibold))
@@ -476,7 +481,8 @@ extension NewPostView {
             Text(
                 t(
                     ja: "現在の解析モデル: \(modelManager.selectedImageUnderstandingModel.title)",
-                    en: "Current image model: \(modelManager.selectedImageUnderstandingModel.title)"
+                    en: "Current image model: \(modelManager.selectedImageUnderstandingModel.title)",
+                    zh: "当前解析模型：\(modelManager.selectedImageUnderstandingModel.title)"
                 )
             )
             .font(.caption)
@@ -550,7 +556,8 @@ extension NewPostView {
             await MainActor.run {
                 errorMessage = t(
                     ja: "このモードは現在利用できません。",
-                    en: "This mode is currently unavailable."
+                    en: "This mode is currently unavailable.",
+                    zh: "当前无法使用这个模式。"
                 )
             }
             return
@@ -559,7 +566,8 @@ extension NewPostView {
             await MainActor.run {
                 errorMessage = t(
                     ja: "不適切な可能性がある語句を検出しました。内容を修正して再投稿してください。",
-                    en: "Potentially objectionable words were detected. Please revise your text."
+                    en: "Potentially objectionable words were detected. Please revise your text.",
+                    zh: "检测到可能不合适的词语。请修改内容后再发布。"
                 )
             }
             return
@@ -573,7 +581,8 @@ extension NewPostView {
             await MainActor.run {
                 errorMessage = t(
                     ja: "中間表現の生成に失敗しました。画像を変更して再試行してください。",
-                    en: "Failed to build payload. Please retry with another image."
+                    en: "Failed to build payload. Please retry with another image.",
+                    zh: "生成中间表示失败。请更换图片后重试。"
                 )
             }
             return
@@ -672,13 +681,13 @@ extension NewPostView {
             await MainActor.run {
                 posts.removeAll { $0.id == tempPost.id }
                 showSemanticCompletionMessage = false
-                errorMessage = t(ja: "アップロードに失敗しました", en: "Upload failed")
+                errorMessage = t(ja: "アップロードに失敗しました", en: "Upload failed", zh: "上传失败")
             }
         }
     }
 
-    private func t(ja: String, en: String) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en)
+    private func t(ja: String, en: String, zh: String? = nil) -> String {
+        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
     }
 
     private func containsProhibitedText(_ text: String) -> Bool {

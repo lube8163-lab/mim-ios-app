@@ -5,6 +5,8 @@ struct PostCardView: View {
 
     @ObservedObject var post: Post
     let isModelInstalled: Bool
+    var showsCommentButton: Bool = true
+    var priorityContextPostIDs: [String]? = nil
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authManager: AuthManager
     var onUserBlocked: ((String) -> Void)? = nil
@@ -24,6 +26,8 @@ struct PostCardView: View {
     @State private var showBlockConfirm = false
     @State private var showLoginSheet = false
     @State private var showCaptionDetail = false
+    @State private var showComments = false
+    @State private var showAuthorProfile = false
 
     var body: some View {
         content
@@ -39,6 +43,22 @@ struct PostCardView: View {
             }
             .sheet(isPresented: $showCaptionDetail) {
                 captionDetailSheet
+            }
+            .sheet(isPresented: $showComments) {
+                NavigationStack {
+                    PostDetailView(
+                        post: post,
+                        isModelInstalled: isModelInstalled,
+                        restorePriorityPostIDs: priorityContextPostIDs
+                    )
+                }
+            }
+            .sheet(isPresented: $showAuthorProfile) {
+                NavigationStack {
+                    if let userId = post.userId, !userId.isEmpty {
+                        PublicProfileView(userId: userId)
+                    }
+                }
             }
             .confirmationDialog(
                 t(ja: "この投稿を通報しますか？", en: "Report this post?"),
@@ -112,9 +132,7 @@ struct PostCardView: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: 12) {
             headerSection
-            textSection
-            imageSection
-            captionSection
+            detailOpenSection
             actionSection
             semanticFidelitySection
         }
@@ -125,6 +143,19 @@ struct PostCardView: View {
                 .stroke(cardStrokeColor, lineWidth: 0.8)
         )
         .shadow(color: Color.black.opacity(0.06), radius: 18, y: 8)
+    }
+
+    @ViewBuilder
+    private var detailOpenSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            textSection
+            imageSection
+            captionSection
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            openPostDetail()
+        }
     }
 
     // MARK: - Report submit (temporary)
@@ -155,24 +186,31 @@ struct PostCardView: View {
 extension PostCardView {
     private var headerSection: some View {
         HStack {
-            AsyncImage(url: URL(string: post.avatarUrl ?? "")) { phase in
-                if let img = phase.image {
-                    img.resizable().scaledToFill()
-                } else {
-                    avatarPlaceholder
+            Button {
+                openAuthorProfileIfPossible()
+            } label: {
+                HStack(spacing: 12) {
+                    AsyncImage(url: URL(string: post.avatarUrl ?? "")) { phase in
+                        if let img = phase.image {
+                            img.resizable().scaledToFill()
+                        } else {
+                            avatarPlaceholder
+                        }
+                    }
+                    .frame(width: 42, height: 42)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(avatarStrokeColor, lineWidth: 1))
+
+                    VStack(alignment: .leading) {
+                        Text(post.displayName ?? t(ja: "ユーザー", en: "User"))
+                            .font(.subheadline.weight(.semibold))
+                        Text(post.createdAt.formatted())
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
-            .frame(width: 42, height: 42)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(avatarStrokeColor, lineWidth: 1))
-
-            VStack(alignment: .leading) {
-                Text(post.displayName ?? t(ja: "ユーザー", en: "User"))
-                    .font(.subheadline.weight(.semibold))
-                Text(post.createdAt.formatted())
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
+            .buttonStyle(.plain)
 
             Spacer()
 
@@ -327,6 +365,16 @@ extension PostCardView {
         }
     }
 
+    private func openAuthorProfileIfPossible() {
+        guard let userId = post.userId, !userId.isEmpty else { return }
+        guard userId != UserManager.shared.currentUser.id else { return }
+        showAuthorProfile = true
+    }
+
+    private func openPostDetail() {
+        showComments = true
+    }
+
     private func t(ja: String, en: String) -> String {
         localizedText(languageCode: selectedLanguage, ja: ja, en: en)
     }
@@ -475,6 +523,20 @@ extension PostCardView {
             .padding(.vertical, 6)
             .background(chromeFillColor, in: Capsule())
 
+            if showsCommentButton {
+                Button {
+                    openPostDetail()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bubble.right")
+                        Text("\(post.commentCount ?? 0)")
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(chromeFillColor, in: Capsule())
+            }
+
             Button { showShare = true } label: {
                 Image(systemName: "square.and.arrow.up")
             }
@@ -532,8 +594,6 @@ extension PostCardView {
 // MARK: - Time format
 extension PostCardView {
     private func relativeTimeString(from date: Date) -> String {
-        let f = RelativeDateTimeFormatter()
-        f.unitsStyle = .short
-        return f.localizedString(for: date, relativeTo: Date())
+        ServerDate.relativeString(from: date, languageCode: selectedLanguage)
     }
 }

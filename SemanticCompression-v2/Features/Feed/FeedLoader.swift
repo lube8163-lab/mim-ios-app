@@ -55,6 +55,20 @@ struct FeedLoader {
         )
     }
 
+    static func fetchFollowingFeed(
+        page: Int,
+        pageSize: Int = 10
+    ) async throws -> [Post] {
+        try await fetch(
+            path: "/followingFeed",
+            queryItems: [
+                URLQueryItem(name: "page", value: String(page)),
+                URLQueryItem(name: "size", value: String(pageSize)),
+                URLQueryItem(name: "userId", value: UserManager.shared.currentUser.id),
+            ]
+        )
+    }
+
     private static func fetch(
         path: String,
         queryItems: [URLQueryItem]

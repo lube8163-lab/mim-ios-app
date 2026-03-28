@@ -62,6 +62,7 @@ final class Post: Identifiable, ObservableObject, Codable {
     // Social
     @Published var likeCount: Int?
     @Published var isLikedByCurrentUser: Bool?
+    @Published var commentCount: Int?
 
     // Local image
     @Published var localImage: UIImage?
@@ -72,7 +73,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         case id, userId, displayName, avatarUrl
         case caption, semanticPrompt, regionTags
         case userText, hasImage, createdAt
-        case status, likeCount, isLikedByCurrentUser
+        case status, likeCount, isLikedByCurrentUser, commentCount
         case lowResGuide
         case mode, payload, tags
     }
@@ -93,6 +94,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         userText = try c.decodeIfPresent(String.self, forKey: .userText)
 
         likeCount = try c.decodeIfPresent(Int.self, forKey: .likeCount)
+        commentCount = try c.decodeIfPresent(Int.self, forKey: .commentCount)
 
         if let bool = try? c.decode(Bool.self, forKey: .isLikedByCurrentUser) {
             isLikedByCurrentUser = bool
@@ -108,16 +110,7 @@ final class Post: Identifiable, ObservableObject, Codable {
             hasImage = (try? c.decode(Bool.self, forKey: .hasImage)) ?? false
         }
 
-        if let ts = try? c.decode(Double.self, forKey: .createdAt) {
-            createdAt = (ts > 10_000_000_000)
-                ? Date(timeIntervalSince1970: ts / 1000)
-                : Date(timeIntervalSince1970: ts)
-        } else if let str = try? c.decode(String.self, forKey: .createdAt) {
-            let iso = ISO8601DateFormatter()
-            createdAt = iso.date(from: str) ?? Date()
-        } else {
-            createdAt = Date()
-        }
+        createdAt = ServerDate.decodeDate(from: c, forKey: .createdAt)
 
         status = try c.decodeIfPresent(PostStatus.self, forKey: .status) ?? .normal
         mode = (try? c.decode(Int.self, forKey: .mode)) ?? (lowResGuide == nil ? 1 : 22)
@@ -168,6 +161,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         self.regenerationEvaluation = nil
         self.likeCount = 0
         self.isLikedByCurrentUser = false
+        self.commentCount = 0
     }
 }
 
@@ -250,6 +244,7 @@ extension Post {
         try c.encode(status, forKey: .status)
         try c.encode(likeCount, forKey: .likeCount)
         try c.encode(isLikedByCurrentUser, forKey: .isLikedByCurrentUser)
+        try c.encode(commentCount, forKey: .commentCount)
         try c.encode(mode, forKey: .mode)
         try c.encode(payload, forKey: .payload)
         try c.encode(tags, forKey: .tags)
