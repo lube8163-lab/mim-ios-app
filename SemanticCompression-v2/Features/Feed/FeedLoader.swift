@@ -11,6 +11,35 @@ enum FeedAPI {
 }
 
 struct FeedLoader {
+    static func fetchPost(id: String) async throws -> Post {
+        guard var components = URLComponents(string: FeedAPI.base + "/post") else {
+            throw URLError(.badURL)
+        }
+        components.queryItems = [URLQueryItem(name: "id", value: id)]
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(url: url)
+        if let token = try? await AuthManager.shared.validAccessToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        if let http = response as? HTTPURLResponse,
+           !(200...299).contains(http.statusCode) {
+            throw NSError(
+                domain: "FeedLoader",
+                code: http.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: "Server returned HTTP \(http.statusCode) for /post"]
+            )
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(Post.self, from: data)
+        return await PostStore.shared.resolve(decoded)
+    }
 
     static func fetchPage(page: Int, pageSize: Int = 10) async throws -> [Post] {
         try await fetch(

@@ -16,6 +16,7 @@ struct PostDetailView: View {
     @State private var showLoginSheet = false
     @State private var errorMessage: String?
     @State private var replyTarget: PostComment?
+    @State private var selectedProfileUserID: String?
 
     private let maxCommentLength = 240
 
@@ -72,6 +73,16 @@ struct PostDetailView: View {
         .sheet(isPresented: $showLoginSheet) {
             OTPLoginView(allowsSkip: true)
         }
+        .sheet(isPresented: Binding(
+            get: { selectedProfileUserID != nil },
+            set: { if !$0 { selectedProfileUserID = nil } }
+        )) {
+            if let selectedProfileUserID {
+                NavigationStack {
+                    PublicProfileView(userId: selectedProfileUserID)
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -104,6 +115,9 @@ struct PostDetailView: View {
                         comment: entry.comment,
                         languageCode: selectedLanguage,
                         depth: entry.depth,
+                        onOpenProfile: {
+                            openProfile(for: entry.comment)
+                        },
                         onReply: {
                             replyTarget = entry.comment
                         }
@@ -253,6 +267,12 @@ struct PostDetailView: View {
     private func t(ja: String, en: String, zh: String? = nil) -> String {
         localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
     }
+
+    private func openProfile(for comment: PostComment) {
+        guard !comment.userId.isEmpty else { return }
+        guard comment.userId != UserManager.shared.currentUser.id else { return }
+        selectedProfileUserID = comment.userId
+    }
 }
 
 private struct CommentThreadEntry: Identifiable {
@@ -266,32 +286,40 @@ private struct CommentRowView: View {
     let comment: PostComment
     let languageCode: String
     let depth: Int
+    let onOpenProfile: () -> Void
     let onReply: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            AsyncImage(url: URL(string: comment.avatarUrl ?? "")) { phase in
-                if let image = phase.image {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Circle()
-                        .fill(Color.gray.opacity(0.18))
-                        .overlay(
-                            Text(initial)
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(.secondary)
-                        )
+            Button(action: onOpenProfile) {
+                AsyncImage(url: URL(string: comment.avatarUrl ?? "")) { phase in
+                    if let image = phase.image {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Circle()
+                            .fill(Color.gray.opacity(0.18))
+                            .overlay(
+                                Text(initial)
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(.secondary)
+                            )
+                    }
                 }
+                .frame(width: 34, height: 34)
+                .clipShape(Circle())
             }
-            .frame(width: 34, height: 34)
-            .clipShape(Circle())
+            .buttonStyle(.plain)
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(comment.displayName ?? localizedText(languageCode: languageCode, ja: "ユーザー", en: "User", zh: "用户"))
-                        .font(.subheadline.weight(.semibold))
+                    Button(action: onOpenProfile) {
+                        Text(comment.displayName ?? localizedText(languageCode: languageCode, ja: "ユーザー", en: "User", zh: "用户"))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.primary)
+                    }
+                    .buttonStyle(.plain)
                     Text(relativeTime)
                         .font(.caption)
                         .foregroundColor(.secondary)

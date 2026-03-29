@@ -10,6 +10,9 @@ struct NotificationsView: View {
     @State private var items: [AppNotification] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var selectedPost: Post?
+    @State private var selectedProfileUserID: String?
+    @State private var isOpeningDestination = false
 
     var body: some View {
         NavigationStack {
@@ -20,7 +23,9 @@ struct NotificationsView: View {
                     emptyView
                 } else {
                     List(items) { item in
-                        NotificationRow(item: item, languageCode: selectedLanguage)
+                        NotificationRow(item: item, languageCode: selectedLanguage) {
+                            Task { await openDestination(for: item) }
+                        }
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
@@ -49,6 +54,28 @@ struct NotificationsView: View {
                         .font(.footnote)
                         .foregroundColor(.red)
                         .padding(.top, 8)
+                }
+            }
+            .overlay {
+                if isOpeningDestination {
+                    ProgressView()
+                        .padding(18)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+            }
+            .sheet(item: $selectedPost) { post in
+                NavigationStack {
+                    PostDetailView(post: post, isModelInstalled: ModelManager.shared.sdInstalled)
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { selectedProfileUserID != nil },
+                set: { if !$0 { selectedProfileUserID = nil } }
+            )) {
+                if let selectedProfileUserID {
+                    NavigationStack {
+                        PublicProfileView(userId: selectedProfileUserID)
+                    }
                 }
             }
         }
@@ -103,6 +130,24 @@ struct NotificationsView: View {
         }
     }
 
+    @MainActor
+    private func openDestination(for item: AppNotification) async {
+        isOpeningDestination = true
+        defer { isOpeningDestination = false }
+
+        do {
+            switch item.type {
+            case .follow:
+                selectedProfileUserID = item.actorUserId
+            case .like, .comment:
+                guard let postId = item.postId else { return }
+                selectedPost = try await FeedLoader.fetchPost(id: postId)
+            }
+        } catch {
+            errorMessage = t(ja: "対象の読み込みに失敗しました", en: "Failed to open destination", zh: "打开目标失败")
+        }
+    }
+
     private func t(ja: String, en: String, zh: String? = nil) -> String {
         localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
     }
@@ -111,38 +156,47 @@ struct NotificationsView: View {
 private struct NotificationRow: View {
     let item: AppNotification
     let languageCode: String
+    let onTap: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            AsyncImage(url: URL(string: item.actorAvatarUrl ?? "")) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    Circle().fill(Color.secondary.opacity(0.14))
+        Button(action: onTap) {
+            HStack(alignment: .top, spacing: 12) {
+                AsyncImage(url: URL(string: item.actorAvatarUrl ?? "")) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Circle().fill(Color.secondary.opacity(0.14))
+                    }
+                }
+                .frame(width: 42, height: 42)
+                .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(message)
+                        .font(.subheadline)
+                        .multilineTextAlignment(.leading)
+                    Text(relativeTime)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.secondary)
+
+                if !item.isRead {
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 8, height: 8)
+                        .padding(.top, 8)
                 }
             }
-            .frame(width: 42, height: 42)
-            .clipShape(Circle())
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text(message)
-                    .font(.subheadline)
-                Text(relativeTime)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Spacer()
-
-            if !item.isRead {
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 8, height: 8)
-                    .padding(.top, 8)
-            }
+            .padding(14)
+            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
-        .padding(14)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .buttonStyle(.plain)
     }
 
     private var message: String {

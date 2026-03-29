@@ -405,7 +405,7 @@ extension PostCardView {
                     .scaledToFit()
                     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                     .transition(.opacity)
-                modeBadge
+                imageBadges
             }
         }
         else if let preview = post.previewImage {
@@ -423,7 +423,7 @@ extension PostCardView {
                             .foregroundColor(.secondary)
                     }
                 }
-                modeBadge
+                imageBadges
             }
         }
         else if !isModelInstalled {
@@ -437,7 +437,7 @@ extension PostCardView {
                             .foregroundColor(.secondary)
                     )
                 if post.hasImage {
-                    modeBadge
+                    imageBadges
                 }
             }
         }
@@ -456,10 +456,30 @@ extension PostCardView {
                         }
                     )
                 if post.hasImage {
-                    modeBadge
+                    imageBadges
                 }
             }
         }
+    }
+
+    private var imageBadges: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            modeBadge
+            if let generationStatusLabel {
+                HStack(spacing: 4) {
+                    Image(systemName: generationStatusIconName)
+                        .font(.caption2)
+                    Text(generationStatusLabel)
+                        .font(.caption2.weight(.semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.black.opacity(0.58))
+                .clipShape(Capsule())
+            }
+        }
+        .padding(8)
     }
 
     private var modeBadge: some View {
@@ -475,7 +495,32 @@ extension PostCardView {
         .padding(.vertical, 4)
         .background(Color.black.opacity(0.58))
         .clipShape(Capsule())
-        .padding(8)
+    }
+
+    private var generationStatusLabel: String? {
+        if post.status == .failed {
+            return t(ja: "失敗", en: "Failed")
+        }
+        if post.localImage != nil {
+            return nil
+        }
+        if post.effectivePrompt != nil {
+            return t(ja: "再生成待ち", en: "Queued")
+        }
+        if post.hasImage && (post.status == .pending || post.status == .processing) {
+            return t(ja: "準備中", en: "Preparing")
+        }
+        return nil
+    }
+
+    private var generationStatusIconName: String {
+        if post.status == .failed {
+            return "exclamationmark.triangle.fill"
+        }
+        if post.effectivePrompt != nil {
+            return "clock.arrow.circlepath"
+        }
+        return "sparkles"
     }
 }
 

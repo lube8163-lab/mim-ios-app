@@ -12,6 +12,7 @@ struct AuthUser: Decodable {
     let id: String
     let displayName: String?
     let avatarUrl: String?
+    let bio: String?
     let email: String?
 }
 

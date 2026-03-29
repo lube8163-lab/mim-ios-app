@@ -11,6 +11,7 @@ struct UserProfileView: View {
 
     // Profile edit
     @State private var newName = ""
+    @State private var newBio = ""
     @State private var showCopied = false
     @State private var isSavingChanges = false
 
@@ -80,6 +81,7 @@ struct UserProfileView: View {
         }
         .onAppear {
             newName = userManager.currentUser.displayName
+            newBio = userManager.currentUser.bio
         }
         .sheet(isPresented: $showLoginSheet) {
             OTPLoginView(allowsSkip: true)
@@ -126,6 +128,12 @@ struct UserProfileView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(userManager.currentUser.displayName)
                         .font(.headline)
+                    if !userManager.currentUser.bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(userManager.currentUser.bio)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     if !userManager.currentUser.id.isEmpty {
                         Text(userManager.currentUser.id)
                             .font(.caption)
@@ -164,6 +172,13 @@ struct UserProfileView: View {
             }
 
             TextField(t(ja: "表示名", en: "Display Name", zh: "显示名称"), text: $newName)
+
+            TextField(t(ja: "自己紹介", en: "Bio", zh: "个人简介"), text: $newBio, axis: .vertical)
+                .lineLimit(2...4)
+
+            Text(t(ja: "最大120文字まで。", en: "Up to 120 characters.", zh: "最多 120 个字符。"))
+                .font(.caption)
+                .foregroundColor(.secondary)
 
             Button {
                 Task { await saveChanges() }
@@ -267,12 +282,14 @@ struct UserProfileView: View {
 
     private func saveChanges() async {
         let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedBio = String(newBio.trimmingCharacters(in: .whitespacesAndNewlines).prefix(120))
         let current = userManager.currentUser
 
         let nameChanged = !trimmedName.isEmpty && trimmedName != current.displayName
+        let bioChanged = trimmedBio != current.bio
         let avatarChanged = selectedPhoto != nil
 
-        guard nameChanged || avatarChanged else {
+        guard nameChanged || bioChanged || avatarChanged else {
             accountAlertMessage = t(ja: "変更はありません。", en: "No changes to save.")
             showAccountAlert = true
             return
@@ -284,6 +301,9 @@ struct UserProfileView: View {
         var updated = current
         if nameChanged {
             updated.displayName = trimmedName
+        }
+        if bioChanged {
+            updated.bio = trimmedBio
         }
 
         do {
@@ -305,11 +325,13 @@ struct UserProfileView: View {
 
     private var hasPendingChanges: Bool {
         let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedBio = String(newBio.trimmingCharacters(in: .whitespacesAndNewlines).prefix(120))
         let current = userManager.currentUser
 
         let nameChanged = !trimmedName.isEmpty && trimmedName != current.displayName
+        let bioChanged = trimmedBio != current.bio
         let avatarChanged = selectedPhoto != nil
-        return nameChanged || avatarChanged
+        return nameChanged || bioChanged || avatarChanged
     }
 
     // MARK: - Delete Account

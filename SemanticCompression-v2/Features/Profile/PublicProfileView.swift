@@ -67,6 +67,14 @@ struct PublicProfileView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(profile?.displayName ?? t(ja: "読み込み中…", en: "Loading...", zh: "加载中…"))
                         .font(.title3.weight(.bold))
+
+                    if let bio = profile?.bio?.trimmingCharacters(in: .whitespacesAndNewlines),
+                       !bio.isEmpty {
+                        Text(bio)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
 
                 Spacer()

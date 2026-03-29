@@ -18,7 +18,8 @@ enum UserService {
 
         let payload: [String: Any] = [
             "displayName": user.displayName,
-            "avatarUrl": user.avatarUrl
+            "avatarUrl": user.avatarUrl,
+            "bio": user.bio
         ]
 
         do {

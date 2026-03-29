@@ -56,6 +56,7 @@ final class AuthManager: ObservableObject {
                 id: payload.user.id,
                 displayName: payload.user.displayName ?? current.displayName,
                 avatarUrl: payload.user.avatarUrl ?? current.avatarUrl,
+                bio: payload.user.bio ?? current.bio,
                 email: payload.user.email,
                 deleteToken: ""
             )

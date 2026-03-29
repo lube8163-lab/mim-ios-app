@@ -11,6 +11,7 @@ struct LocalUser: Codable {
     let id: String
     var displayName: String     // UserDefaults
     var avatarUrl: String       // UserDefaults
+    var bio: String
     var email: String?
     var deleteToken: String
 }
@@ -27,6 +28,7 @@ final class UserManager: ObservableObject {
     private let key_userId = "user_id"
     private let key_displayName = "user_displayName"
     private let key_avatarUrl = "user_avatarUrl"
+    private let key_bio = "user_bio"
     private let key_email = "user_email"
     private let key_deleteToken = "user_delete_token"
 
@@ -35,6 +37,7 @@ final class UserManager: ObservableObject {
         let name = defaults.string(forKey: key_displayName) ?? "Anyone"
         let avatar = defaults.string(forKey: key_avatarUrl)
             ?? "https://example.com/avatar/default.png"
+        let bio = defaults.string(forKey: key_bio) ?? ""
         let email = defaults.string(forKey: key_email)
         let deleteToken = Self.loadDeleteToken(defaults: defaults, legacyKey: key_deleteToken)
 
@@ -42,6 +45,7 @@ final class UserManager: ObservableObject {
             id: id,
             displayName: name,
             avatarUrl: avatar,
+            bio: bio,
             email: email,
             deleteToken: deleteToken
         )
@@ -62,6 +66,7 @@ final class UserManager: ObservableObject {
             id: "",
             displayName: "Anyone",
             avatarUrl: "",
+            bio: "",
             email: nil,
             deleteToken: ""
         )
@@ -85,6 +90,7 @@ final class UserManager: ObservableObject {
         defaults.set(user.id, forKey: key_userId)
         defaults.set(user.displayName, forKey: key_displayName)
         defaults.set(user.avatarUrl, forKey: key_avatarUrl)
+        defaults.set(user.bio, forKey: key_bio)
         defaults.set(user.email, forKey: key_email)
         Self.saveDeleteToken(user.deleteToken)
         defaults.removeObject(forKey: key_deleteToken)
@@ -94,6 +100,7 @@ final class UserManager: ObservableObject {
         defaults.removeObject(forKey: key_userId)
         defaults.removeObject(forKey: key_displayName)
         defaults.removeObject(forKey: key_avatarUrl)
+        defaults.removeObject(forKey: key_bio)
         defaults.removeObject(forKey: key_email)
         defaults.removeObject(forKey: key_deleteToken)
         Self.clearDeleteToken()

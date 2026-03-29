@@ -1079,6 +1079,7 @@ extension ContentView {
                     id: userId,
                     displayName: userManager.currentUser.displayName,
                     avatarUrl: userManager.currentUser.avatarUrl,
+                    bio: userManager.currentUser.bio,
                     followerCount: 0,
                     followingCount: 0,
                     postCount: 0,
