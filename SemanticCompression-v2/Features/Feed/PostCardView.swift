@@ -17,7 +17,6 @@ struct PostCardView: View {
     private var isProModeEnabled = false
 
     @State private var showShare = false
-    @State private var refreshID = UUID()
 
     // 🚨 Report UI states
     @State private var showReportDialog = false
@@ -31,10 +30,6 @@ struct PostCardView: View {
 
     var body: some View {
         content
-            .id(refreshID)
-            .onReceive(post.objectWillChange) { _ in
-                refreshID = UUID()
-            }
             .sheet(isPresented: $showShare) {
                 shareSheet
             }
@@ -137,12 +132,12 @@ struct PostCardView: View {
             semanticFidelitySection
         }
         .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .background(cardFillColor, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .stroke(cardStrokeColor, lineWidth: 0.8)
         )
-        .shadow(color: Color.black.opacity(0.06), radius: 18, y: 8)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.14 : 0.05), radius: 10, y: 4)
     }
 
     @ViewBuilder
@@ -267,6 +262,12 @@ extension PostCardView {
 
     private var cardStrokeColor: Color {
         colorScheme == .dark ? Color.white.opacity(0.16) : Color.white.opacity(0.5)
+    }
+
+    private var cardFillColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.06)
+            : Color.white.opacity(0.92)
     }
 
     private var chromeFillColor: Color {
