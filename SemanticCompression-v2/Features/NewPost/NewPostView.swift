@@ -28,12 +28,12 @@ struct NewPostView: View {
     @State private var extractedTags: [String] = []
     @State private var showSemanticCompletionMessage = false
     @State private var showL2PrimeWarning = false
-    @State private var showImageUnderstandingRequiredAlert = false
     @State private var showModeSheet = false
     @State private var hasAcknowledgedCurrentL4Selection = true
     @State private var warningTriggeredFromPostAction = false
     @State private var previousModeBeforeL4Warning: PrivacyMode? = nil
     @State private var lastNonL4Mode: PrivacyMode = .l2
+    @State private var postingPhase: PostingPhase?
 
     private let uploader = PostUploader()
     private let maxPostTextLength = 300
@@ -43,6 +43,7 @@ struct NewPostView: View {
     ]
 
     private var isLCMSelected: Bool {
+        modelManager.resolvedImageGenerationBackend == .stableDiffusion &&
         modelManager.selectedSDModelID == ModelManager.sd15LCMModelID
     }
 
@@ -120,6 +121,12 @@ struct NewPostView: View {
                 .transition(.opacity)
             }
         }
+        .overlay {
+            if let postingPhase, isPosting, selectedImage != nil {
+                postingProgressOverlay(phase: postingPhase)
+                    .transition(.opacity.combined(with: .scale))
+            }
+        }
         .alert(
             t(
                 ja: "L4 は再現性が高い一方、プライバシーは弱くなります。続行しますか？",
@@ -148,39 +155,22 @@ struct NewPostView: View {
                 warningTriggeredFromPostAction = false
             }
         }
-        .alert(
-            t(
-                ja: "\(modelManager.selectedImageUnderstandingModel.title) が未インストールです",
-                en: "\(modelManager.selectedImageUnderstandingModel.title) is not installed",
-                zh: "\(modelManager.selectedImageUnderstandingModel.title) 尚未安装"
-            ),
-            isPresented: $showImageUnderstandingRequiredAlert
-        ) {
-            Button(t(ja: "テキストのみ投稿", en: "Post text only", zh: "仅发布文本")) {
-                Task { await handlePost(forceTextOnly: true) }
-            }
-            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {}
-        } message: {
-            Text(
-                t(
-                    ja: "選択中の画像理解モデルが利用できないため、このままでは画像投稿は反映されません。テキストのみで投稿しますか？",
-                    en: "The selected image understanding model is unavailable. Post as text-only?",
-                    zh: "当前选择的图像理解模型不可用。是否仅发布文本？"
-                )
-            )
-        }
     }
 }
 
 // MARK: - Composer Area
 
 extension NewPostView {
+    private enum PostingPhase {
+        case generatingPrompt
+        case uploading
+    }
 
     private var postingTagStreamSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 RainbowAILoader()
-                Text(t(ja: "意味情報を送信中…", en: "Sending semantic data...", zh: "正在发送语义信息…"))
+                Text(postingPhaseTitle(postingPhase ?? .uploading))
                     .font(.subheadline.weight(.semibold))
             }
 
@@ -210,6 +200,30 @@ extension NewPostView {
                 .stroke(Color.white.opacity(0.55), lineWidth: 0.8)
         )
         .shadow(color: Color.black.opacity(0.05), radius: 16, y: 8)
+    }
+
+    private func postingProgressOverlay(phase: PostingPhase) -> some View {
+        VStack(spacing: 10) {
+            RainbowAILoader()
+
+            Text(postingPhaseTitle(phase))
+                .font(.headline.weight(.semibold))
+                .multilineTextAlignment(.center)
+
+            Text(postingPhaseSubtitle(phase))
+                .font(.footnote)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 18)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.white.opacity(0.24), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.18), radius: 18, y: 10)
+        .padding(28)
     }
 
     private var composerArea: some View {
@@ -480,13 +494,25 @@ extension NewPostView {
 
             Text(
                 t(
-                    ja: "現在の解析モデル: \(modelManager.selectedImageUnderstandingModel.title)",
-                    en: "Current image model: \(modelManager.selectedImageUnderstandingModel.title)",
-                    zh: "当前解析模型：\(modelManager.selectedImageUnderstandingModel.title)"
+                    ja: "現在の解析バックエンド: \(modelManager.resolvedImageUnderstandingBackendTitle)",
+                    en: "Current analysis backend: \(modelManager.resolvedImageUnderstandingBackendTitle)",
+                    zh: "当前解析后端：\(modelManager.resolvedImageUnderstandingBackendTitle)"
                 )
             )
             .font(.caption)
             .foregroundColor(.secondary)
+
+            if modelManager.resolvedImageUnderstandingBackend == .vision {
+                Text(
+                    t(
+                        ja: "追加モデル未導入時は Apple Vision で簡易 prompt を生成します。",
+                        en: "When no downloaded model is available, Apple Vision generates a lightweight prompt.",
+                        zh: "未安装额外模型时，会使用 Apple Vision 生成轻量 prompt。"
+                    )
+                )
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
@@ -508,11 +534,6 @@ extension NewPostView {
 extension NewPostView {
 
     private func requestPost() {
-        if selectedImage != nil &&
-            !modelManager.isImageUnderstandingModelInstalled(modelManager.selectedImageUnderstandingModelID) {
-            showImageUnderstandingRequiredAlert = true
-            return
-        }
         if selectedImage != nil && selectedMode == .l2Prime && !hasAcknowledgedCurrentL4Selection {
             warningTriggeredFromPostAction = true
             showL2PrimeWarning = true
@@ -536,15 +557,18 @@ extension NewPostView {
     func handlePost(forceTextOnly: Bool = false) async {
 
         guard !isPosting else { return }
+        let imageForPost = forceTextOnly ? nil : selectedImage
         await MainActor.run {
             isPosting = true
             errorMessage = nil
             extractedTags = []
             showSemanticCompletionMessage = false
+            postingPhase = imageForPost != nil ? .generatingPrompt : .uploading
         }
         defer {
             Task { @MainActor in
                 isPosting = false
+                postingPhase = nil
             }
         }
 
@@ -573,7 +597,6 @@ extension NewPostView {
             return
         }
 
-        let imageForPost = forceTextOnly ? nil : selectedImage
         let modeForPost: PrivacyMode = (imageForPost == nil) ? .l1 : selectedMode
         let payload = imageForPost.flatMap { PostPayload.make(from: $0, mode: modeForPost) }
 
@@ -649,6 +672,9 @@ extension NewPostView {
 
         // ③ Upload
         do {
+            await MainActor.run {
+                postingPhase = .uploading
+            }
             try await uploader.upload(post: tempPost)
             if tempPost.hasImage {
                 do {
@@ -693,6 +719,40 @@ extension NewPostView {
     private func containsProhibitedText(_ text: String) -> Bool {
         let normalized = text.lowercased()
         return prohibitedKeywords.contains { normalized.contains($0.lowercased()) }
+    }
+
+    private func postingPhaseTitle(_ phase: PostingPhase) -> String {
+        switch phase {
+        case .generatingPrompt:
+            return t(
+                ja: "プロンプト生成中…",
+                en: "Generating prompts...",
+                zh: "正在生成 prompt…"
+            )
+        case .uploading:
+            return t(
+                ja: "投稿データ送信中…",
+                en: "Uploading post data...",
+                zh: "正在上传帖子数据…"
+            )
+        }
+    }
+
+    private func postingPhaseSubtitle(_ phase: PostingPhase) -> String {
+        switch phase {
+        case .generatingPrompt:
+            return t(
+                ja: "画像理解バックエンドで caption / prompt / tags を作っています。",
+                en: "The image-understanding backend is generating caption, prompt, and tags.",
+                zh: "图像理解后端正在生成 caption、prompt 和 tags。"
+            )
+        case .uploading:
+            return t(
+                ja: "意味情報と投稿内容をサーバーへ送信しています。",
+                en: "Semantic metadata and post content are being uploaded.",
+                zh: "正在上传语义信息和帖子内容。"
+            )
+        }
     }
 
 }

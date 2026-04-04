@@ -41,11 +41,9 @@ actor SemanticExtractionTask {
         let isProModeEnabled = UserDefaults.standard.bool(forKey: AppPreferences.proModeEnabledKey)
 
         do {
-            let backend = ImageUnderstandingModel(
-                rawValue: UserDefaults.standard.string(
-                    forKey: AppPreferences.selectedImageUnderstandingModelKey
-                ) ?? ImageUnderstandingModel.siglip2.rawValue
-            ) ?? .siglip2
+            let backend = await MainActor.run {
+                ModelManager.shared.resolvedImageUnderstandingBackend ?? .vision
+            }
 
             switch backend {
             case .siglip2:
@@ -57,6 +55,12 @@ actor SemanticExtractionTask {
                 )
             case .qwen35vl:
                 try await Self.processWithQwen(
+                    post: post,
+                    image: image,
+                    onTagsExtracted: onTagsExtracted
+                )
+            case .vision, .automatic:
+                try await Self.processWithVision(
                     post: post,
                     image: image,
                     onTagsExtracted: onTagsExtracted
@@ -74,7 +78,7 @@ actor SemanticExtractionTask {
                     post.updatePromptGenerationDiagnostics(duration: duration, memoryMB: memory)
                     let key = regenerationEvaluationCacheKey(
                         postID: post.id,
-                        modelID: ModelManager.shared.selectedSDModelID
+                        modelID: ModelManager.shared.activeImageGenerationCacheKey
                     )
                     if let evaluation = post.regenerationEvaluation {
                         ImageCacheManager.shared.saveRegenerationEvaluation(evaluation, for: key)
@@ -103,7 +107,7 @@ actor SemanticExtractionTask {
                     post.updatePromptGenerationDiagnostics(duration: duration, memoryMB: memory)
                     let key = regenerationEvaluationCacheKey(
                         postID: post.id,
-                        modelID: ModelManager.shared.selectedSDModelID
+                        modelID: ModelManager.shared.activeImageGenerationCacheKey
                     )
                     if let evaluation = post.regenerationEvaluation {
                         ImageCacheManager.shared.saveRegenerationEvaluation(evaluation, for: key)
@@ -183,6 +187,7 @@ actor SemanticExtractionTask {
             post.regionTags = safeRegionTags
             post.caption = caption
             post.semanticPrompt = finalPrompt
+            post.imageUnderstandingBackend = ImageUnderstandingBackend.siglip2.rawValue
             post.tags = objectTop
             post.status = .completed
         }
@@ -206,6 +211,31 @@ actor SemanticExtractionTask {
             post.regionTags = nil
             post.caption = metadata.caption
             post.semanticPrompt = metadata.semanticPrompt
+            post.imageUnderstandingBackend = ImageUnderstandingBackend.qwen35vl.rawValue
+            post.tags = safeTags
+            post.status = .completed
+        }
+    }
+
+    private static func processWithVision(
+        post: Post,
+        image: UIImage,
+        onTagsExtracted: (([String]) -> Void)? = nil
+    ) async throws {
+        let metadata = try await AppleVisionImageUnderstandingService.shared.generateMetadata(from: image)
+        let safeTags = Array(Self.sanitizeTags(metadata.tags).prefix(6))
+
+        if !safeTags.isEmpty {
+            await MainActor.run {
+                onTagsExtracted?(safeTags)
+            }
+        }
+
+        await MainActor.run {
+            post.regionTags = nil
+            post.caption = metadata.caption
+            post.semanticPrompt = metadata.semanticPrompt
+            post.imageUnderstandingBackend = ImageUnderstandingBackend.vision.rawValue
             post.tags = safeTags
             post.status = .completed
         }
@@ -361,6 +391,7 @@ actor SemanticExtractionTask {
             "id": post.id,
             "caption": post.caption ?? NSNull(),
             "semanticPrompt": post.semanticPrompt ?? NSNull(),
+            "imageUnderstandingBackend": post.imageUnderstandingBackend ?? NSNull(),
             "tags": post.tags
         ]
 

@@ -17,6 +17,7 @@ struct PostUploadPayload: Codable {
     let mode: Int
     let payload: PostPayload?
     let tags: [String]
+    let imageUnderstandingBackend: String?
     let userText: String?
     let hasImage: Bool
 
@@ -39,6 +40,7 @@ final class PostUploader {
             mode: post.mode,
             payload: post.payload,
             tags: post.tags,
+            imageUnderstandingBackend: post.imageUnderstandingBackend,
             userText: post.userText,
             hasImage: post.hasImage,
 

@@ -20,7 +20,8 @@ struct PrivacyModeSettingsView: View {
                 .font(.footnote)
                 .foregroundColor(.secondary)
 
-                if modelManager.selectedSDModelID == ModelManager.sd15LCMModelID {
+                if modelManager.resolvedImageGenerationBackend == .stableDiffusion &&
+                    modelManager.selectedSDModelID == ModelManager.sd15LCMModelID {
                     Text(
                         t(
                             ja: "LCM 使用中は投稿モード変更が無効です（高速生成優先・img2img 無効）。",
@@ -64,7 +65,10 @@ struct PrivacyModeSettingsView: View {
                         }
                     }
                     .disabled(!PrivacyModeAccessPolicy.canUse(mode: mode))
-                    .disabled(modelManager.selectedSDModelID == ModelManager.sd15LCMModelID)
+                    .disabled(
+                        modelManager.resolvedImageGenerationBackend == .stableDiffusion &&
+                        modelManager.selectedSDModelID == ModelManager.sd15LCMModelID
+                    )
                 }
             }
         }

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct OnboardingFlowView: View {
+    @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
@@ -28,6 +29,7 @@ struct OnboardingFlowView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 28) {
                         heroSection
+                        explainerSection
                         languageSection
                         legalSection
                     }
@@ -47,8 +49,12 @@ struct OnboardingFlowView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.95, green: 0.96, blue: 0.99),
-                    Color(red: 0.98, green: 0.98, blue: 1.0)
+                    colorScheme == .dark
+                        ? Color(red: 0.08, green: 0.10, blue: 0.16)
+                        : Color(red: 0.95, green: 0.96, blue: 0.99),
+                    colorScheme == .dark
+                        ? Color(red: 0.10, green: 0.12, blue: 0.20)
+                        : Color(red: 0.98, green: 0.98, blue: 1.0)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -56,13 +62,13 @@ struct OnboardingFlowView: View {
             .ignoresSafeArea()
 
             Circle()
-                .fill(Color(red: 0.76, green: 0.89, blue: 1.0).opacity(0.24))
+                .fill(Color(red: 0.76, green: 0.89, blue: 1.0).opacity(colorScheme == .dark ? 0.16 : 0.24))
                 .frame(width: 260, height: 260)
                 .blur(radius: 18)
                 .offset(x: 130, y: -270)
 
             Circle()
-                .fill(Color(red: 0.82, green: 0.93, blue: 0.85).opacity(0.18))
+                .fill(Color(red: 0.82, green: 0.93, blue: 0.85).opacity(colorScheme == .dark ? 0.12 : 0.18))
                 .frame(width: 220, height: 220)
                 .blur(radius: 24)
                 .offset(x: -120, y: 320)
@@ -85,9 +91,9 @@ struct OnboardingFlowView: View {
 
                 Text(
                     t(
-                        ja: "最初に表示言語を選び、利用前に必要な同意を済ませてください。",
-                        en: "Choose your language and review the required agreements before getting started.",
-                        zh: "先选择显示语言，并完成开始使用前所需的同意。"
+                        ja: "まずは表示言語を選んで、アプリの流れをさっと見てから利用前の同意を済ませましょう。",
+                        en: "Start by choosing your language, take a quick look at how the app works, then finish the required agreements.",
+                        zh: "先选择显示语言，快速看一眼应用的使用方式，然后完成开始前所需同意。"
                     )
                 )
                 .font(.subheadline)
@@ -96,6 +102,46 @@ struct OnboardingFlowView: View {
             }
         }
         .padding(.top, 8)
+    }
+
+    private var explainerSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(t(ja: "このアプリで起こること", en: "How It Works", zh: "应用如何工作"))
+                .font(.headline.weight(.semibold))
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 12) {
+                explainerCard(
+                    icon: "square.stack.3d.up",
+                    title: t(ja: "1. 投稿時に意味へ圧縮", en: "1. Compress to semantics", zh: "1. 发帖时压缩为语义"),
+                    body: t(
+                        ja: "画像そのものではなく、caption / prompt / tags と軽量な画像表現を送ります。",
+                        en: "Instead of sending the full image, the app sends caption / prompt / tags and a lightweight image representation.",
+                        zh: "应用不会直接发送完整图片，而是发送 caption / prompt / tags 与轻量图像表示。"
+                    )
+                )
+
+                explainerCard(
+                    icon: "cpu",
+                    title: t(ja: "2. 端末で backend を選択", en: "2. Choose an on-device backend", zh: "2. 在设备端选择 backend"),
+                    body: t(
+                        ja: "追加モデルがあればそれを使い、無ければ Apple Vision / Image Playground に自動で切り替えられます。",
+                        en: "Installed models are used when available; otherwise the app can switch to Apple Vision / Image Playground automatically.",
+                        zh: "有已安装模型时优先使用；没有时会自动切换到 Apple Vision / Image Playground。"
+                    )
+                )
+
+                explainerCard(
+                    icon: "photo.artframe",
+                    title: t(ja: "3. 閲覧端末ごとに再構成", en: "3. Reconstruct per viewer device", zh: "3. 按查看设备逐端重建"),
+                    body: t(
+                        ja: "表示画像は見る人の端末で再生成されるため、backend や投稿モードに応じて結果が少し変わります。",
+                        en: "Viewed images are regenerated on the viewer's device, so results can vary slightly by backend and post mode.",
+                        zh: "显示图像会在查看者设备端重新生成，因此会因 backend 和发布模式不同而略有差异。"
+                    )
+                )
+            }
+        }
     }
 
     private var languageSection: some View {
@@ -156,7 +202,7 @@ struct OnboardingFlowView: View {
                     .padding(.vertical, 18)
             }
             .buttonStyle(.plain)
-            .foregroundColor(canContinue ? .white : Color.primary.opacity(0.28))
+            .foregroundColor(canContinue ? .white : disabledCTAForegroundColor)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(
@@ -168,12 +214,12 @@ struct OnboardingFlowView: View {
                                 endPoint: .trailing
                             )
                         )
-                        : AnyShapeStyle(Color.white.opacity(0.84))
+                        : AnyShapeStyle(disabledCTABackgroundStyle)
                     )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Color.white.opacity(canContinue ? 0.16 : 0.7), lineWidth: 1)
+                    .stroke(canContinue ? Color.white.opacity(0.16) : disabledCTABorderColor, lineWidth: 1)
             )
             .disabled(!canContinue)
 
@@ -191,7 +237,7 @@ struct OnboardingFlowView: View {
         .padding(.horizontal, 20)
         .padding(.top, 14)
         .padding(.bottom, 14)
-        .background(.ultraThinMaterial)
+        .background(bottomBarBackground)
     }
 
     private func onboardingCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -204,13 +250,46 @@ struct OnboardingFlowView: View {
                 content()
             }
             .padding(10)
-            .background(Color.white.opacity(0.84), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .background(cardBackgroundColor, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(Color.white.opacity(0.88), lineWidth: 1)
+                    .stroke(cardStrokeColor, lineWidth: 1)
             )
-            .shadow(color: Color.black.opacity(0.04), radius: 18, x: 0, y: 10)
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.04), radius: 18, x: 0, y: 10)
         }
+    }
+
+    private func explainerCard(icon: String, title: String, body: String) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.accentColor.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.accentColor)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.primary)
+
+                Text(body)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+        }
+        .padding(16)
+        .background(cardBackgroundColor, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(cardStrokeColor, lineWidth: 1)
+        )
     }
 
     private func languageRow(for language: AppLanguage) -> some View {
@@ -297,7 +376,53 @@ struct OnboardingFlowView: View {
             .padding(.leading, 40)
         }
         .padding(14)
-        .background(Color.black.opacity(0.025), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(legalCardBackgroundColor, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark
+            ? Color(.secondarySystemBackground).opacity(0.94)
+            : Color.white.opacity(0.84)
+    }
+
+    private var cardStrokeColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.08)
+            : Color.white.opacity(0.88)
+    }
+
+    private var legalCardBackgroundColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.04)
+            : Color.black.opacity(0.025)
+    }
+
+    private var bottomBarBackground: some View {
+        Rectangle()
+            .fill(colorScheme == .dark ? Color(.systemBackground).opacity(0.92) : Color.white.opacity(0.72))
+            .background(.ultraThinMaterial)
+    }
+
+    private var disabledCTABackgroundStyle: some ShapeStyle {
+        LinearGradient(
+            colors: colorScheme == .dark
+                ? [Color(red: 0.24, green: 0.27, blue: 0.34), Color(red: 0.19, green: 0.22, blue: 0.29)]
+                : [Color(red: 0.84, green: 0.87, blue: 0.92), Color(red: 0.78, green: 0.82, blue: 0.88)],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+
+    private var disabledCTAForegroundColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.58)
+            : Color.black.opacity(0.5)
+    }
+
+    private var disabledCTABorderColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.12)
+            : Color.white.opacity(0.48)
     }
 
     private func completeOnboarding() {

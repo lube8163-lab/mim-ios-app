@@ -1,0 +1,43 @@
+{
+  "hardBlockedTagGroups": {
+    "people": ["adult", "people", "person", "human", "child"],
+    "safety": ["nude", "blood", "weapon", "logo", "hate"]
+  },
+  "softBlockedTagGroups": {
+    "noise": ["clothing", "material", "textile", "liquid", "structure", "frozen", "pattern", "design", "product", "font", "text", "display", "screen", "graphic", "illustration", "snapshot", "rectangle", "circle", "line", "event", "fun", "smile", "light"]
+  },
+  "strictTriggerGroups": {
+    "people": ["adult", "people", "person", "human", "child", "man", "woman"]
+  },
+  "hardBlockedPromptTermGroups": {
+    "people": ["people", "person", "human", "adult", "child", "baby", "toddler", "woman", "man", "girl", "boy", "bride"],
+    "safety": ["nude", "blood", "weapon", "gun", "knife", "hate", "racism"]
+  },
+  "softBlockedPromptTermGroups": {
+    "people": ["people", "person", "human", "adult", "child", "baby", "toddler", "kid", "kids", "woman", "man", "girl", "boy", "family", "parent", "mother", "father", "bride", "groom", "guest", "guests", "musician", "musicians", "climber", "climbing", "swimmer", "swimming", "playing", "drinking", "eating", "smiling", "portrait", "selfie"]
+  },
+  "replacementRules": [
+    { "pattern": "small band rehearsal", "replacement": "music studio scene" },
+    { "pattern": "band rehearsal", "replacement": "music studio scene" },
+    { "pattern": "single climber", "replacement": "mountain scene" },
+    { "pattern": "rock climbing", "replacement": "rock wall scene" },
+    { "pattern": "pool, water", "replacement": "poolside water scene" },
+    { "pattern": "swimming pool", "replacement": "pool" }
+  ],
+  "cleanupRules": [
+    { "pattern": " featuring .", "replacement": "." },
+    { "pattern": " featuring ,", "replacement": "," },
+    { "pattern": "featuring interior room", "replacement": "featuring an interior room scene" },
+    { "pattern": "featuring poolside water scene", "replacement": "featuring a poolside water scene" },
+    { "pattern": "featuring recreation, rock wall scene", "replacement": "featuring a rock wall scene" },
+    { "pattern": "featuring ,", "replacement": "featuring " },
+    { "pattern": "with .", "replacement": "." },
+    { "pattern": "with ,", "replacement": "," },
+    { "pattern": "Place .", "replacement": "" },
+    { "pattern": "Place ,", "replacement": "" },
+    { "pattern": "  ", "replacement": " " },
+    { "pattern": " ,", "replacement": "," },
+    { "pattern": ", .", "replacement": "." },
+    { "pattern": ". .", "replacement": "." }
+  ]
+}

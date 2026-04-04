@@ -29,6 +29,7 @@ struct AppInfoView: View {
 
                     投稿時には画像理解モデルで caption / prompt / tags を生成し、
                     閲覧時には画像生成モデルで再構成画像を表示できます。
+                    追加モデルが無い場合でも、Apple Vision / Image Playground への自動フォールバックが使えます。
                     """,
                     bodyEN: """
                     This app is an experimental social network that treats images as semantic or compressed representations
@@ -36,6 +37,7 @@ struct AppInfoView: View {
 
                     At post time, image understanding models can generate captions, prompts, and tags.
                     At viewing time, image generation models can reconstruct timeline images on-device.
+                    Even without downloaded models, the app can fall back to Apple Vision and Image Playground.
                     """,
                     bodyZH: """
                     本应用是一个实验性的社交平台。它不会总是直接保存和分享原始图片，
@@ -43,6 +45,7 @@ struct AppInfoView: View {
 
                     发帖时，图像理解模型可以生成 caption、prompt 和 tags。
                     浏览时，图像生成模型可以在设备上重建时间线图片。
+                    即使没有下载额外模型，也可以回退到 Apple Vision 和 Image Playground。
                     """
                 )
 
@@ -59,9 +62,11 @@ struct AppInfoView: View {
                     画像から caption / prompt / tags を直接生成します。
                     SigLIP2 より重い一方、より文脈的で自然な説明になる場合があります。
 
-                    どちらも未インストールの場合:
-                    画像付き投稿では画像理解処理を行えないため、画像を使った意味投稿はできません。
-                    必要に応じてテキストのみ投稿できます。
+                    Apple Vision:
+                    iPhone / iPad 標準の分類 API です。追加モデルなしで軽量な prompt を作れます。
+
+                    自動:
+                    追加モデルがあれば優先し、無ければ Apple Vision にフォールバックします。
                     """,
                     bodyEN: """
                     SigLIP2:
@@ -72,9 +77,11 @@ struct AppInfoView: View {
                     Directly generates captions, prompts, and tags from the image.
                     It is heavier than SigLIP2, but can produce more contextual descriptions.
 
-                    If neither is installed:
-                    Image understanding cannot run for image posts, so semantic image posting is unavailable.
-                    You can still post text-only content when needed.
+                    Apple Vision:
+                    Uses the built-in classifier on iPhone and iPad to build a lightweight prompt without extra downloads.
+
+                    Automatic:
+                    Prefers installed models and falls back to Apple Vision when none are installed.
                     """,
                     bodyZH: """
                     SigLIP2:
@@ -85,9 +92,11 @@ struct AppInfoView: View {
                     直接从图像生成 caption、prompt 和 tags。
                     它比 SigLIP2 更重，但有时能给出更具上下文的描述。
 
-                    如果两个模型都未安装：
-                    图片帖子将无法执行图像理解，因此不能进行基于图片的语义发布。
-                    需要时仍可发布纯文本内容。
+                    Apple Vision:
+                    使用 iPhone / iPad 内建分类 API，无需额外下载也能构建轻量 prompt。
+
+                    自动：
+                    有已安装模型时优先使用，没有时回退到 Apple Vision。
                     """
                 )
 
@@ -103,8 +112,11 @@ struct AppInfoView: View {
                     Stable Diffusion 1.5 (LCM):
                     高速な再構成向けです。通常モデルより速い一方、img2img ベースの挙動は使いません。
 
-                    画像生成モデルが未インストールの場合:
-                    再構成画像は表示されず、テキストや caption のみを確認する形になります。
+                    Image Playground:
+                    Apple の標準生成機能です。追加モデルがなくても再構成画像を生成できます。
+
+                    自動:
+                    Stable Diffusion があれば優先し、無ければ Image Playground にフォールバックします。
                     """,
                     bodyEN: """
                     Stable Diffusion 1.5:
@@ -114,8 +126,11 @@ struct AppInfoView: View {
                     Stable Diffusion 1.5 (LCM):
                     Optimized for faster reconstruction. It is faster than the standard model, but does not use the img2img-style workflow.
 
-                    If no image generation model is installed:
-                    Reconstructed images are not shown, and posts are viewed mainly through text and generated captions.
+                    Image Playground:
+                    Apple's built-in image generator. It can reconstruct images without extra model downloads.
+
+                    Automatic:
+                    Prefers Stable Diffusion and falls back to Image Playground when needed.
                     """,
                     bodyZH: """
                     Stable Diffusion 1.5:
@@ -125,8 +140,29 @@ struct AppInfoView: View {
                     Stable Diffusion 1.5 (LCM):
                     面向更快的重建速度。它比标准模型更快，但不使用 img2img 风格的流程。
 
-                    如果未安装图像生成模型：
-                    将不会显示重建图像，帖子主要以文本和生成的 caption 形式查看。
+                    Image Playground:
+                    Apple 内建图像生成器，无需额外模型下载也能重建图像。
+
+                    自动：
+                    有 Stable Diffusion 时优先使用，没有时回退到 Image Playground。
+                    """
+                )
+
+                infoSection(
+                    titleJA: "AI バックエンド表示",
+                    titleEN: "AI Backend Labels",
+                    titleZH: "AI 后端标记",
+                    bodyJA: """
+                    画像投稿には、その semantic 情報がどの画像理解 backend で作られたかを表示できます。
+                    これにより、閲覧者は caption / prompt の傾向差や再生成画像の揺れを解釈しやすくなります。
+                    """,
+                    bodyEN: """
+                    Image posts can show which image-understanding backend produced their semantic metadata.
+                    This helps viewers interpret caption/prompt differences and reconstruction variance.
+                    """,
+                    bodyZH: """
+                    图片帖子可以显示其语义元数据由哪个图像理解后端生成。
+                    这样更容易理解 caption / prompt 的差异以及重建图像的波动。
                     """
                 )
 
