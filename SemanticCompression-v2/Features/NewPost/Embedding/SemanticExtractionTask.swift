@@ -118,8 +118,8 @@ actor SemanticExtractionTask {
         }
     }
 
-    func syncGeneratedMetadata(post: Post) async throws {
-        try await Self.upload(post: post)
+    func syncGeneratedMetadata(post: Post, remotePostID: String? = nil) async throws {
+        try await Self.upload(post: post, remotePostID: remotePostID ?? post.id)
     }
 
     private static func processWithSigLIP(
@@ -378,17 +378,16 @@ actor SemanticExtractionTask {
 
     // MARK: - Upload to server
 
-    private static func upload(post: Post) async throws {
+    private static func upload(post: Post, remotePostID: String) async throws {
         let url = URL(
             string: "https://semantic-feed.semantic-compression.workers.dev/updatePost"
         )!
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        var request = try await AuthManager.shared.authorizedRequest(url: url, method: "POST")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let body: [String: Any] = [
-            "id": post.id,
+            "id": remotePostID,
             "caption": post.caption ?? NSNull(),
             "semanticPrompt": post.semanticPrompt ?? NSNull(),
             "imageUnderstandingBackend": post.imageUnderstandingBackend ?? NSNull(),
@@ -405,7 +404,7 @@ actor SemanticExtractionTask {
         }
 
         #if DEBUG
-        print("✅ Updated semanticPrompt for:", post.id)
+        print("✅ Updated semanticPrompt for:", remotePostID)
         #endif
     }
 }

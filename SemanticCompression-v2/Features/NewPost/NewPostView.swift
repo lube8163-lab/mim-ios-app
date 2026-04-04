@@ -675,10 +675,26 @@ extension NewPostView {
             await MainActor.run {
                 postingPhase = .uploading
             }
-            try await uploader.upload(post: tempPost)
+            let uploaded = try await uploader.upload(post: tempPost)
+
+            await MainActor.run {
+                tempPost.id = uploaded.id
+            }
+
+            if let imageForPost, isProModeEnabled {
+                ImageCacheManager.shared.save(
+                    imageForPost,
+                    for: uploaded.id,
+                    namespace: .originalImages
+                )
+            }
+
             if tempPost.hasImage {
                 do {
-                    try await SemanticExtractionTask.shared.syncGeneratedMetadata(post: tempPost)
+                    try await SemanticExtractionTask.shared.syncGeneratedMetadata(
+                        post: tempPost,
+                        remotePostID: uploaded.id
+                    )
                 } catch {
                     #if DEBUG
                     print("⚠️ Metadata sync failed:", error)

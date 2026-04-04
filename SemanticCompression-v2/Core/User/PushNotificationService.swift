@@ -24,8 +24,7 @@ enum PushNotificationService {
             throw URLError(.badURL)
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        var request = try await AuthManager.shared.authorizedRequest(url: url, method: "POST")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "deviceToken": token,

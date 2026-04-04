@@ -21,10 +21,14 @@ struct AuthSessionPayload {
     let tokens: AuthTokens
 }
 
+struct OtpStartPayload {
+    let challengeId: String
+}
+
 enum AuthService {
     private static let base = "https://semantic-feed.semantic-compression.workers.dev"
 
-    static func startOtp(email: String) async throws {
+    static func startOtp(email: String) async throws -> OtpStartPayload {
         guard let url = URL(string: "\(base)/auth/start") else {
             throw AuthError.badURL
         }
@@ -49,9 +53,17 @@ enum AuthService {
             let message = String(data: data, encoding: .utf8) ?? "Failed to start OTP"
             throw AuthError.server(message)
         }
+
+        let decoded = try JSONDecoder().decode(StartResponse.self, from: data)
+        return OtpStartPayload(challengeId: decoded.challengeId)
     }
 
-    static func verifyOtp(email: String, otp: String, deviceName: String) async throws -> AuthSessionPayload {
+    static func verifyOtp(
+        email: String,
+        challengeId: String,
+        otp: String,
+        deviceName: String
+    ) async throws -> AuthSessionPayload {
         guard let url = URL(string: "\(base)/auth/verify") else {
             throw AuthError.badURL
         }
@@ -64,6 +76,7 @@ enum AuthService {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: [
             "email": normalized,
+            "challengeId": challengeId,
             "otp": code,
             "deviceName": deviceName
         ])
@@ -136,6 +149,11 @@ enum AuthService {
 
         _ = try? await URLSession.shared.data(for: req)
     }
+}
+
+private struct StartResponse: Decodable {
+    let ok: Bool
+    let challengeId: String
 }
 
 private struct VerifyResponse: Decodable {

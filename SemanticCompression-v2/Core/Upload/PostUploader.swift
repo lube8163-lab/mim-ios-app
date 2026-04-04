@@ -11,8 +11,6 @@ import Foundation
 //  Cloudflare Worker `/post` に合わせた送信フォーマット
 // ======================================================
 struct PostUploadPayload: Codable {
-    let id: String
-
     // --- 投稿内容 ---
     let mode: Int
     let payload: PostPayload?
@@ -20,11 +18,13 @@ struct PostUploadPayload: Codable {
     let imageUnderstandingBackend: String?
     let userText: String?
     let hasImage: Bool
-
-    // ISO8601 文字列
-    let createdAt: String
 }
 
+struct PostUploadResponse: Decodable {
+    let ok: Bool
+    let id: String
+    let createdAt: Date
+}
 
 // ======================================================
 //  アップロードロジック
@@ -33,18 +33,15 @@ final class PostUploader {
 
     private let endpoint = "https://semantic-feed.semantic-compression.workers.dev/post"
 
-    func upload(post: Post) async throws {
+    func upload(post: Post) async throws -> PostUploadResponse {
         // 🔹 Worker のフィールドに完全対応した payload
         let payload = PostUploadPayload(
-            id: post.id,
             mode: post.mode,
             payload: post.payload,
             tags: post.tags,
             imageUnderstandingBackend: post.imageUnderstandingBackend,
             userText: post.userText,
-            hasImage: post.hasImage,
-
-            createdAt: ISO8601DateFormatter().string(from: post.createdAt)
+            hasImage: post.hasImage
         )
 
         guard let url = URL(string: endpoint) else {
@@ -59,7 +56,7 @@ final class PostUploader {
         request.httpBody = jsonData
 
         // 🔹 POST 実行
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let http = response as? HTTPURLResponse,
               200..<300 ~= http.statusCode else {
@@ -68,9 +65,14 @@ final class PostUploader {
             #endif
             throw URLError(.badServerResponse)
         }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let uploaded = try decoder.decode(PostUploadResponse.self, from: data)
         
         #if DEBUG
-        print("✅ Post uploaded to server: \(post.id)")
+        print("✅ Post uploaded to server: \(uploaded.id)")
         #endif
+        return uploaded
     }
 }

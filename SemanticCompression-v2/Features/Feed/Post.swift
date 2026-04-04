@@ -36,7 +36,7 @@ struct RegionTag: Codable {
 // MARK: - Main Post model
 final class Post: Identifiable, ObservableObject, Codable {
 
-    let id: String
+    var id: String
 
     // 投稿者
     let userId: String?

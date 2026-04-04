@@ -9,6 +9,7 @@ final class AuthManager: ObservableObject {
     @Published private(set) var isRestoring = true
 
     private var tokens: AuthTokens?
+    private var pendingOtpChallengeId: String?
 
     private init() {
         if hasPersistedUserIdentity(), let loaded = AuthTokenStore.load() {
@@ -39,14 +40,25 @@ final class AuthManager: ObservableObject {
     }
 
     func startOtp(email: String) async throws {
-        try await AuthService.startOtp(email: email)
+        let payload = try await AuthService.startOtp(email: email)
+        pendingOtpChallengeId = payload.challengeId
     }
 
     func verifyOtp(email: String, otp: String) async throws {
+        guard let challengeId = pendingOtpChallengeId, !challengeId.isEmpty else {
+            throw AuthError.server("Missing OTP challenge. Please request a new code.")
+        }
+
         let deviceName = "iOS"
-        let payload = try await AuthService.verifyOtp(email: email, otp: otp, deviceName: deviceName)
+        let payload = try await AuthService.verifyOtp(
+            email: email,
+            challengeId: challengeId,
+            otp: otp,
+            deviceName: deviceName
+        )
 
         tokens = payload.tokens
+        pendingOtpChallengeId = nil
         AuthTokenStore.save(payload.tokens)
         isAuthenticated = true
 
@@ -94,6 +106,7 @@ final class AuthManager: ObservableObject {
 
     func signOutLocal() {
         tokens = nil
+        pendingOtpChallengeId = nil
         AuthTokenStore.clear()
         isAuthenticated = false
         UserManager.shared.resetUser()
