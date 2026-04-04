@@ -132,7 +132,7 @@ struct PublicProfileView: View {
                     ForEach(posts) { post in
                         PostCardView(
                             post: post,
-                            isModelInstalled: modelManager.sdInstalled,
+                            isModelInstalled: modelManager.canGenerateImages,
                             priorityContextPostIDs: posts.map(\.id)
                         )
                     }

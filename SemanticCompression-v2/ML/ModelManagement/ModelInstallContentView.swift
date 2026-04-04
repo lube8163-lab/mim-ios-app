@@ -82,9 +82,11 @@ struct ModelInstallContentView: View {
                                 }
                             },
                             useAction: (modelManager.isImageUnderstandingModelInstalled(model.id) &&
-                                modelManager.selectedImageUnderstandingModelID != model.id) ? {
+                                (modelManager.selectedImageUnderstandingModelID != model.id ||
+                                 modelManager.selectedImageUnderstandingBackendID != model.id)) ? {
                                     activeAlert = .restartRequired
                                     modelManager.selectImageUnderstandingModel(id: model.id)
+                                    modelManager.selectImageUnderstandingBackend(id: model.id)
                                 } : nil,
                             deleteAction: modelManager.isImageUnderstandingModelInstalled(model.id) ? {
                                 activeAlert = .delete(
@@ -115,9 +117,11 @@ struct ModelInstallContentView: View {
                             progressDetailText: sdProgressText(for: model.id),
                             installAction: { modelManager.installSD(modelID: model.id) },
                             useAction: (modelManager.isSDModelInstalled(model.id) &&
-                                modelManager.selectedSDModelID != model.id) ? {
+                                (modelManager.selectedSDModelID != model.id ||
+                                 modelManager.selectedImageGenerationBackend != .stableDiffusion)) ? {
                                     activeAlert = .restartRequired
                                     modelManager.selectSDModel(id: model.id)
+                                    modelManager.selectImageGenerationBackend(id: ImageGenerationBackend.stableDiffusion.rawValue)
                                 } : nil,
                             deleteAction: modelManager.isSDModelInstalled(model.id) ? {
                                 activeAlert = .delete(.sd(id: model.id, title: model.title))
@@ -426,9 +430,9 @@ private extension ModelInstallContentView {
                 .font(.title2.weight(.bold))
             Text(
                 t(
-                    ja: "用途ごとにモデルを管理できます。\"使用中\" のモデルが実際の投稿生成やタイムライン再構成に使われます。",
-                    en: "Manage models by purpose. Models marked as 'Using' are the ones currently used for posting and timeline reconstruction.",
-                    zh: "可以按用途管理模型。标记为“使用中”的模型会实际用于发帖生成和时间线重建。"
+                    ja: "ここでは追加モデルのダウンロードや削除、ローカルモデル同士の切替を行えます。Automatic / Apple Vision / Image Playground などの使い分けは設定画面の「AI バックエンド」で選びます。",
+                    en: "Use this screen to download, remove, or switch local models. Automatic, Apple Vision, and Image Playground behavior is chosen separately in Settings under AI Backends.",
+                    zh: "此页面用于下载、删除或切换本地模型。Automatic、Apple Vision、Image Playground 等行为需在设置里的 AI Backends 中选择。"
                 )
             )
             .font(.subheadline)

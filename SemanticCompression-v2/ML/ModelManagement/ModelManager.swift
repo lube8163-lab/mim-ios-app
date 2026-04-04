@@ -131,8 +131,11 @@ final class ModelManager: ObservableObject {
     @Published var siglipInstalled = false
     @Published var qwenInstalled = false
     @Published var sdInstalled = false
+    @Published var selectedImageUnderstandingBackendID: String
+    @Published var selectedImageGenerationBackendID: String
     @Published var selectedImageUnderstandingModelID: String
     @Published var selectedSDModelID: String
+    @Published var selectedImagePlaygroundStyleID: String
 
     @Published var siglipInstalling = false
     @Published var qwenInstalling = false
@@ -163,17 +166,126 @@ final class ModelManager: ObservableObject {
             ?? Self.supportedImageUnderstandingModels[0]
     }
 
+    var selectedImageUnderstandingBackend: ImageUnderstandingBackend {
+        ImageUnderstandingBackend(rawValue: selectedImageUnderstandingBackendID) ?? .automatic
+    }
+
     var selectedSDModel: SDModelConfig {
         Self.supportedSDModels.first(where: { $0.id == selectedSDModelID })
             ?? Self.supportedSDModels[0]
+    }
+
+    var selectedImageGenerationBackend: ImageGenerationBackend {
+        ImageGenerationBackend(rawValue: selectedImageGenerationBackendID) ?? .automatic
+    }
+
+    var selectedImagePlaygroundStyle: ImagePlaygroundStyleOption {
+        ImagePlaygroundStyleOption(rawValue: selectedImagePlaygroundStyleID) ?? .animation
+    }
+
+    var hasAnyImageUnderstandingInstalled: Bool {
+        siglipInstalled || qwenInstalled
     }
 
     var hasAnySDInstalled: Bool {
         Self.supportedSDModels.contains { isInstalled(path: $0.installPath) }
     }
 
+    var hasAnyDownloadedModel: Bool {
+        hasAnyImageUnderstandingInstalled || hasAnySDInstalled
+    }
+
+    var canUseAppleVisionFallback: Bool {
+        true
+    }
+
+    var canUseImagePlaygroundFallback: Bool {
+        if #available(iOS 18.4, *) {
+            return true
+        }
+        return false
+    }
+
+    var resolvedImageUnderstandingBackend: ImageUnderstandingBackend? {
+        switch selectedImageUnderstandingBackend {
+        case .automatic:
+            if isImageUnderstandingModelInstalled(selectedImageUnderstandingModelID) {
+                return ImageUnderstandingBackend(rawValue: selectedImageUnderstandingModelID)
+            }
+            if siglipInstalled {
+                return .siglip2
+            }
+            if qwenInstalled {
+                return .qwen35vl
+            }
+            return canUseAppleVisionFallback ? .vision : nil
+        case .siglip2:
+            return siglipInstalled ? .siglip2 : (canUseAppleVisionFallback ? .vision : nil)
+        case .qwen35vl:
+            return qwenInstalled ? .qwen35vl : (canUseAppleVisionFallback ? .vision : nil)
+        case .vision:
+            return canUseAppleVisionFallback ? .vision : nil
+        }
+    }
+
+    var resolvedImageGenerationBackend: ImageGenerationBackend? {
+        switch selectedImageGenerationBackend {
+        case .automatic:
+            if sdInstalled {
+                return .stableDiffusion
+            }
+            return canUseImagePlaygroundFallback ? .imagePlayground : nil
+        case .stableDiffusion:
+            return sdInstalled ? .stableDiffusion : (canUseImagePlaygroundFallback ? .imagePlayground : nil)
+        case .imagePlayground:
+            return canUseImagePlaygroundFallback ? .imagePlayground : (sdInstalled ? .stableDiffusion : nil)
+        }
+    }
+
+    var canGenerateImages: Bool {
+        resolvedImageGenerationBackend != nil
+    }
+
+    var canUnderstandImages: Bool {
+        resolvedImageUnderstandingBackend != nil
+    }
+
     var isModelInstalled: Bool {
-        (siglipInstalled || qwenInstalled) && sdInstalled
+        canGenerateImages && canUnderstandImages
+    }
+
+    var selectedImageUnderstandingBackendTitle: String {
+        selectedImageUnderstandingBackend.displayName
+    }
+
+    var resolvedImageUnderstandingBackendTitle: String {
+        resolvedImageUnderstandingBackend?.displayName ?? selectedImageUnderstandingBackend.displayName
+    }
+
+    var selectedImageGenerationBackendTitle: String {
+        selectedImageGenerationBackend.displayName
+    }
+
+    var resolvedImageGenerationBackendTitle: String {
+        switch resolvedImageGenerationBackend {
+        case .stableDiffusion:
+            return selectedSDModel.title
+        case .imagePlayground:
+            return ImageGenerationBackend.imagePlayground.displayName
+        case .automatic, .none:
+            return selectedImageGenerationBackend.displayName
+        }
+    }
+
+    var activeImageGenerationCacheKey: String {
+        switch resolvedImageGenerationBackend {
+        case .stableDiffusion:
+            return "\(ImageGenerationBackend.stableDiffusion.cacheKeyPrefix)::\(selectedSDModelID)"
+        case .imagePlayground:
+            return "\(ImageGenerationBackend.imagePlayground.cacheKeyPrefix)::\(selectedImagePlaygroundStyle.rawValue)"
+        case .automatic, .none:
+            return ImageGenerationBackend.automatic.cacheKeyPrefix
+        }
     }
 
     static var modelsRoot: URL {
@@ -185,14 +297,26 @@ final class ModelManager: ObservableObject {
     }
 
     init() {
+        selectedImageUnderstandingBackendID = UserDefaults.standard.string(
+            forKey: AppPreferences.selectedImageUnderstandingBackendKey
+        ) ?? ImageUnderstandingBackend.automatic.rawValue
+        selectedImageGenerationBackendID = UserDefaults.standard.string(
+            forKey: AppPreferences.selectedImageGenerationBackendKey
+        ) ?? ImageGenerationBackend.automatic.rawValue
         selectedImageUnderstandingModelID = UserDefaults.standard.string(
             forKey: AppPreferences.selectedImageUnderstandingModelKey
         ) ?? Self.siglipModelID
         selectedSDModelID = UserDefaults.standard.string(
             forKey: AppPreferences.selectedSDModelKey
         ) ?? Self.supportedSDModels[0].id
+        selectedImagePlaygroundStyleID = UserDefaults.standard.string(
+            forKey: AppPreferences.selectedImagePlaygroundStyleKey
+        ) ?? ImagePlaygroundStyleOption.animation.rawValue
+        normalizeSelectedImageUnderstandingBackendID()
+        normalizeSelectedImageGenerationBackendID()
         normalizeSelectedImageUnderstandingModelID()
         normalizeSelectedSDModelID()
+        normalizeSelectedImagePlaygroundStyleID()
         reloadState()
     }
 
@@ -218,6 +342,8 @@ final class ModelManager: ObservableObject {
     func reloadState() {
         siglipInstalled = hasCompleteSigLIPInstallation()
         qwenInstalled = isInstalled(path: Self.qwenVLInstallPath)
+        normalizeSelectedImageUnderstandingBackendID()
+        normalizeSelectedImageGenerationBackendID()
         normalizeSelectedImageUnderstandingModelID()
         autoSelectInstalledImageUnderstandingModelIfNeeded()
         normalizeSelectedSDModelID()
@@ -444,10 +570,31 @@ final class ModelManager: ObservableObject {
         reloadState()
     }
 
+    func selectImageUnderstandingBackend(id: String) {
+        guard ImageUnderstandingBackend(rawValue: id) != nil else { return }
+        selectedImageUnderstandingBackendID = id
+        UserDefaults.standard.set(id, forKey: AppPreferences.selectedImageUnderstandingBackendKey)
+        reloadState()
+    }
+
     func selectSDModel(id: String) {
         guard Self.supportedSDModels.contains(where: { $0.id == id }) else { return }
         selectedSDModelID = id
         UserDefaults.standard.set(id, forKey: AppPreferences.selectedSDModelKey)
+        reloadState()
+    }
+
+    func selectImageGenerationBackend(id: String) {
+        guard ImageGenerationBackend(rawValue: id) != nil else { return }
+        selectedImageGenerationBackendID = id
+        UserDefaults.standard.set(id, forKey: AppPreferences.selectedImageGenerationBackendKey)
+        reloadState()
+    }
+
+    func selectImagePlaygroundStyle(id: String) {
+        guard ImagePlaygroundStyleOption(rawValue: id) != nil else { return }
+        selectedImagePlaygroundStyleID = id
+        UserDefaults.standard.set(id, forKey: AppPreferences.selectedImagePlaygroundStyleKey)
         reloadState()
     }
 
@@ -544,10 +691,40 @@ final class ModelManager: ObservableObject {
         }
     }
 
+    private func normalizeSelectedImageUnderstandingBackendID() {
+        if ImageUnderstandingBackend(rawValue: selectedImageUnderstandingBackendID) == nil {
+            selectedImageUnderstandingBackendID = ImageUnderstandingBackend.automatic.rawValue
+            UserDefaults.standard.set(
+                selectedImageUnderstandingBackendID,
+                forKey: AppPreferences.selectedImageUnderstandingBackendKey
+            )
+        }
+    }
+
+    private func normalizeSelectedImageGenerationBackendID() {
+        if ImageGenerationBackend(rawValue: selectedImageGenerationBackendID) == nil {
+            selectedImageGenerationBackendID = ImageGenerationBackend.automatic.rawValue
+            UserDefaults.standard.set(
+                selectedImageGenerationBackendID,
+                forKey: AppPreferences.selectedImageGenerationBackendKey
+            )
+        }
+    }
+
     private func normalizeSelectedSDModelID() {
         if !Self.supportedSDModels.contains(where: { $0.id == selectedSDModelID }) {
             selectedSDModelID = Self.supportedSDModels[0].id
             UserDefaults.standard.set(selectedSDModelID, forKey: AppPreferences.selectedSDModelKey)
+        }
+    }
+
+    private func normalizeSelectedImagePlaygroundStyleID() {
+        if ImagePlaygroundStyleOption(rawValue: selectedImagePlaygroundStyleID) == nil {
+            selectedImagePlaygroundStyleID = ImagePlaygroundStyleOption.animation.rawValue
+            UserDefaults.standard.set(
+                selectedImagePlaygroundStyleID,
+                forKey: AppPreferences.selectedImagePlaygroundStyleKey
+            )
         }
     }
 

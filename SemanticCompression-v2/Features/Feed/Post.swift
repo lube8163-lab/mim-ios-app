@@ -46,6 +46,7 @@ final class Post: Identifiable, ObservableObject, Codable {
     // Semantic
     @Published var caption: String?
     @Published var semanticPrompt: String?
+    @Published var imageUnderstandingBackend: String?
     @Published var regionTags: [RegionTag]?
     let lowResGuide: LowResGuide?
     let mode: Int
@@ -71,7 +72,7 @@ final class Post: Identifiable, ObservableObject, Codable {
 
     enum CodingKeys: String, CodingKey {
         case id, userId, displayName, avatarUrl
-        case caption, semanticPrompt, regionTags
+        case caption, semanticPrompt, imageUnderstandingBackend, regionTags
         case userText, hasImage, createdAt
         case status, likeCount, isLikedByCurrentUser, commentCount
         case lowResGuide
@@ -89,6 +90,7 @@ final class Post: Identifiable, ObservableObject, Codable {
 
         caption = try c.decodeIfPresent(String.self, forKey: .caption)
         semanticPrompt = try c.decodeIfPresent(String.self, forKey: .semanticPrompt)
+        imageUnderstandingBackend = try c.decodeIfPresent(String.self, forKey: .imageUnderstandingBackend)
         regionTags = try c.decodeIfPresent([RegionTag].self, forKey: .regionTags)
         lowResGuide = try c.decodeIfPresent(LowResGuide.self, forKey: .lowResGuide)
         userText = try c.decodeIfPresent(String.self, forKey: .userText)
@@ -130,6 +132,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         avatarUrl: String?,
         caption: String? = nil,
         semanticPrompt: String? = nil,
+        imageUnderstandingBackend: String? = nil,
         regionTags: [RegionTag]? = nil,
         lowResGuide: LowResGuide? = nil,
         mode: Int = PrivacyMode.l2.rawValue,
@@ -147,6 +150,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         self.avatarUrl = avatarUrl
         self.caption = caption
         self.semanticPrompt = semanticPrompt
+        self.imageUnderstandingBackend = imageUnderstandingBackend
         self.regionTags = regionTags
         self.lowResGuide = lowResGuide
         self.mode = mode
@@ -237,6 +241,7 @@ extension Post {
         try c.encode(avatarUrl ?? "", forKey: .avatarUrl)
         try c.encode(caption, forKey: .caption)
         try c.encode(semanticPrompt, forKey: .semanticPrompt)
+        try c.encode(imageUnderstandingBackend, forKey: .imageUnderstandingBackend)
         try c.encode(regionTags, forKey: .regionTags)
         try c.encode(userText, forKey: .userText)
         try c.encode(hasImage, forKey: .hasImage)

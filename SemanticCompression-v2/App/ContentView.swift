@@ -52,7 +52,7 @@ struct ContentView: View {
 
     @State private var generator: ImageGenerator?
     @State private var isGeneratorReady = false
-    @State private var loadedSDModelID: String?
+    @State private var loadedGenerationCacheKey: String?
 
     // Pagination
     @State private var currentPage = 0
@@ -85,6 +85,10 @@ struct ContentView: View {
     // MARK: - Body
 
     var body: some View {
+        decoratedContent
+    }
+
+    private var rootContent: some View {
         ZStack {
             switch appBootState {
             case .launching, .preparingModel:
@@ -94,6 +98,10 @@ struct ContentView: View {
                 mainContent
             }
         }
+    }
+
+    private var lifecycleContent: some View {
+        rootContent
         .task {
             await bootSequence()
         }
@@ -103,10 +111,16 @@ struct ContentView: View {
         .onChange(of: modelManager.selectedSDModelID) { _ in
             Task { await maybeReloadGeneratorForSelectedModel() }
         }
-        .onChange(of: modelManager.sdInstalled) { installed in
-            guard installed else { return }
+        .onChange(of: modelManager.selectedImageGenerationBackendID) { _ in
             Task { await maybeReloadGeneratorForSelectedModel() }
         }
+        .onChange(of: modelManager.sdInstalled) { _ in
+            Task { await maybeReloadGeneratorForSelectedModel() }
+        }
+    }
+
+    private var eventContent: some View {
+        lifecycleContent
         .onChange(of: showInstallModels) { shown in
             guard !shown else { return }
             Task { await maybeReloadGeneratorForSelectedModel() }
@@ -141,6 +155,10 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .pushNotificationDidChange)) { _ in
             Task { await refreshUnreadNotificationsIfNeeded(force: true) }
         }
+    }
+
+    private var decoratedContent: some View {
+        eventContent
         .onChange(of: selectedTab) { _ in
             withAnimation(.easeInOut(duration: 0.18)) {
                 isChromeHidden = false
@@ -244,7 +262,7 @@ struct ContentView: View {
         }
         .onAppear {
             let hasSeen = UserDefaults.standard.bool(forKey: "hasSeenInstallPrompt")
-            if !modelManager.isModelInstalled && !hasSeen {
+            if !modelManager.hasAnyDownloadedModel && !hasSeen {
                 showInstallModels = true
                 UserDefaults.standard.set(true, forKey: "hasSeenInstallPrompt")
             }
@@ -418,9 +436,9 @@ extension ContentView {
             await blockManager.refreshFromServerIfPossible()
         }
 
-        // モデル未インストールなら即 ready
-        guard modelManager.sdInstalled else {
+        guard modelManager.resolvedImageGenerationBackend == .stableDiffusion else {
             appBootState = .ready
+            loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
             await loadInitialPage()
             return
         }
@@ -434,14 +452,14 @@ extension ContentView {
             let gen = try ImageGenerator(modelsDirectory: sdDir)
             self.generator = gen
             self.isGeneratorReady = true
-            self.loadedSDModelID = modelManager.selectedSDModelID
+            self.loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
         } catch {
             #if DEBUG
             print("❌ SD init failed:", error)
             #endif
             self.generator = nil
             self.isGeneratorReady = false
-            self.loadedSDModelID = nil
+            self.loadedGenerationCacheKey = nil
         }
 
         appBootState = .ready
@@ -470,7 +488,7 @@ extension ContentView {
                         ForEach(postList.items) { post in
                             PostCardView(
                                 post: post,
-                                isModelInstalled: modelManager.sdInstalled,
+                                isModelInstalled: modelManager.canGenerateImages,
                                 onUserBlocked: removeBlockedUserFromLists,
                                 onPostReported: removeReportedPostFromLists
                             )
@@ -1111,7 +1129,7 @@ extension ContentView {
                     ForEach(posts) { post in
                         PostCardView(
                             post: post,
-                            isModelInstalled: modelManager.sdInstalled,
+                            isModelInstalled: modelManager.canGenerateImages,
                             onUserBlocked: removeBlockedUserFromLists,
                             onPostReported: removeReportedPostFromLists
                         )
@@ -1430,8 +1448,8 @@ extension ContentView {
     @MainActor
     func enqueueImages(for posts: [Post]) {
         guard !isGenerationSuspendedForPosting else { return }
-        let canGenerate = modelManager.sdInstalled
-        let modelID = modelManager.selectedSDModelID
+        let canGenerate = modelManager.canGenerateImages
+        let modelID = modelManager.activeImageGenerationCacheKey
         for post in posts {
             guard post.hasImage else {
                 post.previewImage = nil
@@ -1473,38 +1491,20 @@ extension ContentView {
             generationTask = nil
         }
 
-        guard let generator else {
-            return
-        }
-
         while !generationQueue.isEmpty {
             if isGenerationSuspendedForPosting { return }
             if Task.isCancelled { return }
             let post = generationQueue.removeFirst()
             guard let prompt = post.effectivePrompt else { continue }
-            let modelID = modelManager.selectedSDModelID
+            guard let backend = modelManager.resolvedImageGenerationBackend else { continue }
+            let modelID = modelManager.activeImageGenerationCacheKey
             let rawInitImage = post.makeInitImage()
-            let initImage: UIImage? = (modelID == ModelManager.sd15LCMModelID) ? nil : rawInitImage
-            let hasInit = (initImage != nil)
-            let enhancedPrompt = hasInit
-                ? "\(prompt), sharp focus, fine detail, highly detailed, crisp texture, high clarity"
-                : prompt
-            let negativePrompt = hasInit
-                ? "blurry, soft focus, low detail, lowres, out of focus"
-                : ""
-            let profile = SDModeProfile.forMode(post.privacyMode, modelID: modelID)
+            let initImage: UIImage? = (backend == .stableDiffusion && modelManager.selectedSDModelID == ModelManager.sd15LCMModelID) ? nil : rawInitImage
             let cacheKey = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
             let generationStart = Date()
 
             do {
-                let img = try await generator.generateImage(
-                    from: enhancedPrompt,
-                    negativePrompt: negativePrompt,
-                    initImage: initImage,
-                    strength: profile.denoiseStrength,
-                    steps: profile.stepCount,
-                    guidance: profile.guidanceScale
-                )
+                let img = try await generateImage(for: post, prompt: prompt, initImage: initImage, backend: backend)
                 post.localImage = img
                 post.previewImage = nil
                 ImageCacheManager.shared.save(img, for: cacheKey)
@@ -1515,30 +1515,70 @@ extension ContentView {
                 #if DEBUG
                 print("⚠️ Image generation failed:", error)
                 #endif
-                do {
-                    let fallback = try await generator.generateImage(
-                        from: enhancedPrompt,
-                        negativePrompt: negativePrompt,
-                        initImage: nil,
-                        steps: profile.stepCount,
-                        guidance: profile.guidanceScale
-                    )
-                    post.localImage = fallback
-                    post.previewImage = nil
-                    ImageCacheManager.shared.save(fallback, for: cacheKey)
-                    ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
-                    scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: fallback, modelID: modelID)
-                    updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
-                } catch {
-                    #if DEBUG
-                    print("⚠️ Fallback generation failed:", error)
-                    #endif
-                    updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
-                    post.previewImage = nil
-                }
+                updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
+                post.previewImage = nil
             }
 
             try? await Task.sleep(nanoseconds: 400_000_000)
+        }
+    }
+
+    private func generateImage(
+        for post: Post,
+        prompt: String,
+        initImage: UIImage?,
+        backend: ImageGenerationBackend
+    ) async throws -> UIImage {
+        switch backend {
+        case .stableDiffusion:
+            guard let generator else {
+                throw NSError(
+                    domain: "ContentView",
+                    code: -41,
+                    userInfo: [NSLocalizedDescriptionKey: "Stable Diffusion generator is not loaded."]
+                )
+            }
+
+            let hasInit = (initImage != nil)
+            let enhancedPrompt = hasInit
+                ? "\(prompt), sharp focus, fine detail, highly detailed, crisp texture, high clarity"
+                : prompt
+            let negativePrompt = hasInit
+                ? "blurry, soft focus, low detail, lowres, out of focus"
+                : ""
+            let profile = SDModeProfile.forMode(post.privacyMode, modelID: modelManager.selectedSDModelID)
+
+            do {
+                return try await generator.generateImage(
+                    from: enhancedPrompt,
+                    negativePrompt: negativePrompt,
+                    initImage: initImage,
+                    strength: profile.denoiseStrength,
+                    steps: profile.stepCount,
+                    guidance: profile.guidanceScale
+                )
+            } catch {
+                return try await generator.generateImage(
+                    from: enhancedPrompt,
+                    negativePrompt: negativePrompt,
+                    initImage: nil,
+                    steps: profile.stepCount,
+                    guidance: profile.guidanceScale
+                )
+            }
+        case .imagePlayground:
+            return try await ImagePlaygroundGenerator.shared.generateImageIfAvailable(
+                from: prompt,
+                tags: post.tags,
+                sourceImage: initImage,
+                styleOption: modelManager.selectedImagePlaygroundStyle
+            )
+        case .automatic:
+            throw NSError(
+                domain: "ContentView",
+                code: -42,
+                userInfo: [NSLocalizedDescriptionKey: "Image generation backend is unresolved."]
+            )
         }
     }
 
@@ -1580,7 +1620,7 @@ extension ContentView {
 
     @MainActor
     private func regenerateImagesForSelectedModel() async {
-        let modelID = modelManager.selectedSDModelID
+        let modelID = modelManager.activeImageGenerationCacheKey
         let allPosts = allKnownPosts
 
         for post in allPosts {
@@ -1657,6 +1697,11 @@ extension ContentView {
         if !generationQueue.isEmpty, !isGenerating, generator != nil {
             isGenerating = true
             generationTask = Task { await processQueue() }
+        } else if !generationQueue.isEmpty,
+                    !isGenerating,
+                    modelManager.resolvedImageGenerationBackend == .imagePlayground {
+            isGenerating = true
+            generationTask = Task { await processQueue() }
         }
     }
 
@@ -1666,7 +1711,7 @@ extension ContentView {
         guard let post else { return }
         guard let prompt = post.effectivePrompt else { return }
 
-        let modelID = modelManager.selectedSDModelID
+        let modelID = modelManager.activeImageGenerationCacheKey
         let key = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
         ImageCacheManager.shared.remove(for: key)
         ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
@@ -1679,7 +1724,7 @@ extension ContentView {
         generationQueue.removeAll { $0.id == postID }
         generationQueue.insert(post, at: 0)
 
-        if !isGenerating, modelManager.sdInstalled {
+        if !isGenerating, modelManager.canGenerateImages {
             isGenerating = true
             generationTask = Task { await processQueue() }
         }
@@ -1812,15 +1857,13 @@ extension ContentView {
     @MainActor
     private func maybeReloadGeneratorForSelectedModel() async {
         guard !isGenerationSuspendedForPosting else { return }
-        guard modelManager.sdInstalled else { return }
-        guard loadedSDModelID != modelManager.selectedSDModelID || generator == nil else { return }
-        await reloadGeneratorForSelectedModel()
-    }
+        let activeKey = modelManager.activeImageGenerationCacheKey
 
-    @MainActor
-    private func reloadGeneratorForSelectedModel() async {
-        guard !isGenerationSuspendedForPosting else { return }
-        let previousModelID = loadedSDModelID
+        if modelManager.resolvedImageGenerationBackend == .stableDiffusion {
+            guard loadedGenerationCacheKey != activeKey || generator == nil else { return }
+            await reloadGeneratorForSelectedModel()
+            return
+        }
 
         generationTask?.cancel()
         generationTask = nil
@@ -1833,16 +1876,45 @@ extension ContentView {
             isGeneratorReady = false
         }
 
-        guard modelManager.sdInstalled else { return }
+        if loadedGenerationCacheKey != activeKey {
+            clearDisplayedImagesForModelSwitch()
+        }
+
+        loadedGenerationCacheKey = activeKey
+        genLog = t(ja: "準備完了", en: "Ready")
+        enqueueImages(for: allKnownPosts)
+    }
+
+    @MainActor
+    private func reloadGeneratorForSelectedModel() async {
+        guard !isGenerationSuspendedForPosting else { return }
+        let previousKey = loadedGenerationCacheKey
+
+        generationTask?.cancel()
+        generationTask = nil
+        generationQueue.removeAll()
+        isGenerating = false
+
+        if let current = generator {
+            await current.unloadResources()
+            generator = nil
+            isGeneratorReady = false
+        }
+
+        guard modelManager.resolvedImageGenerationBackend == .stableDiffusion else {
+            loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
+            enqueueImages(for: allKnownPosts)
+            return
+        }
 
         do {
             let gen = try ImageGenerator(modelsDirectory: modelManager.selectedSDModelDirectory)
             generator = gen
             isGeneratorReady = true
-            loadedSDModelID = modelManager.selectedSDModelID
+            loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
             genLog = t(ja: "準備完了", en: "Ready")
 
-            if previousModelID != nil && previousModelID != loadedSDModelID {
+            if previousKey != nil && previousKey != loadedGenerationCacheKey {
                 clearDisplayedImagesForModelSwitch()
             }
             enqueueImages(for: allKnownPosts)
@@ -1852,7 +1924,7 @@ extension ContentView {
             #endif
             generator = nil
             isGeneratorReady = false
-            loadedSDModelID = nil
+            loadedGenerationCacheKey = nil
             genLog = t(
                 ja: "⚠️ モデル切替の反映に失敗。再起動すると改善する場合があります",
                 en: "⚠️ Failed to apply model switch. Restarting the app may help."
@@ -1903,7 +1975,7 @@ extension ContentView {
 
         await maybeReloadGeneratorForSelectedModel()
         enqueueImages(for: allKnownPosts)
-        if modelManager.sdInstalled {
+        if modelManager.canGenerateImages {
             genLog = t(ja: "準備完了", en: "Ready")
         }
     }

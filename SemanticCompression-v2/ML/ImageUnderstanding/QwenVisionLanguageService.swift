@@ -119,7 +119,7 @@ actor QwenVisionLanguageService {
     }
 
     private func fallbackCaption(from lines: [String]) -> String {
-        guard let first = lines.first, !first.isEmpty else {
+        guard let first = lines.first(where: { !Self.looksLikeInstructionLine($0) }), !first.isEmpty else {
             return "An image is shown."
         }
         return first
@@ -128,7 +128,11 @@ actor QwenVisionLanguageService {
     private func sanitizeSentence(_ text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "An image is shown." }
+        if Self.looksLikeInstructionPayload(trimmed) {
+            return "An image is shown."
+        }
         let safe = Self.removeUnsafeTerms(from: trimmed)
+        guard !safe.isEmpty else { return "An image is shown." }
         if safe.hasSuffix(".") {
             return safe
         }
@@ -141,7 +145,7 @@ actor QwenVisionLanguageService {
             .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
             .filter { !$0.isEmpty }
 
-        let safeSegments = Self.sanitizeTags(raw)
+        let safeSegments = Self.sanitizeTags(raw).filter { !Self.looksLikeInstructionPayload($0) }
         if !safeSegments.isEmpty {
             return safeSegments.joined(separator: ", ")
         }
@@ -161,6 +165,34 @@ actor QwenVisionLanguageService {
         out = out.replacingOccurrences(of: "</think>", with: "")
         out = out.replacingOccurrences(of: "<think>", with: "")
         return out.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func looksLikeInstructionLine(_ line: String) -> Bool {
+        looksLikeInstructionPayload(
+            line
+                .replacingOccurrences(of: "CAPTION:", with: "", options: .caseInsensitive)
+                .replacingOccurrences(of: "PROMPT:", with: "", options: .caseInsensitive)
+                .replacingOccurrences(of: "TAGS:", with: "", options: .caseInsensitive)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+    }
+
+    private static func looksLikeInstructionPayload(_ text: String) -> Bool {
+        let normalized = text.lowercased()
+        let instructionFragments = [
+            "one short sentence",
+            "maximum 18 words",
+            "comma-separated",
+            "stable diffusion prompt keywords",
+            "describing subject",
+            "return exactly 3 lines",
+            "nothing else",
+            "up to 6 short",
+            "avoid sexual",
+            "prompt keywords",
+            "short sentence describing the image"
+        ]
+        return instructionFragments.contains(where: { normalized.contains($0) })
     }
 
     private static func removeUnsafeTerms(from text: String) -> String {
@@ -190,18 +222,25 @@ actor QwenVisionLanguageService {
     }
 
     private static let metadataPrompt = """
-    Describe the image for a semantic social app.
-    Return exactly 3 lines in English and nothing else.
-    CAPTION: one short sentence, maximum 18 words.
-    PROMPT: comma-separated Stable Diffusion prompt keywords describing subject, composition, lighting, and style.
-    TAGS: up to 6 short comma-separated tags.
-    Avoid sexual, violent, or unsafe wording.
+    Analyze the image and reply in English using exactly this format:
+    CAPTION: [brief factual sentence about the visible scene]
+    PROMPT: [comma-separated visual keywords only]
+    TAGS: [up to 6 short comma-separated tags]
+
+    Rules:
+    - Do not repeat these instructions.
+    - Do not include brackets, notes, or explanations.
+    - CAPTION must describe the actual image content.
+    - PROMPT must contain only visual keywords such as subject, color, angle, lighting, material, and background.
+    - TAGS must be simple nouns or short noun phrases.
+    - Avoid sexual, violent, or unsafe wording.
     """
 
     private static let fallbackPrompt = """
-    Return exactly 3 lines in English and nothing else.
-    CAPTION: a short sentence describing the image.
-    PROMPT: comma-separated visual keywords for image generation.
-    TAGS: up to 6 short tags.
+    Respond in English with exactly 3 lines:
+    CAPTION: brief factual sentence
+    PROMPT: comma-separated visual keywords only
+    TAGS: up to 6 short tags
+    Do not repeat the instruction text.
     """
 }

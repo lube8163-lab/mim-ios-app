@@ -65,7 +65,7 @@ struct NotificationsView: View {
             }
             .sheet(item: $selectedPost) { post in
                 NavigationStack {
-                    PostDetailView(post: post, isModelInstalled: ModelManager.shared.sdInstalled)
+                    PostDetailView(post: post, isModelInstalled: ModelManager.shared.canGenerateImages)
                 }
             }
             .sheet(isPresented: Binding(

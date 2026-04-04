@@ -577,6 +577,11 @@ struct SDModeProfile {
 }
 
 extension Post {
+    var imageUnderstandingBackendLabel: String? {
+        guard let raw = imageUnderstandingBackend else { return nil }
+        return ImageUnderstandingBackend(rawValue: raw)?.displayName ?? raw
+    }
+
     var privacyMode: PrivacyMode {
         PrivacyMode(rawValue: mode) ?? .l2
     }

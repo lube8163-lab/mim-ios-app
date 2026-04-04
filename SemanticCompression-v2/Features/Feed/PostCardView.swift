@@ -433,7 +433,7 @@ extension PostCardView {
                     .fill(Color.gray.opacity(0.1))
                     .frame(maxHeight: 260)
                     .overlay(
-                        Text(t(ja: "画像モデル未インストール", en: "Image model not installed"))
+                        Text(t(ja: "画像生成を利用できません", en: "Image generation unavailable"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     )
@@ -536,6 +536,12 @@ extension PostCardView {
                     .foregroundColor(.secondary)
                     .lineLimit(3)
 
+                if let backend = post.imageUnderstandingBackendLabel, post.hasImage {
+                    Text(t(ja: "画像理解: \(backend)", en: "Image understanding: \(backend)"))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(.secondary)
+                }
+
                 if cap.count > 140 {
                     Button(t(ja: "続きを読む", en: "Read more")) {
                         showCaptionDetail = true
@@ -607,6 +613,12 @@ extension PostCardView {
                         .font(.body)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
+
+                    if let backend = post.imageUnderstandingBackendLabel, post.hasImage {
+                        Text(t(ja: "この投稿の画像理解: \(backend)", en: "Image understanding for this post: \(backend)"))
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .padding(16)
             }
