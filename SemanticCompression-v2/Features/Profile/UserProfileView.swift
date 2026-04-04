@@ -22,6 +22,7 @@ struct UserProfileView: View {
     @State private var showLoginSheet = false
 
     // Account delete
+    @State private var showLogoutConfirm = false
     @State private var showDeleteConfirm = false
     @State private var isDeleting = false
     let showsCloseButton: Bool
@@ -66,6 +67,23 @@ struct UserProfileView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(accountAlertMessage)
+        }
+        .alert(
+            t(ja: "ログアウトしますか？", en: "Log out?", zh: "要退出登录吗？"),
+            isPresented: $showLogoutConfirm
+        ) {
+            Button(t(ja: "ログアウト", en: "Log Out", zh: "退出登录"), role: .destructive) {
+                Task { await authManager.logout() }
+            }
+            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {}
+        } message: {
+            Text(
+                t(
+                    ja: "現在のアカウントからサインアウトします。",
+                    en: "You will be signed out of the current account.",
+                    zh: "你将退出当前账号。"
+                )
+            )
         }
         .confirmationDialog(
             t(ja: "アカウントを削除しますか？", en: "Delete this account?", zh: "要删除此账户吗？"),
@@ -229,7 +247,7 @@ struct UserProfileView: View {
         Section {
             if authManager.isAuthenticated {
                 Button(role: .destructive) {
-                    Task { await authManager.logout() }
+                    showLogoutConfirm = true
                 } label: {
                     Text(t(ja: "ログアウト", en: "Log Out", zh: "退出登录"))
                 }

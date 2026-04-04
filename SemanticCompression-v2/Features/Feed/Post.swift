@@ -68,6 +68,7 @@ final class Post: Identifiable, ObservableObject, Codable {
     // Local image
     @Published var localImage: UIImage?
     @Published var previewImage: UIImage?
+    @Published var imageGenerationFailed: Bool
     @Published var regenerationEvaluation: RegenerationEvaluation?
 
     enum CodingKeys: String, CodingKey {
@@ -121,6 +122,7 @@ final class Post: Identifiable, ObservableObject, Codable {
 
         localImage = nil
         previewImage = nil
+        imageGenerationFailed = false
         regenerationEvaluation = nil
     }
 
@@ -162,6 +164,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         self.createdAt = createdAt
         self.localImage = localImage
         self.previewImage = nil
+        self.imageGenerationFailed = false
         self.regenerationEvaluation = nil
         self.likeCount = 0
         self.isLikedByCurrentUser = false

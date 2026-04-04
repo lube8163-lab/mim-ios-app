@@ -6,6 +6,7 @@ struct PostCardView: View {
     @ObservedObject var post: Post
     let isModelInstalled: Bool
     var showsCommentButton: Bool = true
+    var allowsDetailNavigation: Bool = true
     var priorityContextPostIDs: [String]? = nil
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authManager: AuthManager
@@ -149,6 +150,7 @@ struct PostCardView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
+            guard allowsDetailNavigation else { return }
             openPostDetail()
         }
     }
@@ -448,12 +450,22 @@ extension PostCardView {
                     .fill(Color.gray.opacity(0.1))
                     .frame(maxHeight: 260)
                     .overlay(
-                        VStack(spacing: 12) {
-                            RainbowAILoader()
-                                .shadow(color: .purple.opacity(0.6), radius: 8)
-                            //Text("画像生成中…")
-                                //.font(.caption)
-                                //.foregroundColor(.secondary)
+                        Group {
+                            if post.imageGenerationFailed {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(.orange)
+                                    Text(t(ja: "画像生成に失敗しました", en: "Image generation failed"))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            } else {
+                                VStack(spacing: 12) {
+                                    RainbowAILoader()
+                                        .shadow(color: .purple.opacity(0.6), radius: 8)
+                                }
+                            }
                         }
                     )
                 if post.hasImage {
@@ -499,6 +511,9 @@ extension PostCardView {
     }
 
     private var generationStatusLabel: String? {
+        if post.imageGenerationFailed {
+            return t(ja: "失敗", en: "Failed")
+        }
         if post.status == .failed {
             return t(ja: "失敗", en: "Failed")
         }
@@ -515,6 +530,9 @@ extension PostCardView {
     }
 
     private var generationStatusIconName: String {
+        if post.imageGenerationFailed {
+            return "exclamationmark.triangle.fill"
+        }
         if post.status == .failed {
             return "exclamationmark.triangle.fill"
         }

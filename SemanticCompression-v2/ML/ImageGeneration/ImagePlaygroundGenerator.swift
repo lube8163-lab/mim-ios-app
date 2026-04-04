@@ -42,19 +42,22 @@ actor ImagePlaygroundGenerator {
             throw ImagePlaygroundGeneratorError.unavailable
         }
 
-        var concepts = payload.concepts.map(ImagePlaygroundConcept.text)
-        if let sourceImage {
-            guard let cgImage = sourceImage.cgImage else {
-                throw ImagePlaygroundGeneratorError.invalidSourceImage
+        let conceptCandidates = buildConceptCandidates(payload: payload, tags: tags)
+
+        for candidate in conceptCandidates {
+            do {
+                return try await generateImage(
+                    with: candidate,
+                    creator: creator,
+                    style: style,
+                    sourceImage: sourceImage
+                )
+            } catch let error as ImageCreator.Error where error == .creationFailed {
+                continue
             }
-            concepts.append(.image(cgImage))
         }
 
-        for try await created in creator.images(for: concepts, style: style, limit: 1) {
-            return UIImage(cgImage: created.cgImage)
-        }
-
-        throw ImagePlaygroundGeneratorError.noImageCreated
+        throw ImageCreator.Error.creationFailed
     }
 
     func generateImageIfAvailable(
@@ -72,5 +75,66 @@ actor ImagePlaygroundGenerator {
             sourceImage: sourceImage,
             styleOption: styleOption
         )
+    }
+
+    @available(iOS 18.4, *)
+    private func generateImage(
+        with concepts: [String],
+        creator: ImageCreator,
+        style: ImagePlaygroundStyle,
+        sourceImage: UIImage?
+    ) async throws -> UIImage {
+        var playgroundConcepts = concepts.map(ImagePlaygroundConcept.text)
+        if let sourceImage {
+            guard let cgImage = sourceImage.cgImage else {
+                throw ImagePlaygroundGeneratorError.invalidSourceImage
+            }
+            playgroundConcepts.append(.image(cgImage))
+        }
+
+        for try await created in creator.images(for: playgroundConcepts, style: style, limit: 1) {
+            return UIImage(cgImage: created.cgImage)
+        }
+
+        throw ImagePlaygroundGeneratorError.noImageCreated
+    }
+
+    private func buildConceptCandidates(payload: AppleVisionPromptPayload, tags: [String]) -> [[String]] {
+        let cleanedPrompt = payload.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanedTags = tags
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        var candidates: [[String]] = []
+
+        let primary = payload.concepts
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if !primary.isEmpty {
+            candidates.append(Array(primary.prefix(3)))
+        }
+
+        if !cleanedPrompt.isEmpty {
+            candidates.append([cleanedPrompt])
+        }
+
+        if !cleanedTags.isEmpty {
+            candidates.append(Array(cleanedTags.prefix(3)))
+            candidates.append([cleanedTags.prefix(4).joined(separator: ", ")])
+        }
+
+        if let firstTag = cleanedTags.first {
+            candidates.append([firstTag])
+        }
+
+        candidates.append(["simple illustration"])
+
+        var seen = Set<String>()
+        return candidates.filter { candidate in
+            let key = candidate.joined(separator: " | ").lowercased()
+            guard !key.isEmpty, !seen.contains(key) else { return false }
+            seen.insert(key)
+            return true
+        }
     }
 }

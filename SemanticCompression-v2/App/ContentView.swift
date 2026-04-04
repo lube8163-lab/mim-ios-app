@@ -81,6 +81,7 @@ struct ContentView: View {
     @State private var isChromeHidden = false
     @State private var currentProfileStats: PublicUserProfile?
     @State private var externallyPrioritizedPostIDs: [String] = []
+    @State private var showLogoutConfirm = false
 
     // MARK: - Body
 
@@ -218,6 +219,30 @@ struct ContentView: View {
                     ja: "現在表示中の投稿画像キャッシュを削除して、選択中モデルで再生成します。",
                     en: "Cached post images will be removed and regenerated with the selected model.",
                     zh: "当前显示的帖子图片缓存将被删除，并使用所选模型重新生成。"
+                )
+            )
+        }
+        .alert(
+            t(
+                ja: "ログアウトしますか？",
+                en: "Log out?",
+                zh: "要退出登录吗？"
+            ),
+            isPresented: $showLogoutConfirm
+        ) {
+            Button(t(ja: "ログアウト", en: "Log Out", zh: "退出登录"), role: .destructive) {
+                Task { await authManager.logout() }
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
+                    showProfileDrawer = false
+                }
+            }
+            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {}
+        } message: {
+            Text(
+                t(
+                    ja: "現在のアカウントからサインアウトします。",
+                    en: "You will be signed out of the current account.",
+                    zh: "你将退出当前账号。"
                 )
             )
         }
@@ -875,10 +900,7 @@ extension ContentView {
 
             if authManager.isAuthenticated {
                 Button {
-                    Task { await authManager.logout() }
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
-                        showProfileDrawer = false
-                    }
+                    showLogoutConfirm = true
                 } label: {
                     profileDrawerRow(
                         title: t(ja: "ログアウト", en: "Log Out", zh: "退出登录"),
@@ -1464,9 +1486,11 @@ extension ContentView {
             if let cacheKey,
                let cached = ImageCacheManager.shared.load(for: cacheKey) {
                 post.localImage = cached
+                post.imageGenerationFailed = false
                 scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: cached, modelID: modelID)
             } else {
                 post.semanticFidelityScore = nil
+                post.imageGenerationFailed = false
                 if post.previewImage == nil {
                     post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
                 }
@@ -1507,6 +1531,7 @@ extension ContentView {
                 let img = try await generateImage(for: post, prompt: prompt, initImage: initImage, backend: backend)
                 post.localImage = img
                 post.previewImage = nil
+                post.imageGenerationFailed = false
                 ImageCacheManager.shared.save(img, for: cacheKey)
                 ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
                 scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: img, modelID: modelID)
@@ -1517,6 +1542,7 @@ extension ContentView {
                 #endif
                 updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
                 post.previewImage = nil
+                post.imageGenerationFailed = true
             }
 
             try? await Task.sleep(nanoseconds: 400_000_000)
@@ -1570,7 +1596,7 @@ extension ContentView {
             return try await ImagePlaygroundGenerator.shared.generateImageIfAvailable(
                 from: prompt,
                 tags: post.tags,
-                sourceImage: initImage,
+                sourceImage: nil,
                 styleOption: modelManager.selectedImagePlaygroundStyle
             )
         case .automatic:
@@ -1716,6 +1742,7 @@ extension ContentView {
         ImageCacheManager.shared.remove(for: key)
         ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
         post.localImage = nil
+        post.imageGenerationFailed = false
         post.clearRegenerationEvaluation()
         post.previewImage = post.hasImage
             ? post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))

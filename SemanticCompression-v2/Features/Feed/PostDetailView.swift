@@ -26,7 +26,8 @@ struct PostDetailView: View {
                 PostCardView(
                     post: post,
                     isModelInstalled: isModelInstalled,
-                    showsCommentButton: false
+                    showsCommentButton: false,
+                    allowsDetailNavigation: false
                 )
 
                 commentSection
