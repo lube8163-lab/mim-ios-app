@@ -139,6 +139,16 @@ struct ModelInstallContentView: View {
                     )
                     .font(.caption)
                     .foregroundColor(.orange)
+
+                    Text(
+                        t(
+                            ja: "Image Playground では一部のプロンプトで画像生成に失敗することがあります。また、人物画像や人物表現を含む内容はモデル仕様上生成が制限される場合があります。",
+                            en: "With Image Playground, some prompts may fail to generate. Content involving people or person-like imagery may also be restricted by the model's built-in rules.",
+                            zh: "使用 Image Playground 时，某些 prompt 可能会生成失败。涉及人物或人物形象的内容也可能因模型内置限制而无法生成。"
+                        )
+                    )
+                    .font(.caption)
+                    .foregroundColor(.orange)
                 }
             }
             .padding(.horizontal, 16)

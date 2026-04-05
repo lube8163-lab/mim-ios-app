@@ -69,6 +69,7 @@ final class Post: Identifiable, ObservableObject, Codable {
     @Published var localImage: UIImage?
     @Published var previewImage: UIImage?
     @Published var imageGenerationFailed: Bool
+    @Published var imageGenerationFailureReason: String?
     @Published var regenerationEvaluation: RegenerationEvaluation?
 
     enum CodingKeys: String, CodingKey {
@@ -123,6 +124,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         localImage = nil
         previewImage = nil
         imageGenerationFailed = false
+        imageGenerationFailureReason = nil
         regenerationEvaluation = nil
     }
 
@@ -165,6 +167,7 @@ final class Post: Identifiable, ObservableObject, Codable {
         self.localImage = localImage
         self.previewImage = nil
         self.imageGenerationFailed = false
+        self.imageGenerationFailureReason = nil
         self.regenerationEvaluation = nil
         self.likeCount = 0
         self.isLikedByCurrentUser = false

@@ -153,3 +153,22 @@ struct FeedLoader {
         }
     }
 }
+
+enum PostActionService {
+    static func deletePost(postId: String) async throws {
+        guard let url = URL(string: FeedAPI.base + "/deletePost") else {
+            throw URLError(.badURL)
+        }
+
+        var request = try await AuthManager.shared.authorizedRequest(url: url, method: "POST")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "postId": postId
+        ])
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+    }
+}

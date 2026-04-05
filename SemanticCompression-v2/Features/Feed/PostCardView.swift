@@ -12,6 +12,7 @@ struct PostCardView: View {
     @EnvironmentObject private var authManager: AuthManager
     var onUserBlocked: ((String) -> Void)? = nil
     var onPostReported: ((String) -> Void)? = nil
+    var onPostDeleted: ((String) -> Void)? = nil
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
     @AppStorage(AppPreferences.proModeEnabledKey)
@@ -24,6 +25,8 @@ struct PostCardView: View {
     @State private var showReportThanks = false
     @State private var showReportError = false
     @State private var showBlockConfirm = false
+    @State private var showDeleteConfirm = false
+    @State private var showDeleteError = false
     @State private var showLoginSheet = false
     @State private var showCaptionDetail = false
     @State private var showComments = false
@@ -90,6 +93,24 @@ struct PostCardView: View {
                     blockAuthorIfNeeded()
                 }
                 Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
+            }
+            .confirmationDialog(
+                t(ja: "この投稿を削除しますか？", en: "Delete this post?"),
+                isPresented: $showDeleteConfirm,
+                titleVisibility: .visible
+            ) {
+                Button(t(ja: "削除する", en: "Delete"), role: .destructive) {
+                    deletePost()
+                }
+                Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
+            }
+            .alert(
+                t(ja: "投稿を削除できませんでした", en: "Failed to delete post"),
+                isPresented: $showDeleteError
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(t(ja: "時間をおいて再度お試しください。", en: "Please try again later."))
             }
     }
     
@@ -177,6 +198,33 @@ struct PostCardView: View {
         onPostReported?(reportedPostId)
         showReportThanks = true
     }
+
+    private func deletePost() {
+        guard authManager.isAuthenticated else {
+            showLoginSheet = true
+            return
+        }
+
+        let deletedPostId = post.id
+        Task {
+            do {
+                try await PostActionService.deletePost(postId: deletedPostId)
+                await PostStore.shared.remove(postId: deletedPostId)
+                await MainActor.run {
+                    NotificationCenter.default.post(
+                        name: .postDeleted,
+                        object: nil,
+                        userInfo: ["postId": deletedPostId]
+                    )
+                    onPostDeleted?(deletedPostId)
+                }
+            } catch {
+                await MainActor.run {
+                    showDeleteError = true
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Header
@@ -213,10 +261,18 @@ extension PostCardView {
 
             // ⋯ Menu
             Menu {
-                Button(role: .destructive) {
-                    showReportDialog = true
-                } label: {
-                    Label(t(ja: "通報", en: "Report"), systemImage: "flag")
+                if isCurrentUsersPost {
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        Label(t(ja: "削除", en: "Delete"), systemImage: "trash")
+                    }
+                } else {
+                    Button(role: .destructive) {
+                        showReportDialog = true
+                    } label: {
+                        Label(t(ja: "通報", en: "Report"), systemImage: "flag")
+                    }
                 }
                 if shouldShowBlockAction {
                     Button(role: .destructive) {
@@ -425,6 +481,9 @@ extension PostCardView {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+                    .padding(.top, 28)
+                    .padding(.leading, 72)
+                    .padding(.trailing, 16)
                 }
                 imageBadges
             }
@@ -448,7 +507,7 @@ extension PostCardView {
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.gray.opacity(0.1))
-                    .frame(maxHeight: 260)
+                    .frame(minHeight: post.imageGenerationFailed ? 170 : nil, maxHeight: 260)
                     .overlay(
                         Group {
                             if post.imageGenerationFailed {
@@ -456,15 +515,35 @@ extension PostCardView {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .font(.title2)
                                         .foregroundColor(.orange)
-                                    Text(t(ja: "画像生成に失敗しました", en: "Image generation failed"))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                                    if let reason = post.imageGenerationFailureReason {
+                                        Text(reason)
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                            .lineLimit(3)
+                                    }
+                                    if post.imageGenerationFailureReason == nil {
+                                        Text(t(ja: "もう一度お試しください。", en: "Please try again."))
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                    }
                                 }
+                                .padding(.top, 26)
+                                .padding(.leading, 76)
+                                .padding(.trailing, 20)
+                                .padding(.bottom, 18)
                             } else {
                                 VStack(spacing: 12) {
                                     RainbowAILoader()
                                         .shadow(color: .purple.opacity(0.6), radius: 8)
+                                    Text(t(ja: "生成中…", en: "Generating..."))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
+                                .padding(.top, 28)
+                                .padding(.leading, 72)
+                                .padding(.trailing, 16)
                             }
                         }
                     )

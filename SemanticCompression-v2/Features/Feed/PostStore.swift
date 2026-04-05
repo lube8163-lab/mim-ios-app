@@ -28,6 +28,10 @@ actor PostStore {
         }
     }
 
+    func remove(postId: String) {
+        map.removeValue(forKey: postId)
+    }
+
     /// すでに UI が保持している Post を更新する（必要なフィールドだけ）
     @MainActor
     private static func applyUpdate(_ target: Post, with incoming: Post) {

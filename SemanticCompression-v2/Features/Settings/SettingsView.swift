@@ -14,12 +14,15 @@ struct SettingsView: View {
     private var selectedLanguage = AppLanguage.japanese.rawValue
     @AppStorage(AppPreferences.proModeEnabledKey)
     private var isProModeEnabled = false
+    @AppStorage(AppPreferences.forceSDTextToImageKey)
+    private var forceSDTextToImage = false
     @AppStorage(AppPreferences.proModeCacheLimitMBKey)
     private var proModeCacheLimitMB = ImageCacheManager.defaultProModeCacheLimitMB
     @State private var pendingProModeEnabled = false
     @State private var showProModeWarning = false
     @State private var showSigLIPRequirementInfo = false
     @State private var showCacheMaintenanceConfirm = false
+    @State private var showSDRestartRequired = false
 
     var body: some View {
         List {
@@ -38,112 +41,117 @@ struct SettingsView: View {
             }
 
             Section(t(ja: "AI バックエンド", en: "AI Backends", zh: "AI 后端")) {
-                NavigationLink {
-                    ModelManagementView()
-                        .environmentObject(modelManager)
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(t(ja: "AI モデルの管理", en: "Manage AI Models", zh: "管理 AI 模型"))
-                        Text(
-                            t(
-                                ja: "追加モデルのダウンロード、削除、使用モデルの切替を行います。",
-                                en: "Download, remove, or switch the local models used by the app.",
-                                zh: "下载、删除或切换应用使用的本地模型。"
-                            )
+                VStack(spacing: 14) {
+                    settingsCard(
+                        title: t(ja: "AI モデルの管理", en: "Manage AI Models", zh: "管理 AI 模型"),
+                        subtitle: t(
+                            ja: "追加モデルのダウンロード、削除、使用モデルの切替を行います。",
+                            en: "Download, remove, or switch the local models used by the app.",
+                            zh: "下载、删除或切换应用使用的本地模型。"
                         )
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    ) {
+                        NavigationLink {
+                            ModelManagementView()
+                                .environmentObject(modelManager)
+                        } label: {
+                            HStack {
+                                Text(t(ja: "管理画面を開く", en: "Open Model Manager", zh: "打开模型管理"))
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                            }
+                        }
+                    }
+
+                    settingsCard(
+                        title: t(ja: "導入状況", en: "Installed Status", zh: "安装状态"),
+                        subtitle: installedModelsSummary
+                    ) { EmptyView() }
+
+                    settingsCard(
+                        title: t(ja: "画像理解", en: "Image Understanding", zh: "图像理解"),
+                        subtitle: nil
+                    ) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            backendMenu(
+                                selectionTitle: imageUnderstandingSelectionTitle,
+                                options: imageUnderstandingMenuOptions,
+                                select: { modelManager.selectImageUnderstandingBackend(id: $0) }
+                            )
+                        }
+
+                        infoNote(imageUnderstandingBackendDescription)
+                    }
+
+                    settingsCard(
+                        title: t(ja: "画像生成", en: "Image Generation", zh: "图像生成"),
+                        subtitle: nil
+                    ) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            backendMenu(
+                                selectionTitle: imageGenerationSelectionTitle,
+                                options: imageGenerationMenuOptions,
+                                select: handleImageGenerationBackendSelection
+                            )
+                        }
+
+                        infoNote(imageGenerationBackendDescription)
                     }
                 }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(t(ja: "導入状況", en: "Installed Status", zh: "安装状态"))
-                        .font(.subheadline.weight(.semibold))
-                    Text(installedModelsSummary)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Picker(
-                    t(ja: "画像理解", en: "Image Understanding", zh: "图像理解"),
-                    selection: imageUnderstandingBackendBinding
-                ) {
-                    Text("Automatic").tag(ImageUnderstandingBackend.automatic.rawValue)
-                    Text("Apple Vision").tag(ImageUnderstandingBackend.vision.rawValue)
-                    Text("SigLIP2 Vision Encoder").tag(ImageUnderstandingBackend.siglip2.rawValue)
-                        .disabled(!modelManager.siglipInstalled)
-                    Text("Qwen3.5-VL-0.8B").tag(ImageUnderstandingBackend.qwen35vl.rawValue)
-                        .disabled(!modelManager.qwenInstalled)
-                }
-
-                Text(
-                    t(
-                        ja: "現在使用: \(modelManager.resolvedImageUnderstandingBackendTitle)",
-                        en: "Currently used: \(modelManager.resolvedImageUnderstandingBackendTitle)",
-                        zh: "当前使用：\(modelManager.resolvedImageUnderstandingBackendTitle)"
-                    )
-                )
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-                Text(imageUnderstandingBackendDescription)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Picker(
-                    t(ja: "画像生成", en: "Image Generation", zh: "图像生成"),
-                    selection: imageGenerationBackendBinding
-                ) {
-                    Text("Automatic").tag(ImageGenerationBackend.automatic.rawValue)
-                    Text("Image Playground").tag(ImageGenerationBackend.imagePlayground.rawValue)
-                        .disabled(!modelManager.canUseImagePlaygroundFallback)
-                    Text("Stable Diffusion").tag(ImageGenerationBackend.stableDiffusion.rawValue)
-                        .disabled(!modelManager.hasAnySDInstalled)
-                }
-
-                Text(
-                    t(
-                        ja: "現在使用: \(modelManager.resolvedImageGenerationBackendTitle)",
-                        en: "Currently used: \(modelManager.resolvedImageGenerationBackendTitle)",
-                        zh: "当前使用：\(modelManager.resolvedImageGenerationBackendTitle)"
-                    )
-                )
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-                Text(imageGenerationBackendDescription)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
 
             if modelManager.canUseImagePlaygroundFallback {
                 Section(t(ja: "Image Playground", en: "Image Playground", zh: "Image Playground")) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(t(ja: "スタイル設定", en: "Style", zh: "风格设置"))
-                            .font(.subheadline.weight(.semibold))
-                        Text(
+                    settingsCard(
+                        title: t(ja: "スタイル設定", en: "Style", zh: "风格设置"),
+                        subtitle: t(
+                            ja: "この設定は Image Playground で画像生成するときだけ反映されます。",
+                            en: "This setting only applies when images are generated with Image Playground.",
+                            zh: "此设置仅在使用 Image Playground 生成图像时生效。"
+                        )
+                    ) {
+                        Picker(
+                            t(ja: "Image Playground スタイル", en: "Image Playground Style", zh: "Image Playground 风格"),
+                            selection: imagePlaygroundStyleBinding
+                        ) {
+                            ForEach(ImagePlaygroundStyleOption.allCases) { style in
+                                Text(style.displayName).tag(style.rawValue)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+
+                        infoNote(imagePlaygroundStyleDescription)
+                    }
+                }
+            }
+
+            if modelManager.hasAnySDInstalled {
+                Section(t(ja: "Stable Diffusion", en: "Stable Diffusion", zh: "Stable Diffusion")) {
+                    settingsCard(
+                        title: t(ja: "生成オプション", en: "Generation Options", zh: "生成选项"),
+                        subtitle: t(
+                            ja: "通常版 SD15 の挙動を必要に応じて調整できます。",
+                            en: "Adjust how the standard SD15 pipeline behaves when needed.",
+                            zh: "可按需调整标准版 SD15 的生成行为。"
+                        )
+                    ) {
+                        Toggle(
                             t(
-                                ja: "この設定は Image Playground で画像生成するときだけ反映されます。",
-                                en: "This setting only applies when images are generated with Image Playground.",
-                                zh: "此设置仅在使用 Image Playground 生成图像时生效。"
+                                ja: "初期画像を使わず text2img を優先",
+                                en: "Prefer text2img over init image",
+                                zh: "优先使用 text2img 而不是初始图像"
+                            ),
+                            isOn: $forceSDTextToImage
+                        )
+
+                        infoNote(
+                            t(
+                                ja: "L2〜L4 の投稿でも初期画像を使わず、semantic prompt のみで Stable Diffusion を実行します。構図の手がかりは減りますが、初期画像由来のノイズや崩れを避けたいときに有効です。",
+                                en: "Even for L2-L4 posts, Stable Diffusion will run without an init image and rely only on the semantic prompt. This reduces structural guidance, but can avoid blur or distortions introduced by the init image.",
+                                zh: "即使是 L2-L4 帖子，Stable Diffusion 也不会使用初始图像，而只依赖 semantic prompt。这样会减少构图引导，但有助于避免初始图像带来的噪声与变形。"
                             )
                         )
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                     }
-
-                    Picker(
-                        t(ja: "Image Playground スタイル", en: "Image Playground Style", zh: "Image Playground 风格"),
-                        selection: imagePlaygroundStyleBinding
-                    ) {
-                        ForEach(ImagePlaygroundStyleOption.allCases) { style in
-                            Text(style.displayName).tag(style.rawValue)
-                        }
-                    }
-
-                    Text(imagePlaygroundStyleDescription)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
             }
 
@@ -280,6 +288,9 @@ struct SettingsView: View {
         }
         .navigationTitle(t(ja: "設定", en: "Settings", zh: "设置"))
         .navigationBarTitleDisplayMode(.inline)
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color(.systemGroupedBackground))
         .alert(
             t(
                 ja: "プロモードを有効にしますか？",
@@ -345,6 +356,24 @@ struct SettingsView: View {
                 )
             )
         }
+        .alert(
+            t(
+                ja: "モデル切替を反映しました",
+                en: "Model switch applied",
+                zh: "模型切换已应用"
+            ),
+            isPresented: $showSDRestartRequired
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(
+                t(
+                    ja: "Stable Diffusion を確実に反映するため、アプリを再起動してください。",
+                    en: "Please restart the app to fully apply Stable Diffusion.",
+                    zh: "请重新启动应用，以确保 Stable Diffusion 完全生效。"
+                )
+            )
+        }
         .onChange(of: proModeCacheLimitMB) { _ in
             ImageCacheManager.shared.enforceCachePolicies()
         }
@@ -362,20 +391,6 @@ struct SettingsView: View {
                     isProModeEnabled = false
                 }
             }
-        )
-    }
-
-    private var imageUnderstandingBackendBinding: Binding<String> {
-        Binding(
-            get: { modelManager.selectedImageUnderstandingBackendID },
-            set: { modelManager.selectImageUnderstandingBackend(id: $0) }
-        )
-    }
-
-    private var imageGenerationBackendBinding: Binding<String> {
-        Binding(
-            get: { modelManager.selectedImageGenerationBackendID },
-            set: { modelManager.selectImageGenerationBackend(id: $0) }
         )
     }
 
@@ -413,8 +428,74 @@ struct SettingsView: View {
         )
     }
 
-    private var imageUnderstandingBackendDescription: String {
+    private var sanitizedImageUnderstandingBackendID: String {
         switch modelManager.selectedImageUnderstandingBackend {
+        case .siglip2 where !modelManager.siglipInstalled:
+            return ImageUnderstandingBackend.automatic.rawValue
+        case .qwen35vl where !modelManager.qwenInstalled:
+            return ImageUnderstandingBackend.automatic.rawValue
+        case .vision where !modelManager.canUseAppleVisionFallback:
+            return ImageUnderstandingBackend.automatic.rawValue
+        default:
+            return modelManager.selectedImageUnderstandingBackendID
+        }
+    }
+
+    private var sanitizedImageGenerationBackendID: String {
+        switch modelManager.selectedImageGenerationBackend {
+        case .stableDiffusion where !modelManager.hasAnySDInstalled:
+            return ImageGenerationBackend.automatic.rawValue
+        case .imagePlayground where !modelManager.canUseImagePlaygroundFallback:
+            return ImageGenerationBackend.automatic.rawValue
+        default:
+            return modelManager.selectedImageGenerationBackendID
+        }
+    }
+
+    private var imageUnderstandingSelectionTitle: String {
+        let backend = ImageUnderstandingBackend(rawValue: sanitizedImageUnderstandingBackendID) ?? .automatic
+        return backend.displayName
+    }
+
+    private var imageGenerationSelectionTitle: String {
+        let backend = ImageGenerationBackend(rawValue: sanitizedImageGenerationBackendID) ?? .automatic
+        return backend == .stableDiffusion ? modelManager.selectedSDModel.title : backend.displayName
+    }
+
+    private var imageUnderstandingMenuOptions: [BackendMenuOption] {
+        var options = [BackendMenuOption(id: ImageUnderstandingBackend.automatic.rawValue, title: "Automatic")]
+
+        if modelManager.canUseAppleVisionFallback {
+            options.append(BackendMenuOption(id: ImageUnderstandingBackend.vision.rawValue, title: "Apple Vision"))
+        }
+
+        if modelManager.siglipInstalled {
+            options.append(BackendMenuOption(id: ImageUnderstandingBackend.siglip2.rawValue, title: "SigLIP2 Vision Encoder"))
+        }
+
+        if modelManager.qwenInstalled {
+            options.append(BackendMenuOption(id: ImageUnderstandingBackend.qwen35vl.rawValue, title: "Qwen3.5-VL-0.8B"))
+        }
+
+        return options
+    }
+
+    private var imageGenerationMenuOptions: [BackendMenuOption] {
+        var options = [BackendMenuOption(id: ImageGenerationBackend.automatic.rawValue, title: "Automatic")]
+
+        if modelManager.canUseImagePlaygroundFallback {
+            options.append(BackendMenuOption(id: ImageGenerationBackend.imagePlayground.rawValue, title: "Image Playground"))
+        }
+
+        if modelManager.hasAnySDInstalled {
+            options.append(BackendMenuOption(id: ImageGenerationBackend.stableDiffusion.rawValue, title: "Stable Diffusion"))
+        }
+
+        return options
+    }
+
+    private var imageUnderstandingBackendDescription: String {
+        switch ImageUnderstandingBackend(rawValue: sanitizedImageUnderstandingBackendID) ?? .automatic {
         case .automatic:
             return t(
                 ja: "自動選択です。追加モデルがあればそれを使い、無ければ Apple Vision にフォールバックします。",
@@ -443,7 +524,7 @@ struct SettingsView: View {
     }
 
     private var imageGenerationBackendDescription: String {
-        switch modelManager.selectedImageGenerationBackend {
+        switch ImageGenerationBackend(rawValue: sanitizedImageGenerationBackendID) ?? .automatic {
         case .automatic:
             return t(
                 ja: "自動選択です。Stable Diffusion があればそれを使い、無ければ Image Playground を使います。",
@@ -488,7 +569,89 @@ struct SettingsView: View {
         }
     }
 
+    private func handleImageGenerationBackendSelection(_ id: String) {
+        guard imageGenerationMenuOptions.contains(where: { $0.id == id }) else { return }
+
+        let previous = sanitizedImageGenerationBackendID
+        modelManager.selectImageGenerationBackend(id: id)
+
+        if id == ImageGenerationBackend.stableDiffusion.rawValue && previous != id {
+            NotificationCenter.default.post(name: .deferStableDiffusionReloadUntilRestart, object: nil)
+            showSDRestartRequired = true
+        }
+    }
+
+    private func backendMenu(
+        selectionTitle: String,
+        options: [BackendMenuOption],
+        select: @escaping (String) -> Void
+    ) -> some View {
+        Menu {
+            ForEach(options) { option in
+                Button {
+                    select(option.id)
+                } label: {
+                    Text(option.title)
+                }
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Text(selectionTitle)
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.accentColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(.accentColor)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 2)
+        }
+    }
+
+    private struct BackendMenuOption: Identifiable {
+        let id: String
+        let title: String
+    }
+
     private func t(ja: String, en: String, zh: String? = nil) -> String {
         localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    }
+
+    @ViewBuilder
+    private func settingsCard<Content: View>(
+        title: String,
+        subtitle: String? = nil,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.headline)
+
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            let builtContent = content()
+            builtContent
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+    }
+
+    private func infoNote(_ text: String) -> some View {
+        Text(text)
+            .font(.footnote)
+            .foregroundColor(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }

@@ -185,7 +185,7 @@ actor SemanticExtractionTask {
 
         await MainActor.run {
             post.regionTags = safeRegionTags
-            post.caption = caption
+            post.caption = finalPrompt
             post.semanticPrompt = finalPrompt
             post.imageUnderstandingBackend = ImageUnderstandingBackend.siglip2.rawValue
             post.tags = objectTop
@@ -200,6 +200,7 @@ actor SemanticExtractionTask {
     ) async throws {
         let metadata = try await QwenVisionLanguageService.shared.generateMetadata(from: image)
         let safeTags = Array(Self.sanitizeTags(metadata.tags).prefix(6))
+        let finalPrompt = metadata.caption.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if !safeTags.isEmpty {
             await MainActor.run {
@@ -209,8 +210,8 @@ actor SemanticExtractionTask {
 
         await MainActor.run {
             post.regionTags = nil
-            post.caption = metadata.caption
-            post.semanticPrompt = metadata.semanticPrompt
+            post.caption = finalPrompt
+            post.semanticPrompt = finalPrompt
             post.imageUnderstandingBackend = ImageUnderstandingBackend.qwen35vl.rawValue
             post.tags = safeTags
             post.status = .completed
@@ -224,6 +225,7 @@ actor SemanticExtractionTask {
     ) async throws {
         let metadata = try await AppleVisionImageUnderstandingService.shared.generateMetadata(from: image)
         let safeTags = Array(Self.sanitizeTags(metadata.tags).prefix(6))
+        let finalPrompt = metadata.caption.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if !safeTags.isEmpty {
             await MainActor.run {
@@ -233,8 +235,8 @@ actor SemanticExtractionTask {
 
         await MainActor.run {
             post.regionTags = nil
-            post.caption = metadata.caption
-            post.semanticPrompt = metadata.semanticPrompt
+            post.caption = finalPrompt
+            post.semanticPrompt = finalPrompt
             post.imageUnderstandingBackend = ImageUnderstandingBackend.vision.rawValue
             post.tags = safeTags
             post.status = .completed

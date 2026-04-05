@@ -297,7 +297,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 24;
 				DEVELOPMENT_TEAM = YY58VZMU56;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -326,7 +326,7 @@
 					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphoneos",
 					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphonesimulator",
 				);
-				MARKETING_VERSION = 1.5.5;
+				MARKETING_VERSION = 1.5.8;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/$(PLATFORM_NAME)/libllama.a",
@@ -358,7 +358,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 24;
 				DEVELOPMENT_TEAM = YY58VZMU56;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -387,7 +387,7 @@
 					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphoneos",
 					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphonesimulator",
 				);
-				MARKETING_VERSION = 1.5.5;
+				MARKETING_VERSION = 1.5.8;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/$(PLATFORM_NAME)/libllama.a",

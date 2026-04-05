@@ -6,6 +6,7 @@ struct PostDetailView: View {
     var restorePriorityPostIDs: [String]? = nil
 
     @EnvironmentObject private var authManager: AuthManager
+    @Environment(\.dismiss) private var dismiss
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
 
@@ -70,6 +71,11 @@ struct PostDetailView: View {
                 object: [Post](),
                 userInfo: ["postIDs": restorePriorityPostIDs ?? []]
             )
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .postDeleted)) { notification in
+            guard let deletedPostId = notification.userInfo?["postId"] as? String else { return }
+            guard deletedPostId == post.id else { return }
+            dismiss()
         }
         .sheet(isPresented: $showLoginSheet) {
             OTPLoginView(allowsSkip: true)

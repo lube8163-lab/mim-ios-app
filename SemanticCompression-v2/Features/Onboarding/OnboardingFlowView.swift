@@ -30,6 +30,7 @@ struct OnboardingFlowView: View {
                     VStack(alignment: .leading, spacing: 28) {
                         heroSection
                         explainerSection
+                        aiFallbackSection
                         languageSection
                         legalSection
                     }
@@ -159,6 +160,51 @@ struct OnboardingFlowView: View {
         }
     }
 
+    private var aiFallbackSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(t(ja: "AI モデルが未導入でも使えます", en: "You Can Start Without Extra Models", zh: "无需额外模型也能开始使用"))
+                .font(.headline.weight(.semibold))
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 12) {
+                explainerCard(
+                    icon: "eye",
+                    title: t(ja: "画像理解の代替", en: "Image Understanding Fallback", zh: "图像理解回退"),
+                    body: t(
+                        ja: "追加モデルが未導入でも、画像理解は Apple Vision に自動で切り替えられます。あとから設定で Qwen や SigLIP2 に変更できます。",
+                        en: "Even if no extra model is installed, image understanding can fall back to Apple Vision automatically. You can switch to Qwen or SigLIP2 later from Settings.",
+                        zh: "即使没有安装额外模型，图像理解也会自动回退到 Apple Vision。之后可在设置中切换到 Qwen 或 SigLIP2。"
+                    )
+                )
+
+                explainerCard(
+                    icon: "wand.and.stars",
+                    title: t(ja: "画像生成の代替", en: "Image Generation Fallback", zh: "图像生成回退"),
+                    body: t(
+                        ja: "Stable Diffusion が未導入でも、画像生成は Image Playground に切り替えられます。ただし一部のプロンプトは失敗し、人物表現などは制限されることがあります。",
+                        en: "If Stable Diffusion is not installed, image generation can fall back to Image Playground. Some prompts may fail, and person-related imagery can also be restricted.",
+                        zh: "如果未安装 Stable Diffusion，图像生成会回退到 Image Playground。部分 prompt 可能失败，涉及人物的内容也可能受到限制。"
+                    ),
+                    emphasis: t(
+                        ja: "注意: Image Playground は一部のプロンプトで生成に失敗します。",
+                        en: "Important: Image Playground can fail on some prompts.",
+                        zh: "注意：Image Playground 在部分 prompt 上可能生成失败。"
+                    )
+                )
+
+                explainerCard(
+                    icon: "slider.horizontal.3",
+                    title: t(ja: "設定から調整可能", en: "Configurable From Settings", zh: "可在设置中调整"),
+                    body: t(
+                        ja: "設定画面の「AI バックエンド」から、画像理解・画像生成の backend や、Image Playground のスタイルを選べます。",
+                        en: "From the AI Backends section in Settings, you can choose the image-understanding backend, the image-generation backend, and the Image Playground style.",
+                        zh: "你可以在设置里的 AI Backends 中选择图像理解后端、图像生成后端，以及 Image Playground 风格。"
+                    )
+                )
+            }
+        }
+    }
+
     private var legalSection: some View {
         onboardingCard(title: t(ja: "利用前の確認", en: "Before You Start", zh: "开始前确认")) {
             VStack(spacing: 14) {
@@ -259,7 +305,7 @@ struct OnboardingFlowView: View {
         }
     }
 
-    private func explainerCard(icon: String, title: String, body: String) -> some View {
+    private func explainerCard(icon: String, title: String, body: String, emphasis: String? = nil) -> some View {
         HStack(alignment: .top, spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -280,6 +326,23 @@ struct OnboardingFlowView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if let emphasis {
+                    Text(emphasis)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.orange.opacity(colorScheme == .dark ? 0.16 : 0.12))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(Color.orange.opacity(colorScheme == .dark ? 0.32 : 0.24), lineWidth: 1)
+                        )
+                        .padding(.top, 4)
+                }
             }
 
             Spacer()

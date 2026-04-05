@@ -24,6 +24,7 @@ enum AppPreferences {
     static let selectedImageGenerationBackendKey = "selected_image_generation_backend"
     static let selectedImageUnderstandingBackendKey = "selected_image_understanding_backend"
     static let selectedImagePlaygroundStyleKey = "selected_image_playground_style"
+    static let forceSDTextToImageKey = "force_sd_text_to_image"
     static let proModeEnabledKey = "pro_mode_enabled"
     static let proModeCacheLimitMBKey = "pro_mode_cache_limit_mb"
     static let onboardingCompletedKey = "onboarding_completed"
@@ -47,4 +48,6 @@ extension Notification.Name {
     static let regenerateImagesRequested = Notification.Name("regenerate_images_requested")
     static let generationPriorityChanged = Notification.Name("generation_priority_changed")
     static let regenerateSinglePostRequested = Notification.Name("regenerate_single_post_requested")
+    static let postDeleted = Notification.Name("post_deleted")
+    static let deferStableDiffusionReloadUntilRestart = Notification.Name("defer_stable_diffusion_reload_until_restart")
 }

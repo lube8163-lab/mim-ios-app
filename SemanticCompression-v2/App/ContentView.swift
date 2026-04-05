@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import CoreML
+import CryptoKit
 
 final class PostList: ObservableObject {
     @Published var items: [Post] = []
@@ -39,6 +40,8 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.japanese.rawValue
+    @AppStorage(AppPreferences.forceSDTextToImageKey)
+    private var forceSDTextToImage = false
 
     @State private var showNewPost = false
     @State private var showInstallModels = false
@@ -82,6 +85,7 @@ struct ContentView: View {
     @State private var currentProfileStats: PublicUserProfile?
     @State private var externallyPrioritizedPostIDs: [String] = []
     @State private var showLogoutConfirm = false
+    @State private var deferStableDiffusionReloadUntilRestart = false
 
     // MARK: - Body
 
@@ -153,8 +157,15 @@ struct ContentView: View {
             let post = notification.object as? Post
             Task { await regenerateImage(for: postID, post: post) }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .deferStableDiffusionReloadUntilRestart)) { _ in
+            deferStableDiffusionReloadUntilRestart = true
+        }
         .onReceive(NotificationCenter.default.publisher(for: .pushNotificationDidChange)) { _ in
             Task { await refreshUnreadNotificationsIfNeeded(force: true) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .postDeleted)) { notification in
+            guard let postId = notification.userInfo?["postId"] as? String else { return }
+            removeDeletedPostFromLists(postId)
         }
     }
 
@@ -1055,6 +1066,8 @@ extension ContentView {
         VStack(alignment: .leading, spacing: 8) {
             Text(t(ja: "ゲスト閲覧中", en: "Browsing as Guest"))
                 .font(.subheadline.weight(.bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
             Text(
                 t(
                     ja: "投稿・いいね・ブロックはログイン後に利用できます。",
@@ -1069,6 +1082,8 @@ extension ContentView {
             } label: {
                 Text(t(ja: "メールでログイン", en: "Sign in with Email", zh: "使用邮箱登录"))
                     .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -1227,6 +1242,16 @@ extension ContentView {
         }
     }
 
+    private func removeDeletedPostFromLists(_ postId: String) {
+        postList.items.removeAll { $0.id == postId }
+        followingPostList.items.removeAll { $0.id == postId }
+        myPostList.items.removeAll { $0.id == postId }
+        likedPostList.items.removeAll { $0.id == postId }
+        generationQueue.removeAll { $0.id == postId }
+        ImageCacheManager.shared.remove(for: postId, namespace: .originalImages)
+        Task { await PostStore.shared.remove(postId: postId) }
+    }
+
     @MainActor
     private func refreshUnreadNotificationsIfNeeded(force: Bool = false) async {
         guard authManager.isAuthenticated else {
@@ -1260,7 +1285,7 @@ extension ContentView {
         isLoadingFeed = true
         do {
             let firstPage = try await FeedLoader.fetchPage(page: 0, pageSize: pageSize)
-            let filtered = blockManager.filterBlocked(from: firstPage)
+            let filtered = uniquePosts(blockManager.filterBlocked(from: firstPage))
             postList.items = filtered
             currentPage = 0
             isLoadingFeed = false
@@ -1285,7 +1310,7 @@ extension ContentView {
 
         do {
             let firstPage = try await FeedLoader.fetchFollowingFeed(page: 0, pageSize: pageSize)
-            let filtered = blockManager.filterBlocked(from: firstPage)
+            let filtered = uniquePosts(blockManager.filterBlocked(from: firstPage))
             followingPostList.items = filtered
             currentFollowingPage = 0
 
@@ -1308,8 +1333,8 @@ extension ContentView {
             )
             guard !next.isEmpty else { return }
 
-            let filtered = blockManager.filterBlocked(from: next)
-            followingPostList.items.append(contentsOf: filtered)
+            let filtered = uniquePosts(blockManager.filterBlocked(from: next))
+            followingPostList.items = mergeUniquePosts(existing: followingPostList.items, incoming: filtered)
             currentFollowingPage += 1
 
             enqueueImages(for: filtered)
@@ -1332,8 +1357,8 @@ extension ContentView {
                 return
             }
 
-            let filtered = blockManager.filterBlocked(from: next)
-            postList.items.append(contentsOf: filtered)
+            let filtered = uniquePosts(blockManager.filterBlocked(from: next))
+            postList.items = mergeUniquePosts(existing: postList.items, incoming: filtered)
             currentPage += 1
 
             enqueueImages(for: filtered)
@@ -1348,11 +1373,12 @@ extension ContentView {
         do {
             let latest = try await FeedLoader.fetchPage(page: 0, pageSize: pageSize)
             let existing = Set(postList.items.map { $0.id })
-            let newPosts = blockManager.filterBlocked(from: latest)
+            let newPosts = uniquePosts(blockManager.filterBlocked(from: latest))
                 .filter { !existing.contains($0.id) }
 
             guard !newPosts.isEmpty else { return }
             postList.items.insert(contentsOf: newPosts, at: 0)
+            postList.items = uniquePosts(postList.items)
 
             enqueueImages(for: newPosts)
         } catch {
@@ -1378,7 +1404,7 @@ extension ContentView {
                 page: 0,
                 pageSize: pageSize
             )
-            let filtered = filterMyPosts(blockManager.filterBlocked(from: first))
+            let filtered = uniquePosts(filterMyPosts(blockManager.filterBlocked(from: first)))
             myPostList.items = filtered
             currentMyPage = 0
 
@@ -1404,8 +1430,8 @@ extension ContentView {
                 pageSize: pageSize
             )
             guard !next.isEmpty else { return }
-            let filtered = filterMyPosts(blockManager.filterBlocked(from: next))
-            myPostList.items.append(contentsOf: filtered)
+            let filtered = uniquePosts(filterMyPosts(blockManager.filterBlocked(from: next)))
+            myPostList.items = mergeUniquePosts(existing: myPostList.items, incoming: filtered)
             currentMyPage += 1
 
             enqueueImages(for: filtered)
@@ -1432,7 +1458,7 @@ extension ContentView {
                 page: 0,
                 pageSize: pageSize
             )
-            let filtered = blockManager.filterBlocked(from: first)
+            let filtered = uniquePosts(blockManager.filterBlocked(from: first))
             likedPostList.items = filtered
             currentLikedPage = 0
 
@@ -1457,8 +1483,8 @@ extension ContentView {
                 pageSize: pageSize
             )
             guard !next.isEmpty else { return }
-            let filtered = blockManager.filterBlocked(from: next)
-            likedPostList.items.append(contentsOf: filtered)
+            let filtered = uniquePosts(blockManager.filterBlocked(from: next))
+            likedPostList.items = mergeUniquePosts(existing: likedPostList.items, incoming: filtered)
             currentLikedPage += 1
 
             enqueueImages(for: filtered)
@@ -1470,7 +1496,7 @@ extension ContentView {
     @MainActor
     func enqueueImages(for posts: [Post]) {
         guard !isGenerationSuspendedForPosting else { return }
-        let canGenerate = modelManager.canGenerateImages
+        let canGenerate = canGenerateImagesNow
         let modelID = modelManager.activeImageGenerationCacheKey
         for post in posts {
             guard post.hasImage else {
@@ -1487,14 +1513,18 @@ extension ContentView {
                let cached = ImageCacheManager.shared.load(for: cacheKey) {
                 post.localImage = cached
                 post.imageGenerationFailed = false
+                post.imageGenerationFailureReason = nil
                 scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: cached, modelID: modelID)
             } else {
                 post.semanticFidelityScore = nil
                 post.imageGenerationFailed = false
+                post.imageGenerationFailureReason = nil
                 if post.previewImage == nil {
                     post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
                 }
-                if canGenerate, !generationQueue.contains(where: { $0.id == post.id }) {
+                if post.localImage == nil,
+                   canGenerate,
+                   !generationQueue.contains(where: { $0.id == post.id }) {
                     generationQueue.append(post)
                 }
             }
@@ -1521,9 +1551,18 @@ extension ContentView {
             let post = generationQueue.removeFirst()
             guard let prompt = post.effectivePrompt else { continue }
             guard let backend = modelManager.resolvedImageGenerationBackend else { continue }
+            if backend == .stableDiffusion && (!isGeneratorReady || generator == nil) {
+                await maybeReloadGeneratorForSelectedModel()
+                guard isGeneratorReady, generator != nil else {
+                    generationQueue.insert(post, at: 0)
+                    return
+                }
+            }
             let modelID = modelManager.activeImageGenerationCacheKey
             let rawInitImage = post.makeInitImage()
-            let initImage: UIImage? = (backend == .stableDiffusion && modelManager.selectedSDModelID == ModelManager.sd15LCMModelID) ? nil : rawInitImage
+            let shouldDisableInitImage = backend == .stableDiffusion &&
+                (modelManager.selectedSDModelID == ModelManager.sd15LCMModelID || forceSDTextToImage)
+            let initImage: UIImage? = shouldDisableInitImage ? nil : rawInitImage
             let cacheKey = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
             let generationStart = Date()
 
@@ -1532,6 +1571,7 @@ extension ContentView {
                 post.localImage = img
                 post.previewImage = nil
                 post.imageGenerationFailed = false
+                post.imageGenerationFailureReason = nil
                 ImageCacheManager.shared.save(img, for: cacheKey)
                 ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
                 scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: img, modelID: modelID)
@@ -1543,6 +1583,7 @@ extension ContentView {
                 updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
                 post.previewImage = nil
                 post.imageGenerationFailed = true
+                post.imageGenerationFailureReason = localizedImageGenerationFailureReason(error: error, backend: backend)
             }
 
             try? await Task.sleep(nanoseconds: 400_000_000)
@@ -1573,6 +1614,7 @@ extension ContentView {
                 ? "blurry, soft focus, low detail, lowres, out of focus"
                 : ""
             let profile = SDModeProfile.forMode(post.privacyMode, modelID: modelManager.selectedSDModelID)
+            let seed = deterministicSeed(for: post, modelID: modelManager.selectedSDModelID, prompt: prompt)
 
             do {
                 return try await generator.generateImage(
@@ -1581,15 +1623,20 @@ extension ContentView {
                     initImage: initImage,
                     strength: profile.denoiseStrength,
                     steps: profile.stepCount,
-                    guidance: profile.guidanceScale
+                    guidance: profile.guidanceScale,
+                    seed: seed
                 )
             } catch {
+                #if DEBUG
+                print("⚠️ SD img2img failed, retrying with txt2img:", error)
+                #endif
                 return try await generator.generateImage(
                     from: enhancedPrompt,
                     negativePrompt: negativePrompt,
                     initImage: nil,
                     steps: profile.stepCount,
-                    guidance: profile.guidanceScale
+                    guidance: profile.guidanceScale,
+                    seed: seed
                 )
             }
         case .imagePlayground:
@@ -1698,6 +1745,18 @@ extension ContentView {
         return userID == userManager.currentUser.id
     }
 
+    private func uniquePosts(_ posts: [Post]) -> [Post] {
+        var seen = Set<String>()
+        return posts.filter { seen.insert($0.id).inserted }
+    }
+
+    private func mergeUniquePosts(existing: [Post], incoming: [Post]) -> [Post] {
+        var merged = existing
+        let existingIDs = Set(existing.map(\.id))
+        merged.append(contentsOf: incoming.filter { !existingIDs.contains($0.id) })
+        return merged
+    }
+
     @MainActor
     private func prioritizeGenerationForCurrentContext(using supplementalPosts: [Post] = []) {
         let ids = externallyPrioritizedPostIDs.isEmpty
@@ -1720,12 +1779,7 @@ extension ContentView {
         let remaining = generationQueue.filter { !prioritizedIDs.contains($0.id) }
         generationQueue = prioritized + remaining
 
-        if !generationQueue.isEmpty, !isGenerating, generator != nil {
-            isGenerating = true
-            generationTask = Task { await processQueue() }
-        } else if !generationQueue.isEmpty,
-                    !isGenerating,
-                    modelManager.resolvedImageGenerationBackend == .imagePlayground {
+        if !generationQueue.isEmpty, !isGenerating, canGenerateImagesNow {
             isGenerating = true
             generationTask = Task { await processQueue() }
         }
@@ -1743,6 +1797,7 @@ extension ContentView {
         ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
         post.localImage = nil
         post.imageGenerationFailed = false
+        post.imageGenerationFailureReason = nil
         post.clearRegenerationEvaluation()
         post.previewImage = post.hasImage
             ? post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
@@ -1751,7 +1806,7 @@ extension ContentView {
         generationQueue.removeAll { $0.id == postID }
         generationQueue.insert(post, at: 0)
 
-        if !isGenerating, modelManager.canGenerateImages {
+        if !isGenerating, canGenerateImagesNow {
             isGenerating = true
             generationTask = Task { await processQueue() }
         }
@@ -1763,6 +1818,77 @@ extension ContentView {
 
     private func generatedCacheKey(for post: Post, modelID: String, prompt: String) -> String {
         "\(modelID)::\(post.mode)::\(post.id)::\(prompt)"
+    }
+
+    private func localizedImageGenerationFailureReason(
+        error: Error,
+        backend: ImageGenerationBackend
+    ) -> String {
+        let message = (error as NSError).localizedDescription
+        let normalized = "\(message) \(String(describing: error))".lowercased()
+
+        if backend == .imagePlayground {
+            if normalized.contains("unsupportedlanguage") {
+                return t(
+                    ja: "このプロンプトは Image Playground でサポートされていません。",
+                    en: "This prompt is not supported by Image Playground.",
+                    zh: "Image Playground 不支持此 prompt。"
+                )
+            }
+
+            if normalized.contains("person") || normalized.contains("people") {
+                return t(
+                    ja: "人物を含むため Image Playground で制限されました。",
+                    en: "Image Playground restricted this prompt because it involves people.",
+                    zh: "该 prompt 涉及人物，因而受到 Image Playground 限制。"
+                )
+            }
+
+            if normalized.contains("unavailable") {
+                return t(
+                    ja: "この端末では Image Playground を利用できません。",
+                    en: "Image Playground is unavailable on this device.",
+                    zh: "此设备无法使用 Image Playground。"
+                )
+            }
+
+            return t(
+                ja: "このプロンプトは Image Playground で生成できませんでした。",
+                en: "Image Playground could not generate this prompt.",
+                zh: "Image Playground 无法生成此 prompt。"
+            )
+        }
+
+        return t(
+            ja: "画像生成に失敗しました。もう一度お試しください。",
+            en: "Image generation failed. Please try again.",
+            zh: "图像生成失败，请重试。"
+        )
+    }
+
+    private var canGenerateImagesNow: Bool {
+        guard let backend = modelManager.resolvedImageGenerationBackend else {
+            return false
+        }
+        switch backend {
+        case .stableDiffusion:
+            return isGeneratorReady && generator != nil
+        case .imagePlayground:
+            return true
+        case .automatic:
+            return false
+        }
+    }
+
+    private func deterministicSeed(for post: Post, modelID: String, prompt: String) -> UInt32 {
+        let key = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
+        let digest = SHA256.hash(data: Data(key.utf8))
+        let bytes = Array(digest.prefix(4))
+        guard bytes.count == 4 else { return 0 }
+        return (UInt32(bytes[0]) << 24)
+            | (UInt32(bytes[1]) << 16)
+            | (UInt32(bytes[2]) << 8)
+            | UInt32(bytes[3])
     }
 
     @MainActor
@@ -1887,11 +2013,20 @@ extension ContentView {
         let activeKey = modelManager.activeImageGenerationCacheKey
 
         if modelManager.resolvedImageGenerationBackend == .stableDiffusion {
+            if deferStableDiffusionReloadUntilRestart {
+                genLog = t(
+                    ja: "Stable Diffusion の反映は再起動後に行われます",
+                    en: "Stable Diffusion will be applied after restart",
+                    zh: "Stable Diffusion 会在重新启动后生效"
+                )
+                return
+            }
             guard loadedGenerationCacheKey != activeKey || generator == nil else { return }
             await reloadGeneratorForSelectedModel()
             return
         }
 
+        deferStableDiffusionReloadUntilRestart = false
         generationTask?.cancel()
         generationTask = nil
         generationQueue.removeAll()
@@ -1903,12 +2038,9 @@ extension ContentView {
             isGeneratorReady = false
         }
 
-        if loadedGenerationCacheKey != activeKey {
-            clearDisplayedImagesForModelSwitch()
-        }
-
         loadedGenerationCacheKey = activeKey
         genLog = t(ja: "準備完了", en: "Ready")
+        try? await Task.sleep(nanoseconds: 250_000_000)
         enqueueImages(for: allKnownPosts)
     }
 
@@ -1941,9 +2073,7 @@ extension ContentView {
             loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
             genLog = t(ja: "準備完了", en: "Ready")
 
-            if previousKey != nil && previousKey != loadedGenerationCacheKey {
-                clearDisplayedImagesForModelSwitch()
-            }
+            try? await Task.sleep(nanoseconds: 250_000_000)
             enqueueImages(for: allKnownPosts)
         } catch {
             #if DEBUG
@@ -2002,7 +2132,7 @@ extension ContentView {
 
         await maybeReloadGeneratorForSelectedModel()
         enqueueImages(for: allKnownPosts)
-        if modelManager.canGenerateImages {
+        if canGenerateImagesNow {
             genLog = t(ja: "準備完了", en: "Ready")
         }
     }

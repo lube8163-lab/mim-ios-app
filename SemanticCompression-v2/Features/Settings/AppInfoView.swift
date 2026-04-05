@@ -114,6 +114,7 @@ struct AppInfoView: View {
 
                     Image Playground:
                     Apple の標準生成機能です。追加モデルがなくても再構成画像を生成できます。
+                    一部のプロンプトでは生成に失敗することがあり、人物画像や人物表現を含む内容はモデル仕様上生成が制限される場合があります。
 
                     自動:
                     Stable Diffusion があれば優先し、無ければ Image Playground にフォールバックします。
@@ -128,6 +129,7 @@ struct AppInfoView: View {
 
                     Image Playground:
                     Apple's built-in image generator. It can reconstruct images without extra model downloads.
+                    Some prompts may fail to generate, and prompts involving people or person-like imagery may be restricted by the model's built-in rules.
 
                     Automatic:
                     Prefers Stable Diffusion and falls back to Image Playground when needed.
@@ -142,6 +144,7 @@ struct AppInfoView: View {
 
                     Image Playground:
                     Apple 内建图像生成器，无需额外模型下载也能重建图像。
+                    某些 prompt 可能会导致生成失败，而涉及人物或人物形象的内容也可能因模型限制而无法生成。
 
                     自动：
                     有 Stable Diffusion 时优先使用，没有时回退到 Image Playground。

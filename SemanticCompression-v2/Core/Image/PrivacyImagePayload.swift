@@ -545,11 +545,11 @@ struct SDModeProfile {
         case .l1:
             return 0.95
         case .l2:
-            return 0.78
+            return 0.68
         case .l3:
-            return 0.82
+            return 0.76
         case .l2Prime:
-            return 0.80
+            return 0.72
         }
     }
 
@@ -587,11 +587,17 @@ extension Post {
     }
 
     var effectivePrompt: String? {
-        if let p = semanticPrompt?.trimmingCharacters(in: .whitespacesAndNewlines), !p.isEmpty {
+        if let p = semanticPrompt?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !p.isEmpty,
+           !Post.looksLikePlaceholderPrompt(p) {
             return p
         }
         if !tags.isEmpty {
             return tags.prefix(8).joined(separator: ", ")
+        }
+        if let caption = caption?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !caption.isEmpty {
+            return Post.promptKeywords(from: caption)
         }
         return nil
     }
@@ -662,6 +668,45 @@ extension Post {
         }
 
         return UIImage(cgImage: cg)
+    }
+
+    private static func looksLikePlaceholderPrompt(_ text: String) -> Bool {
+        let normalized = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let fragments = [
+            "visual keywords separated by commas",
+            "keyword1, keyword2, keyword3",
+            "simple short tags separated by commas",
+            "tag1, tag2, tag3",
+            "prompt keywords",
+            "comma-separated visual keywords",
+            "describe only the visible image"
+        ]
+        return fragments.contains(where: { normalized.contains($0) })
+    }
+
+    private static func promptKeywords(from caption: String) -> String {
+        let stopWords: Set<String> = [
+            "a", "an", "the", "and", "or", "of", "on", "in", "with", "to", "for",
+            "is", "are", "was", "were", "be", "being", "been", "this", "that",
+            "these", "those", "show", "shows", "showing", "depicts", "depicting",
+            "image", "photo", "picture"
+        ]
+
+        var seen = Set<String>()
+        let tokens = caption
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .map { $0.lowercased() }
+            .filter { token in
+                token.count >= 3 &&
+                !stopWords.contains(token) &&
+                seen.insert(token).inserted
+            }
+
+        if tokens.isEmpty {
+            return caption.lowercased()
+        }
+
+        return tokens.prefix(12).joined(separator: ", ")
     }
 }
 
