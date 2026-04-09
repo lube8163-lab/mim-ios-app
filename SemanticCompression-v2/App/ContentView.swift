@@ -47,7 +47,7 @@ struct ContentView: View {
     @State private var showInstallModels = false
     @State private var selectedTab: HomeTab = .timeline
 
-    @State private var genLog = "Ready"
+    @State private var genLogKey = "content.genlog.ready"
     @State private var isLoadingFeed = false
     @State private var isLoadingFollowingFeed = false
     @State private var isLoadingMyPosts = false
@@ -109,9 +109,6 @@ struct ContentView: View {
         rootContent
         .task {
             await bootSequence()
-        }
-        .onChange(of: selectedLanguage) { _ in
-            localizeGenLogIfNeeded()
         }
         .onChange(of: modelManager.selectedSDModelID) { _ in
             Task { await maybeReloadGeneratorForSelectedModel() }
@@ -185,12 +182,12 @@ struct ContentView: View {
         .overlay(alignment: .top) {
             VStack(spacing: 8) {
                 if showReportToast {
-                    Text(t(ja: "通報を受け付けました。投稿を非表示にしました。", en: "Report submitted. The post was hidden.", zh: "举报已提交，帖子已被隐藏。"))
+                    Text(l("content.toast.report_hidden"))
                         .toastStyle()
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 if showBlockToast {
-                    Text(t(ja: "ユーザーをブロックしました。投稿を非表示にしました。", en: "User blocked. Posts were hidden.", zh: "用户已被屏蔽，相关帖子已隐藏。"))
+                    Text(l("content.toast.block_hidden"))
                         .toastStyle()
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
@@ -212,50 +209,24 @@ struct ContentView: View {
                     .gesture(profileDrawerEdgeGesture)
             }
         }
-        .alert(
-            t(
-                ja: "現在のモデルで画像を再生成しますか？",
-                en: "Regenerate images for the current model?",
-                zh: "要使用当前模型重新生成图片吗？"
-            ),
-            isPresented: $showRegenerateConfirm
-        ) {
-            Button(t(ja: "再生成", en: "Regenerate", zh: "重新生成"), role: .destructive) {
+        .alert(l("content.alert.regenerate.title"), isPresented: $showRegenerateConfirm) {
+            Button(l("content.alert.regenerate.confirm"), role: .destructive) {
                 Task { await regenerateImagesForSelectedModel() }
             }
-            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {}
+            Button(l("common.cancel"), role: .cancel) {}
         } message: {
-            Text(
-                t(
-                    ja: "現在表示中の投稿画像キャッシュを削除して、選択中モデルで再生成します。",
-                    en: "Cached post images will be removed and regenerated with the selected model.",
-                    zh: "当前显示的帖子图片缓存将被删除，并使用所选模型重新生成。"
-                )
-            )
+            Text(l("content.alert.regenerate.message"))
         }
-        .alert(
-            t(
-                ja: "ログアウトしますか？",
-                en: "Log out?",
-                zh: "要退出登录吗？"
-            ),
-            isPresented: $showLogoutConfirm
-        ) {
-            Button(t(ja: "ログアウト", en: "Log Out", zh: "退出登录"), role: .destructive) {
+        .alert(l("content.alert.logout.title"), isPresented: $showLogoutConfirm) {
+            Button(l("content.alert.logout.confirm"), role: .destructive) {
                 Task { await authManager.logout() }
                 withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
                     showProfileDrawer = false
                 }
             }
-            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {}
+            Button(l("common.cancel"), role: .cancel) {}
         } message: {
-            Text(
-                t(
-                    ja: "現在のアカウントからサインアウトします。",
-                    en: "You will be signed out of the current account.",
-                    zh: "你将退出当前账号。"
-                )
-            )
+            Text(l("content.alert.logout.message"))
         }
     }
 
@@ -348,18 +319,18 @@ extension ContentView {
                     postsListContent(
                         posts: blockManager.filterBlocked(from: followingPostList.items),
                         isLoading: isLoadingFollowingFeed,
-                        emptyText: t(ja: "フォロー中ユーザーの投稿はまだありません", en: "No posts from people you follow yet", zh: "你关注的人还没有帖子"),
+                        emptyText: l("content.following.empty"),
                         onRefresh: loadFollowingFeed,
                         onLoadNext: loadNextFollowingPage
                     )
                 } else {
                     loginRequiredView(
-                        title: t(ja: "フォロー中タイムラインを見るにはログイン", en: "Sign in to see following feed", zh: "登录后查看关注动态"),
-                        description: t(ja: "フォローしたユーザーの新着だけを追えます。", en: "See posts only from people you follow.", zh: "只查看你关注用户的帖子。")
+                        title: l("content.following.login_title"),
+                        description: l("content.following.login_description")
                     )
                 }
             }
-            .navigationTitle(t(ja: "フォロー中", en: "Following", zh: "关注中"))
+            .navigationTitle(l("content.tab.following"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(isChromeHidden ? .hidden : .visible, for: .navigationBar)
             .toolbar {
@@ -380,18 +351,18 @@ extension ContentView {
                     postsListContent(
                         posts: blockManager.filterBlocked(from: myPostList.items),
                         isLoading: isLoadingMyPosts,
-                        emptyText: t(ja: "自分の投稿はまだありません", en: "No posts yet", zh: "还没有帖子"),
+                        emptyText: l("content.my_posts.empty"),
                         onRefresh: loadMyPosts,
                         onLoadNext: loadNextMyPage
                     )
                 } else {
                     loginRequiredView(
-                        title: t(ja: "投稿履歴を見るにはログイン", en: "Sign in to see your posts", zh: "登录后查看你的帖子"),
-                        description: t(ja: "この端末で投稿した履歴や下書きを管理できます。", en: "Manage your post history on this device.", zh: "可以管理你在此设备上的发帖记录和草稿。")
+                        title: l("content.my_posts.login_title"),
+                        description: l("content.my_posts.login_description")
                     )
                 }
             }
-            .navigationTitle(t(ja: "自分の投稿", en: "My Posts", zh: "我的帖子"))
+            .navigationTitle(l("content.tab.my_posts"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(isChromeHidden ? .hidden : .visible, for: .navigationBar)
             .toolbar {
@@ -412,18 +383,18 @@ extension ContentView {
                     postsListContent(
                         posts: blockManager.filterBlocked(from: likedPostList.items),
                         isLoading: isLoadingLikedPosts,
-                        emptyText: t(ja: "いいねした投稿はまだありません", en: "No liked posts yet", zh: "还没有点赞的帖子"),
+                        emptyText: l("content.liked.empty"),
                         onRefresh: loadLikedPosts,
                         onLoadNext: loadNextLikedPage
                     )
                 } else {
                     loginRequiredView(
-                        title: t(ja: "いいね履歴を見るにはログイン", en: "Sign in to see liked posts", zh: "登录后查看点赞记录"),
-                        description: t(ja: "気になった投稿を後から見返せます。", en: "Save and revisit posts you liked.", zh: "保存并重新查看你点赞过的帖子。")
+                        title: l("content.liked.login_title"),
+                        description: l("content.liked.login_description")
                     )
                 }
             }
-            .navigationTitle(t(ja: "いいね", en: "Liked", zh: "已点赞"))
+            .navigationTitle(l("content.tab.liked"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(isChromeHidden ? .hidden : .visible, for: .navigationBar)
             .toolbar {
@@ -463,7 +434,7 @@ extension ContentView {
     }
 
     func bootSequence() async {
-        genLog = t(ja: "準備完了", en: "Ready")
+        genLogKey = "content.genlog.ready"
 
         // ユーザー登録
         let user = userManager.currentUser
@@ -510,7 +481,7 @@ extension ContentView {
     private var feedBody: some View {
         VStack(spacing: 0) {
             if postList.items.isEmpty && isLoadingFeed {
-                ProgressView(t(ja: "フィードを取得中...", en: "Fetching feed..."))
+                ProgressView(l("content.feed.fetching"))
                     .padding(.top, 40)
 
             } else {
@@ -584,7 +555,7 @@ extension ContentView {
                     } else {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.fill")
-                            Text(t(ja: "ログインして投稿", en: "Sign in to post"))
+                            Text(l("content.sign_in_to_post"))
                                 .fontWeight(.semibold)
                         }
                         .font(.footnote)
@@ -617,10 +588,10 @@ extension ContentView {
 
     private var customTabBar: some View {
         HStack(spacing: 0) {
-            customTabBarButton(for: .timeline, systemImage: "house", title: t(ja: "ホーム", en: "Home", zh: "首页"))
-            customTabBarButton(for: .following, systemImage: "person.2", title: t(ja: "フォロー中", en: "Following", zh: "关注中"))
-            customTabBarButton(for: .myPosts, systemImage: "person.text.rectangle", title: t(ja: "投稿", en: "Posts", zh: "帖子"))
-            customTabBarButton(for: .liked, systemImage: "heart", title: t(ja: "いいね", en: "Liked", zh: "已点赞"))
+            customTabBarButton(for: .timeline, systemImage: "house", title: l("content.tab.home"))
+            customTabBarButton(for: .following, systemImage: "person.2", title: l("content.tab.following"))
+            customTabBarButton(for: .myPosts, systemImage: "person.text.rectangle", title: l("content.tab.posts"))
+            customTabBarButton(for: .liked, systemImage: "heart", title: l("content.tab.liked"))
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 3)
@@ -691,7 +662,7 @@ extension ContentView {
                 }
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(t(ja: "プロフィールを開く", en: "Open profile"))
+            .accessibilityLabel(l("content.accessibility.open_profile"))
         }
     }
 
@@ -743,8 +714,8 @@ extension ContentView {
             .buttonStyle(.plain)
             .accessibilityLabel(
                 authManager.isAuthenticated
-                ? t(ja: "通知を開く", en: "Open notifications")
-                : t(ja: "ログインして通知を見る", en: "Sign in to view notifications")
+                ? l("content.accessibility.open_notifications")
+                : l("content.accessibility.sign_in_notifications")
             )
         }
     }
@@ -864,11 +835,11 @@ extension ContentView {
             HStack(spacing: 24) {
                 profileStatText(
                     value: currentProfileStats?.followingCount ?? 0,
-                    label: t(ja: "フォロー中", en: "Following", zh: "关注中")
+                    label: l("content.drawer.following")
                 )
                 profileStatText(
                     value: currentProfileStats?.followerCount ?? 0,
-                    label: t(ja: "フォロワー", en: "Followers", zh: "粉丝")
+                    label: l("content.drawer.followers")
                 )
             }
             .padding(.top, 4)
@@ -878,21 +849,21 @@ extension ContentView {
     private var profileDrawerPrimarySection: some View {
         VStack(alignment: .leading, spacing: 8) {
             profileDrawerLink(
-                title: t(ja: "プロフィール", en: "Profile", zh: "个人资料"),
+                title: l("content.drawer.profile"),
                 systemImage: "person"
             ) {
                 UserProfileView(showsCloseButton: false, showAppSettings: false)
             }
 
             profileDrawerLink(
-                title: t(ja: "AIモデル", en: "AI Models", zh: "AI 模型"),
+                title: l("content.drawer.ai_models"),
                 systemImage: "cpu"
             ) {
                 ModelManagementView()
             }
 
             profileDrawerLink(
-                title: t(ja: "ブロック管理", en: "Blocked Users", zh: "屏蔽管理"),
+                title: l("content.drawer.blocked_users"),
                 systemImage: "person.2.slash"
             ) {
                 BlockedUsersView()
@@ -903,7 +874,7 @@ extension ContentView {
     private var profileDrawerSecondarySection: some View {
         VStack(alignment: .leading, spacing: 8) {
             profileDrawerLink(
-                title: t(ja: "設定とプライバシー", en: "Settings and Privacy", zh: "设置与隐私"),
+                title: l("content.drawer.settings"),
                 systemImage: "gearshape"
             ) {
                 SettingsView()
@@ -914,7 +885,7 @@ extension ContentView {
                     showLogoutConfirm = true
                 } label: {
                     profileDrawerRow(
-                        title: t(ja: "ログアウト", en: "Log Out", zh: "退出登录"),
+                        title: l("content.drawer.log_out"),
                         systemImage: "rectangle.portrait.and.arrow.right",
                         isDestructive: true
                     )
@@ -928,7 +899,7 @@ extension ContentView {
                     }
                 } label: {
                     profileDrawerRow(
-                        title: t(ja: "メールでログイン", en: "Sign in with Email", zh: "使用邮箱登录"),
+                        title: l("content.drawer.sign_in_email"),
                         systemImage: "envelope"
                     )
                 }
@@ -1064,23 +1035,19 @@ extension ContentView {
 
     private var guestLoginBanner: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(t(ja: "ゲスト閲覧中", en: "Browsing as Guest"))
+            Text(l("content.guest.title"))
                 .font(.subheadline.weight(.bold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
             Text(
-                t(
-                    ja: "投稿・いいね・ブロックはログイン後に利用できます。",
-                    en: "Posting, likes, and block controls are available after sign-in.",
-                    zh: "发帖、点赞和屏蔽功能需登录后使用。"
-                )
+                l("content.guest.description")
             )
             .font(.caption)
             .foregroundColor(.secondary)
             Button {
                 showLoginSheet = true
             } label: {
-                Text(t(ja: "メールでログイン", en: "Sign in with Email", zh: "使用邮箱登录"))
+                Text(l("content.drawer.sign_in_email"))
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
@@ -1153,7 +1120,7 @@ extension ContentView {
         onLoadNext: @escaping () async -> Void
     ) -> some View {
         if posts.isEmpty && isLoading {
-            ProgressView(t(ja: "読み込み中...", en: "Loading..."))
+            ProgressView(l("content.loading"))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if posts.isEmpty {
             Text(emptyText)
@@ -1204,7 +1171,7 @@ extension ContentView {
             Button {
                 showLoginSheet = true
             } label: {
-                Text(t(ja: "ログインする", en: "Sign In"))
+                Text(l("content.sign_in"))
                     .frame(maxWidth: 240)
             }
             .buttonStyle(.borderedProminent)
@@ -1292,7 +1259,7 @@ extension ContentView {
 
             enqueueImages(for: filtered)
         } catch {
-            genLog = t(ja: "❌ フィードの読み込みに失敗", en: "❌ Failed to load feed")
+            genLogKey = "content.genlog.feed_failed"
             isLoadingFeed = false
         }
     }
@@ -1316,7 +1283,7 @@ extension ContentView {
 
             enqueueImages(for: filtered)
         } catch {
-            genLog = t(ja: "⚠️ フォロー中タイムラインの読み込みに失敗", en: "⚠️ Failed to load following feed")
+            genLogKey = "content.genlog.following_failed"
         }
     }
 
@@ -1339,7 +1306,7 @@ extension ContentView {
 
             enqueueImages(for: filtered)
         } catch {
-            genLog = t(ja: "⚠️ フォロー中タイムラインの続き取得に失敗", en: "⚠️ Failed to load more following posts")
+            genLogKey = "content.genlog.following_page_failed"
         }
     }
 
@@ -1363,7 +1330,7 @@ extension ContentView {
 
             enqueueImages(for: filtered)
         } catch {
-            genLog = t(ja: "⚠️ ページ読み込みに失敗", en: "⚠️ Page load failed")
+            genLogKey = "content.genlog.page_failed"
         }
 
         isLoadingFeed = false
@@ -1382,7 +1349,7 @@ extension ContentView {
 
             enqueueImages(for: newPosts)
         } catch {
-            genLog = t(ja: "⚠️ 更新に失敗", en: "⚠️ Refresh failed")
+            genLogKey = "content.genlog.refresh_failed"
         }
     }
 
@@ -1410,7 +1377,7 @@ extension ContentView {
 
             enqueueImages(for: filtered)
         } catch {
-            genLog = t(ja: "⚠️ 自分の投稿の読み込みに失敗", en: "⚠️ Failed to load my posts")
+            genLogKey = "content.genlog.my_posts_failed"
             let userId = userManager.currentUser.id
             myPostList.items = blockManager.filterBlocked(from: postList.items.filter { $0.userId == userId })
         }
@@ -1436,7 +1403,7 @@ extension ContentView {
 
             enqueueImages(for: filtered)
         } catch {
-            genLog = t(ja: "⚠️ 自分の投稿ページ読み込みに失敗", en: "⚠️ Failed to load my posts page")
+            genLogKey = "content.genlog.my_posts_page_failed"
         }
     }
 
@@ -1464,7 +1431,7 @@ extension ContentView {
 
             enqueueImages(for: filtered)
         } catch {
-            genLog = t(ja: "⚠️ いいね投稿の読み込みに失敗", en: "⚠️ Failed to load liked posts")
+            genLogKey = "content.genlog.liked_failed"
             likedPostList.items = blockManager.filterBlocked(from: postList.items.filter { $0.isLikedByCurrentUser == true })
         }
     }
@@ -1489,7 +1456,7 @@ extension ContentView {
 
             enqueueImages(for: filtered)
         } catch {
-            genLog = t(ja: "⚠️ いいね投稿ページ読み込みに失敗", en: "⚠️ Failed to load liked posts page")
+            genLogKey = "content.genlog.liked_page_failed"
         }
     }
 
@@ -1514,9 +1481,10 @@ extension ContentView {
                 post.localImage = cached
                 post.imageGenerationFailed = false
                 post.imageGenerationFailureReason = nil
-                scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: cached, modelID: modelID)
+                scheduleRegenerationEvaluationUpdateIfNeeded(for: post, generatedImage: cached, modelID: modelID)
             } else {
                 post.semanticFidelityScore = nil
+                post.lpipsDistance = nil
                 post.imageGenerationFailed = false
                 post.imageGenerationFailureReason = nil
                 if post.previewImage == nil {
@@ -1574,7 +1542,7 @@ extension ContentView {
                 post.imageGenerationFailureReason = nil
                 ImageCacheManager.shared.save(img, for: cacheKey)
                 ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
-                scheduleSemanticFidelityUpdateIfNeeded(for: post, generatedImage: img, modelID: modelID)
+                scheduleRegenerationEvaluationUpdateIfNeeded(for: post, generatedImage: img, modelID: modelID)
                 updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
             } catch {
                 #if DEBUG
@@ -1655,28 +1623,8 @@ extension ContentView {
         }
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
-    }
-
-    private func localizeGenLogIfNeeded() {
-        let map: [(ja: String, en: String)] = [
-            ("準備完了", "Ready"),
-            ("❌ フィードの読み込みに失敗", "❌ Failed to load feed"),
-            ("⚠️ ページ読み込みに失敗", "⚠️ Page load failed"),
-            ("⚠️ 更新に失敗", "⚠️ Refresh failed"),
-            ("⚠️ 自分の投稿の読み込みに失敗", "⚠️ Failed to load my posts"),
-            ("⚠️ 自分の投稿ページ読み込みに失敗", "⚠️ Failed to load my posts page"),
-            ("⚠️ いいね投稿の読み込みに失敗", "⚠️ Failed to load liked posts"),
-            ("⚠️ いいね投稿ページ読み込みに失敗", "⚠️ Failed to load liked posts page"),
-        ]
-
-        for pair in map {
-            if genLog == pair.ja || genLog == pair.en {
-                genLog = t(ja: pair.ja, en: pair.en)
-                break
-            }
-        }
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 
     private func filterMyPosts(_ posts: [Post]) -> [Post] {
@@ -1829,41 +1777,21 @@ extension ContentView {
 
         if backend == .imagePlayground {
             if normalized.contains("unsupportedlanguage") {
-                return t(
-                    ja: "このプロンプトは Image Playground でサポートされていません。",
-                    en: "This prompt is not supported by Image Playground.",
-                    zh: "Image Playground 不支持此 prompt。"
-                )
+                return l("content.image_generation.unsupported_prompt")
             }
 
             if normalized.contains("person") || normalized.contains("people") {
-                return t(
-                    ja: "人物を含むため Image Playground で制限されました。",
-                    en: "Image Playground restricted this prompt because it involves people.",
-                    zh: "该 prompt 涉及人物，因而受到 Image Playground 限制。"
-                )
+                return l("content.image_generation.people_restricted")
             }
 
             if normalized.contains("unavailable") {
-                return t(
-                    ja: "この端末では Image Playground を利用できません。",
-                    en: "Image Playground is unavailable on this device.",
-                    zh: "此设备无法使用 Image Playground。"
-                )
+                return l("content.image_generation.unavailable")
             }
 
-            return t(
-                ja: "このプロンプトは Image Playground で生成できませんでした。",
-                en: "Image Playground could not generate this prompt.",
-                zh: "Image Playground 无法生成此 prompt。"
-            )
+            return l("content.image_generation.prompt_failed")
         }
 
-        return t(
-            ja: "画像生成に失敗しました。もう一度お試しください。",
-            en: "Image generation failed. Please try again.",
-            zh: "图像生成失败，请重试。"
-        )
+        return l("content.image_generation.failed")
     }
 
     private var canGenerateImagesNow: Bool {
@@ -1892,36 +1820,37 @@ extension ContentView {
     }
 
     @MainActor
-    private func scheduleSemanticFidelityUpdateIfNeeded(for post: Post, generatedImage: UIImage, modelID: String) {
+    private func scheduleRegenerationEvaluationUpdateIfNeeded(for post: Post, generatedImage: UIImage, modelID: String) {
         guard post.hasImage, isCurrentUsersPost(post) else {
             post.semanticFidelityScore = nil
+            post.lpipsDistance = nil
             return
         }
 
         guard let originalImage = ImageCacheManager.shared.load(for: post.id, namespace: .originalImages) else {
             post.semanticFidelityScore = nil
+            post.lpipsDistance = nil
             return
         }
 
-        let scoreKey = semanticScoreKey(for: post, modelID: modelID)
-        if let cachedScore = ImageCacheManager.shared.loadSemanticScore(for: scoreKey) {
-            post.semanticFidelityScore = cachedScore
+        let evaluationKey = semanticScoreKey(for: post, modelID: modelID)
+        if let cachedEvaluation = ImageCacheManager.shared.loadRegenerationEvaluation(for: evaluationKey) {
+            post.regenerationEvaluation = cachedEvaluation
+        }
+
+        if post.regenerationEvaluation?.semanticScore != nil && post.regenerationEvaluation?.lpipsDistance != nil {
             return
         }
 
-        guard !semanticScoreTasks.contains(scoreKey) else { return }
-        semanticScoreTasks.insert(scoreKey)
+        guard !semanticScoreTasks.contains(evaluationKey) else { return }
+        semanticScoreTasks.insert(evaluationKey)
 
         Task {
-            let score = await computeSemanticFidelityScore(original: originalImage, regenerated: generatedImage)
+            let metrics = await computeRegenerationEvaluationMetrics(original: originalImage, regenerated: generatedImage)
             await MainActor.run {
-                semanticScoreTasks.remove(scoreKey)
-                guard let score else {
-                    post.semanticFidelityScore = nil
-                    persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
-                    return
-                }
-                post.semanticFidelityScore = score
+                semanticScoreTasks.remove(evaluationKey)
+                post.semanticFidelityScore = metrics.semanticScore
+                post.lpipsDistance = metrics.lpipsDistance
                 persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
             }
         }
@@ -1937,6 +1866,15 @@ extension ContentView {
         }
     }
 
+    private func computeRegenerationEvaluationMetrics(
+        original: UIImage,
+        regenerated: UIImage
+    ) async -> (semanticScore: Double?, lpipsDistance: Double?) {
+        async let semanticScore = computeSemanticFidelityScore(original: original, regenerated: regenerated)
+        async let lpipsDistance = computeLPIPSDistance(original: original, regenerated: regenerated)
+        return await (semanticScore, lpipsDistance)
+    }
+
     private func computeSemanticFidelityScore(original: UIImage, regenerated: UIImage) async -> Double? {
         do {
             let originalEmbedding = try await SigLIP2Service.shared.embed(image: original)
@@ -1945,6 +1883,17 @@ extension ContentView {
         } catch {
             #if DEBUG
             print("⚠️ Semantic fidelity scoring failed:", error)
+            #endif
+            return nil
+        }
+    }
+
+    private func computeLPIPSDistance(original: UIImage, regenerated: UIImage) async -> Double? {
+        do {
+            return try await LPIPSService.shared.evaluateDistance(original: original, generated: regenerated)
+        } catch {
+            #if DEBUG
+            print("⚠️ LPIPS scoring failed:", error)
             #endif
             return nil
         }
@@ -2014,11 +1963,7 @@ extension ContentView {
 
         if modelManager.resolvedImageGenerationBackend == .stableDiffusion {
             if deferStableDiffusionReloadUntilRestart {
-                genLog = t(
-                    ja: "Stable Diffusion の反映は再起動後に行われます",
-                    en: "Stable Diffusion will be applied after restart",
-                    zh: "Stable Diffusion 会在重新启动后生效"
-                )
+                genLogKey = "content.genlog.sd_restart_required"
                 return
             }
             guard loadedGenerationCacheKey != activeKey || generator == nil else { return }
@@ -2039,7 +1984,7 @@ extension ContentView {
         }
 
         loadedGenerationCacheKey = activeKey
-        genLog = t(ja: "準備完了", en: "Ready")
+        genLogKey = "content.genlog.ready"
         try? await Task.sleep(nanoseconds: 250_000_000)
         enqueueImages(for: allKnownPosts)
     }
@@ -2071,7 +2016,7 @@ extension ContentView {
             generator = gen
             isGeneratorReady = true
             loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
-            genLog = t(ja: "準備完了", en: "Ready")
+            genLogKey = "content.genlog.ready"
 
             try? await Task.sleep(nanoseconds: 250_000_000)
             enqueueImages(for: allKnownPosts)
@@ -2082,10 +2027,7 @@ extension ContentView {
             generator = nil
             isGeneratorReady = false
             loadedGenerationCacheKey = nil
-            genLog = t(
-                ja: "⚠️ モデル切替の反映に失敗。再起動すると改善する場合があります",
-                en: "⚠️ Failed to apply model switch. Restarting the app may help."
-            )
+            genLogKey = "content.genlog.model_switch_failed"
         }
     }
 
@@ -2122,7 +2064,7 @@ extension ContentView {
             isGeneratorReady = false
         }
 
-        genLog = t(ja: "投稿処理中のため再生成を一時停止", en: "Image generation paused during posting")
+        genLogKey = "content.genlog.paused_during_posting"
     }
 
     @MainActor
@@ -2133,7 +2075,7 @@ extension ContentView {
         await maybeReloadGeneratorForSelectedModel()
         enqueueImages(for: allKnownPosts)
         if canGenerateImagesNow {
-            genLog = t(ja: "準備完了", en: "Ready")
+            genLogKey = "content.genlog.ready"
         }
     }
 }

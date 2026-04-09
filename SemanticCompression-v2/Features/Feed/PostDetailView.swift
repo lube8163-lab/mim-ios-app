@@ -36,12 +36,12 @@ struct PostDetailView: View {
             .padding(16)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
-        .navigationTitle(t(ja: "投稿", en: "Post", zh: "帖子"))
+        .navigationTitle(l("post_detail.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isModelInstalled && post.hasImage {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(t(ja: "再生成", en: "Regenerate", zh: "重新生成")) {
+                    Button(l("post_detail.regenerate")) {
                         NotificationCenter.default.post(
                             name: .regenerateSinglePostRequested,
                             object: post,
@@ -96,7 +96,7 @@ struct PostDetailView: View {
     private var commentSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text(t(ja: "コメント", en: "Comments", zh: "评论"))
+                Text(l("post_detail.comments"))
                     .font(.headline)
                 Spacer()
                 if isLoading {
@@ -112,7 +112,7 @@ struct PostDetailView: View {
             }
 
             if !isLoading && comments.isEmpty {
-                Text(t(ja: "まだコメントはありません", en: "No comments yet", zh: "还没有评论"))
+                Text(l("post_detail.no_comments"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.vertical, 12)
@@ -140,7 +140,7 @@ struct PostDetailView: View {
                 Button {
                     showLoginSheet = true
                 } label: {
-                    Text(t(ja: "ログインしてコメント", en: "Sign in to comment", zh: "登录后评论"))
+                    Text(l("post_detail.sign_in_to_comment"))
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                 }
@@ -151,17 +151,14 @@ struct PostDetailView: View {
                 if let replyTarget {
                     HStack(spacing: 8) {
                         Text(
-                            t(
-                                ja: "@\(replyTarget.displayName ?? "User") に返信中",
-                                en: "Replying to @\(replyTarget.displayName ?? "User")"
-                            )
+                            l("post_detail.replying_to", replyTarget.displayName ?? l("post_detail.user_fallback"))
                         )
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.secondary)
 
                         Spacer()
 
-                        Button(t(ja: "キャンセル", en: "Cancel", zh: "取消")) {
+                        Button(l("common.cancel")) {
                             self.replyTarget = nil
                         }
                         .font(.caption)
@@ -171,7 +168,7 @@ struct PostDetailView: View {
 
                 HStack(alignment: .bottom, spacing: 10) {
                     TextField(
-                        t(ja: "コメントを書く", en: "Write a comment", zh: "写评论"),
+                        l("post_detail.write_comment"),
                         text: $composerText,
                         axis: .vertical
                     )
@@ -190,7 +187,7 @@ struct PostDetailView: View {
                             ProgressView()
                                 .controlSize(.small)
                         } else {
-                            Text(t(ja: "送信", en: "Send", zh: "发送"))
+                            Text(l("post_detail.send"))
                                 .font(.subheadline.weight(.semibold))
                         }
                     }
@@ -214,7 +211,7 @@ struct PostDetailView: View {
             comments = try await CommentService.fetchComments(postId: post.id)
             post.commentCount = comments.count
         } catch {
-            errorMessage = t(ja: "コメントの読み込みに失敗しました", en: "Failed to load comments", zh: "加载评论失败")
+            errorMessage = l("post_detail.error.load_comments")
         }
     }
 
@@ -243,7 +240,7 @@ struct PostDetailView: View {
             replyTarget = nil
             post.commentCount = comments.count
         } catch {
-            errorMessage = t(ja: "コメントの送信に失敗しました", en: "Failed to send comment", zh: "发送评论失败")
+            errorMessage = l("post_detail.error.send_comment")
         }
     }
 
@@ -271,8 +268,8 @@ struct PostDetailView: View {
         return result
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 
     private func openProfile(for comment: PostComment) {
@@ -322,7 +319,7 @@ private struct CommentRowView: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Button(action: onOpenProfile) {
-                        Text(comment.displayName ?? localizedText(languageCode: languageCode, ja: "ユーザー", en: "User", zh: "用户"))
+                        Text(comment.displayName ?? L10n.tr("post_detail.user_fallback", languageCode: languageCode))
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(.primary)
                     }
@@ -339,7 +336,7 @@ private struct CommentRowView: View {
                     .textSelection(.enabled)
 
                 Button(action: onReply) {
-                    Text(localizedText(languageCode: languageCode, ja: "返信", en: "Reply", zh: "回复"))
+                    Text(L10n.tr("post_detail.reply", languageCode: languageCode))
                         .font(.caption.weight(.semibold))
                 }
                 .buttonStyle(.plain)

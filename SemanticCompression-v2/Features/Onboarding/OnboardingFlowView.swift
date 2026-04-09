@@ -1,10 +1,15 @@
 import SwiftUI
 
 struct OnboardingFlowView: View {
+    private enum Step {
+        case language
+        case overview
+    }
+
     @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
     @AppStorage(AppPreferences.acceptedPrivacyVersionKey)
     private var acceptedPrivacyVersion = ""
     @AppStorage(AppPreferences.acceptedTermsVersionKey)
@@ -14,6 +19,7 @@ struct OnboardingFlowView: View {
 
     @State private var acceptedPrivacy = false
     @State private var acceptedTerms = false
+    @State private var step: Step = .language
 
     let onComplete: () -> Void
 
@@ -26,17 +32,20 @@ struct OnboardingFlowView: View {
             ZStack {
                 onboardingBackground
 
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 28) {
-                        heroSection
-                        explainerSection
-                        aiFallbackSection
-                        languageSection
-                        legalSection
+                if step == .language {
+                    languageSelectionPage
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 28) {
+                            heroSection
+                            explainerSection
+                            aiFallbackSection
+                            legalSection
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 28)
+                        .padding(.bottom, 144)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 28)
-                    .padding(.bottom, 144)
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -78,25 +87,14 @@ struct OnboardingFlowView: View {
 
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Semantic Compression")
-                .font(.caption.weight(.semibold))
-                .foregroundColor(Color.accentColor.opacity(0.9))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(Color.white.opacity(0.72), in: Capsule())
+            topBrandHeader
 
             VStack(alignment: .leading, spacing: 10) {
-                Text(t(ja: "ようこそ", en: "Welcome", zh: "欢迎"))
+                Text(l("onboarding.welcome"))
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.primary)
 
-                Text(
-                    t(
-                        ja: "まずは表示言語を選んで、アプリの流れをさっと見てから利用前の同意を済ませましょう。",
-                        en: "Start by choosing your language, take a quick look at how the app works, then finish the required agreements.",
-                        zh: "先选择显示语言，快速看一眼应用的使用方式，然后完成开始前所需同意。"
-                    )
-                )
+                Text(l("onboarding.welcome.subtitle"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -107,130 +105,126 @@ struct OnboardingFlowView: View {
 
     private var explainerSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(t(ja: "このアプリで起こること", en: "How It Works", zh: "应用如何工作"))
+            Text(l("onboarding.how_it_works"))
                 .font(.headline.weight(.semibold))
                 .foregroundColor(.secondary)
 
             VStack(spacing: 12) {
                 explainerCard(
                     icon: "square.stack.3d.up",
-                    title: t(ja: "1. 投稿時に意味へ圧縮", en: "1. Compress to semantics", zh: "1. 发帖时压缩为语义"),
-                    body: t(
-                        ja: "画像そのものではなく、caption / prompt / tags と軽量な画像表現を送ります。",
-                        en: "Instead of sending the full image, the app sends caption / prompt / tags and a lightweight image representation.",
-                        zh: "应用不会直接发送完整图片，而是发送 caption / prompt / tags 与轻量图像表示。"
-                    )
+                    title: l("onboarding.explainer.compress.title"),
+                    body: l("onboarding.explainer.compress.body")
                 )
 
                 explainerCard(
                     icon: "cpu",
-                    title: t(ja: "2. 端末で backend を選択", en: "2. Choose an on-device backend", zh: "2. 在设备端选择 backend"),
-                    body: t(
-                        ja: "追加モデルがあればそれを使い、無ければ Apple Vision / Image Playground に自動で切り替えられます。",
-                        en: "Installed models are used when available; otherwise the app can switch to Apple Vision / Image Playground automatically.",
-                        zh: "有已安装模型时优先使用；没有时会自动切换到 Apple Vision / Image Playground。"
-                    )
+                    title: l("onboarding.explainer.backend.title"),
+                    body: l("onboarding.explainer.backend.body")
                 )
 
                 explainerCard(
                     icon: "photo.artframe",
-                    title: t(ja: "3. 閲覧端末ごとに再構成", en: "3. Reconstruct per viewer device", zh: "3. 按查看设备逐端重建"),
-                    body: t(
-                        ja: "表示画像は見る人の端末で再生成されるため、backend や投稿モードに応じて結果が少し変わります。",
-                        en: "Viewed images are regenerated on the viewer's device, so results can vary slightly by backend and post mode.",
-                        zh: "显示图像会在查看者设备端重新生成，因此会因 backend 和发布模式不同而略有差异。"
-                    )
+                    title: l("onboarding.explainer.reconstruct.title"),
+                    body: l("onboarding.explainer.reconstruct.body")
                 )
             }
         }
     }
 
-    private var languageSection: some View {
-        onboardingCard(title: t(ja: "表示言語", en: "Display Language", zh: "显示语言")) {
-            VStack(spacing: 0) {
-                ForEach(Array(AppLanguage.allCases.enumerated()), id: \.element.id) { index, language in
-                    languageRow(for: language)
+    private var languageSelectionPage: some View {
+        VStack(alignment: .leading, spacing: 26) {
+            topBrandHeader
 
-                    if index < AppLanguage.allCases.count - 1 {
-                        Divider()
-                            .padding(.leading, 52)
+            VStack(alignment: .leading, spacing: 12) {
+                Text(l("onboarding.language.title"))
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.primary)
+            }
+
+            onboardingCard {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        ForEach(Array(AppLanguage.allCases.enumerated()), id: \.element.id) { index, language in
+                            languageRow(for: language)
+
+                            if index < AppLanguage.allCases.count - 1 {
+                                Divider()
+                                    .padding(.leading, 52)
+                            }
+                        }
                     }
                 }
+                .frame(maxHeight: 430)
             }
+
+            Spacer()
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 144)
+    }
+
+    private var topBrandHeader: some View {
+        HStack {
+            Text("Semantic Compression")
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(Color.accentColor.opacity(0.9))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.white.opacity(0.68), in: Capsule())
+
+            Spacer()
+        }
+        .padding(.top, 2)
     }
 
     private var aiFallbackSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(t(ja: "AI モデルが未導入でも使えます", en: "You Can Start Without Extra Models", zh: "无需额外模型也能开始使用"))
+            Text(l("onboarding.ai_fallback.title"))
                 .font(.headline.weight(.semibold))
                 .foregroundColor(.secondary)
 
             VStack(spacing: 12) {
                 explainerCard(
                     icon: "eye",
-                    title: t(ja: "画像理解の代替", en: "Image Understanding Fallback", zh: "图像理解回退"),
-                    body: t(
-                        ja: "追加モデルが未導入でも、画像理解は Apple Vision に自動で切り替えられます。あとから設定で Qwen や SigLIP2 に変更できます。",
-                        en: "Even if no extra model is installed, image understanding can fall back to Apple Vision automatically. You can switch to Qwen or SigLIP2 later from Settings.",
-                        zh: "即使没有安装额外模型，图像理解也会自动回退到 Apple Vision。之后可在设置中切换到 Qwen 或 SigLIP2。"
-                    )
+                    title: l("onboarding.ai_fallback.understanding.title"),
+                    body: l("onboarding.ai_fallback.understanding.body")
                 )
 
                 explainerCard(
                     icon: "wand.and.stars",
-                    title: t(ja: "画像生成の代替", en: "Image Generation Fallback", zh: "图像生成回退"),
-                    body: t(
-                        ja: "Stable Diffusion が未導入でも、画像生成は Image Playground に切り替えられます。ただし一部のプロンプトは失敗し、人物表現などは制限されることがあります。",
-                        en: "If Stable Diffusion is not installed, image generation can fall back to Image Playground. Some prompts may fail, and person-related imagery can also be restricted.",
-                        zh: "如果未安装 Stable Diffusion，图像生成会回退到 Image Playground。部分 prompt 可能失败，涉及人物的内容也可能受到限制。"
-                    ),
-                    emphasis: t(
-                        ja: "注意: Image Playground は一部のプロンプトで生成に失敗します。",
-                        en: "Important: Image Playground can fail on some prompts.",
-                        zh: "注意：Image Playground 在部分 prompt 上可能生成失败。"
-                    )
+                    title: l("onboarding.ai_fallback.generation.title"),
+                    body: l("onboarding.ai_fallback.generation.body"),
+                    emphasis: l("onboarding.ai_fallback.generation.emphasis")
                 )
 
                 explainerCard(
                     icon: "slider.horizontal.3",
-                    title: t(ja: "設定から調整可能", en: "Configurable From Settings", zh: "可在设置中调整"),
-                    body: t(
-                        ja: "設定画面の「AI バックエンド」から、画像理解・画像生成の backend や、Image Playground のスタイルを選べます。",
-                        en: "From the AI Backends section in Settings, you can choose the image-understanding backend, the image-generation backend, and the Image Playground style.",
-                        zh: "你可以在设置里的 AI Backends 中选择图像理解后端、图像生成后端，以及 Image Playground 风格。"
-                    )
+                    title: l("onboarding.ai_fallback.settings.title"),
+                    body: l("onboarding.ai_fallback.settings.body")
                 )
             }
         }
     }
 
     private var legalSection: some View {
-        onboardingCard(title: t(ja: "利用前の確認", en: "Before You Start", zh: "开始前确认")) {
+        onboardingCard(title: l("onboarding.before_you_start")) {
             VStack(spacing: 14) {
                 legalItem(
                     icon: "checkmark.shield",
-                    title: t(ja: "プライバシーポリシー", en: "Privacy Policy", zh: "隐私政策"),
-                    description: t(
-                        ja: "データの扱いと保存方法を確認できます。",
-                        en: "Review how data is handled and stored.",
-                        zh: "查看数据的处理和保存方式。"
-                    ),
+                    title: l("onboarding.legal.privacy.title"),
+                    description: l("onboarding.legal.privacy.description"),
                     isAccepted: $acceptedPrivacy,
-                    openTitle: t(ja: "内容を開く", en: "Open document", zh: "打开内容"),
+                    openTitle: l("onboarding.legal.open_document"),
                     destination: AppPreferences.privacyPolicyURL
                 )
 
                 legalItem(
                     icon: "doc.text",
-                    title: t(ja: "利用規約", en: "Terms of Service", zh: "使用条款"),
-                    description: t(
-                        ja: "利用条件と禁止事項を確認できます。",
-                        en: "Review the usage terms and restrictions.",
-                        zh: "查看使用条件和限制事项。"
-                    ),
+                    title: l("onboarding.legal.terms.title"),
+                    description: l("onboarding.legal.terms.description"),
                     isAccepted: $acceptedTerms,
-                    openTitle: t(ja: "内容を開く", en: "Open document", zh: "打开内容"),
+                    openTitle: l("onboarding.legal.open_document"),
                     destination: AppPreferences.termsOfServiceURL
                 )
             }
@@ -240,19 +234,25 @@ struct OnboardingFlowView: View {
     private var bottomCTA: some View {
         VStack(spacing: 10) {
             Button {
-                completeOnboarding()
+                if step == .language {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        step = .overview
+                    }
+                } else {
+                    completeOnboarding()
+                }
             } label: {
-                Text(t(ja: "開始する", en: "Get Started", zh: "开始使用"))
+                Text(step == .language ? l("common.continue") : l("onboarding.get_started"))
                     .font(.headline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
             }
             .buttonStyle(.plain)
-            .foregroundColor(canContinue ? .white : disabledCTAForegroundColor)
+            .foregroundColor(step == .language || canContinue ? .white : disabledCTAForegroundColor)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(
-                        canContinue
+                        step == .language || canContinue
                         ? AnyShapeStyle(
                             LinearGradient(
                                 colors: [Color.accentColor, Color.accentColor.opacity(0.72)],
@@ -265,31 +265,25 @@ struct OnboardingFlowView: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(canContinue ? Color.white.opacity(0.16) : disabledCTABorderColor, lineWidth: 1)
+                    .stroke(step == .language || canContinue ? Color.white.opacity(0.16) : disabledCTABorderColor, lineWidth: 1)
             )
-            .disabled(!canContinue)
+            .disabled(step == .overview && !canContinue)
 
-            Text(
-                t(
-                    ja: "同意内容は設定画面からいつでも確認できます。",
-                    en: "You can review these agreements anytime from Settings.",
-                    zh: "你可以随时在设置中查看这些同意内容。"
-                )
-            )
-            .font(.footnote)
-            .foregroundColor(.secondary)
-            .multilineTextAlignment(.center)
+            Text(step == .language ? l("onboarding.language.change_later") : l("onboarding.agreements_review"))
+                .font(.footnote)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 20)
         .padding(.top, 14)
-        .padding(.bottom, 14)
-        .background(bottomBarBackground)
+        .padding(.bottom, 20)
+        .background(bottomBarBackground.ignoresSafeArea(edges: .bottom))
     }
 
     private func onboardingCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(title)
-                .font(.headline.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundColor(.secondary)
 
             VStack(alignment: .leading, spacing: 0) {
@@ -303,6 +297,19 @@ struct OnboardingFlowView: View {
             )
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.04), radius: 18, x: 0, y: 10)
         }
+    }
+
+    private func onboardingCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(10)
+        .background(cardBackgroundColor, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(cardStrokeColor, lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.04), radius: 18, x: 0, y: 10)
     }
 
     private func explainerCard(icon: String, title: String, body: String, emphasis: String? = nil) -> some View {
@@ -373,6 +380,9 @@ struct OnboardingFlowView: View {
                 Text(language.label)
                     .font(.title3.weight(.medium))
                     .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .allowsTightening(true)
 
                 Spacer()
 
@@ -384,6 +394,7 @@ struct OnboardingFlowView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 16)
+            .frame(minHeight: 84)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -426,7 +437,7 @@ struct OnboardingFlowView: View {
 
                 Spacer()
 
-                Text(isAccepted.wrappedValue ? t(ja: "同意済み", en: "Accepted", zh: "已同意") : t(ja: "未同意", en: "Required", zh: "需要同意"))
+                Text(isAccepted.wrappedValue ? l("onboarding.legal.accepted") : l("onboarding.legal.required"))
                     .font(.caption.weight(.semibold))
                     .foregroundColor(isAccepted.wrappedValue ? .green : .orange)
                     .padding(.horizontal, 10)
@@ -495,7 +506,7 @@ struct OnboardingFlowView: View {
         onComplete()
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 }

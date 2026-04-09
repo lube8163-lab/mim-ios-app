@@ -3,7 +3,11 @@ import Foundation
 enum AppLanguage: String, CaseIterable, Identifiable {
     case japanese = "ja"
     case english = "en"
+    case spanish = "es"
+    case portugueseBrazil = "pt-BR"
+    case korean = "ko"
     case chineseSimplified = "zh-Hans"
+    case chineseTraditional = "zh-Hant"
 
     var id: String { rawValue }
 
@@ -11,8 +15,42 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         switch self {
         case .japanese: return "日本語"
         case .english: return "English"
+        case .spanish: return "Español"
+        case .portugueseBrazil: return "Português (Brasil)"
+        case .korean: return "한국어"
         case .chineseSimplified: return "简体中文"
+        case .chineseTraditional: return "繁體中文"
         }
+    }
+
+    static var preferred: AppLanguage {
+        let preferredIdentifier = Locale.preferredLanguages.first ?? Locale.current.identifier
+        if preferredIdentifier.hasPrefix(AppLanguage.japanese.rawValue) {
+            return .japanese
+        }
+        if preferredIdentifier.hasPrefix(AppLanguage.spanish.rawValue) {
+            return .spanish
+        }
+        if preferredIdentifier.hasPrefix(AppLanguage.portugueseBrazil.rawValue)
+            || preferredIdentifier.hasPrefix("pt-BR")
+            || preferredIdentifier.hasPrefix("pt") {
+            return .portugueseBrazil
+        }
+        if preferredIdentifier.hasPrefix(AppLanguage.korean.rawValue) {
+            return .korean
+        }
+        if preferredIdentifier.hasPrefix(AppLanguage.chineseTraditional.rawValue)
+            || preferredIdentifier.hasPrefix("zh-TW")
+            || preferredIdentifier.hasPrefix("zh-HK")
+            || preferredIdentifier.hasPrefix("zh-MO") {
+            return .chineseTraditional
+        }
+        if preferredIdentifier.hasPrefix(AppLanguage.chineseSimplified.rawValue)
+            || preferredIdentifier.hasPrefix("zh-CN")
+            || preferredIdentifier.hasPrefix("zh-SG") {
+            return .chineseSimplified
+        }
+        return .english
     }
 }
 

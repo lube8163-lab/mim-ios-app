@@ -10,7 +10,7 @@ import SwiftUI
 
 struct AppLaunchView: View {
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
 
     var body: some View {
         VStack(spacing: 28) {
@@ -24,14 +24,7 @@ struct AppLaunchView: View {
                 .progressViewStyle(.circular)
                 .scaleEffect(1.2)
 
-            Text(
-                localizedText(
-                    languageCode: selectedLanguage,
-                    ja: "AIモデルを準備中…",
-                    en: "Preparing AI models…",
-                    zh: "正在准备 AI 模型…"
-                )
-            )
+            Text(L10n.tr("app.launch.preparing_ai_models", languageCode: selectedLanguage))
                 .font(.footnote)
                 .foregroundColor(.secondary)
         }

@@ -9,13 +9,13 @@ struct BlockedUsersView: View {
     var body: some View {
         List {
             if blockManager.blockedUserIDs.isEmpty {
-                Text(t(ja: "現在ブロック中のユーザーはいません。", en: "No blocked users.", zh: "当前没有被屏蔽的用户。"))
+                Text(l("profile.blocked.empty"))
                     .foregroundColor(.secondary)
             } else {
                 ForEach(Array(blockManager.blockedUserIDs).sorted(), id: \.self) { userId in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(userNames[userId] ?? t(ja: "読み込み中...", en: "Loading...", zh: "加载中..."))
+                            Text(userNames[userId] ?? l("profile.loading"))
                                 .font(.subheadline)
                             Text(userId)
                                 .font(.caption2)
@@ -24,7 +24,7 @@ struct BlockedUsersView: View {
                                 .truncationMode(.middle)
                         }
                         Spacer()
-                        Button(t(ja: "解除", en: "Unblock", zh: "解除屏蔽"), role: .destructive) {
+                        Button(l("profile.blocked.unblock"), role: .destructive) {
                             Task {
                                 await blockManager.unblock(userId)
                                 userNames.removeValue(forKey: userId)
@@ -34,7 +34,7 @@ struct BlockedUsersView: View {
                 }
             }
         }
-        .navigationTitle(t(ja: "ブロック管理", en: "Blocked Users", zh: "屏蔽管理"))
+        .navigationTitle(l("profile.blocked.title"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await blockManager.refreshFromServerIfPossible()
@@ -45,17 +45,17 @@ struct BlockedUsersView: View {
         }
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 
     private func loadDisplayNames() async {
         for userId in blockManager.blockedUserIDs where userNames[userId] == nil {
             do {
                 let name = try await BlockService.fetchDisplayName(userId: userId)
-                userNames[userId] = (name?.isEmpty == false) ? name : t(ja: "不明なユーザー", en: "Unknown User", zh: "未知用户")
+                userNames[userId] = (name?.isEmpty == false) ? name : l("profile.unknown_user")
             } catch {
-                userNames[userId] = t(ja: "不明なユーザー", en: "Unknown User", zh: "未知用户")
+                userNames[userId] = l("profile.unknown_user")
             }
         }
     }

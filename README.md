@@ -19,10 +19,10 @@ https://github.com/lube8163-lab/mim-ios
 - Image Playground style selection with `Animation`, `Illustration`, and `Sketch`
 - Per-context generation prioritization for visible feeds, profiles, and post detail
 - Regeneration controls for visible posts and single-post detail views
-- Pro Mode semantic fidelity diagnostics for your own posts
+- Pro Mode semantic fidelity and LPIPS perceptual diagnostics for your own posts
 - First-launch onboarding with backend guidance, model-install guidance, and legal consent flow
 - Per-post image-understanding backend labels shown in feed and detail views
-- Japanese, English, and Simplified Chinese support across major flows
+- Japanese, English, Korean, Spanish, Brazilian Portuguese, Simplified Chinese, and Traditional Chinese support across major flows
 
 ## Model Notes
 
@@ -38,8 +38,16 @@ https://github.com/lube8163-lab/mim-ios
 - Image Playground runs in prompt-only mode in this app. If a generated prompt is rejected, the app retries with progressively simpler concept inputs.
 - Image Playground can fail on some prompts, may restrict person-related content, and the app now shows a short failure reason directly on the post card when generation fails.
 - The onboarding flow and settings screens document fallback behavior, model restrictions, and Image Playground style controls.
+- LPIPS perceptual scoring is available from the bundled model.
 - SigLIP2 is required for semantic fidelity scoring in Pro Mode.
 - Prompt handling was tightened so placeholder text from image-understanding models is filtered and repaired before being used for reconstruction.
+
+## Localization Workflow
+
+- `SemanticCompression-v2/Localizable.xcstrings` is the localization source of truth.
+- Generated `*.lproj/Localizable.strings` files are kept in sync with:
+  - `python3 /Users/tasuku/Desktop/SemanticCompression-v2/scripts/sync_localizations.py`
+- Full notes are in `LOCALIZATION.md`.
 
 ## Notifications
 

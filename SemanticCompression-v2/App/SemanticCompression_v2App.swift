@@ -12,7 +12,7 @@ struct SemanticCompressionApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
     @AppStorage(AppPreferences.onboardingCompletedKey)
     private var hasCompletedOnboarding = false
     @AppStorage(AppPreferences.acceptedPrivacyVersionKey)

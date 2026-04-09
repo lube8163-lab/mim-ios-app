@@ -30,7 +30,7 @@ enum PrivacyMode: Int, Codable, CaseIterable, Identifiable {
     }
 
     func title(languageCode: String) -> String {
-        localizedText(languageCode: languageCode, ja: titleJA, en: titleEN)
+        languageCode.hasPrefix(AppLanguage.japanese.rawValue) ? titleJA : titleEN
     }
 
     var iconName: String {

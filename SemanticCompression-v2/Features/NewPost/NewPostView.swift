@@ -81,17 +81,17 @@ struct NewPostView: View {
                     composerArea
                 }
             }
-            .navigationTitle(t(ja: "新規投稿", en: "New Post", zh: "新帖子"))
+            .navigationTitle(l("new_post.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
 
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(t(ja: "閉じる", en: "Close", zh: "关闭")) { dismiss() }
+                    Button(l("new_post.close")) { dismiss() }
                         .disabled(isPosting)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isPosting ? t(ja: "投稿中…", en: "Posting...", zh: "发布中…") : t(ja: "投稿", en: "Post", zh: "发布")) {
+                    Button(isPosting ? l("new_post.posting") : l("new_post.post")) {
                         requestPost()
                     }
                     .disabled(
@@ -105,11 +105,7 @@ struct NewPostView: View {
         .overlay(alignment: .bottom) {
             if showSemanticCompletionMessage {
                 Text(
-                    t(
-                        ja: "この投稿は、見る人の端末で意味情報から再生成されます。",
-                        en: "This post will be reconstructed from semantic data on each viewer's device.",
-                        zh: "这条帖子会在每位查看者的设备上根据语义数据重建。"
-                    )
+                    l("new_post.semantic_completion")
                 )
                 .font(.footnote)
                 .foregroundColor(.white)
@@ -128,14 +124,10 @@ struct NewPostView: View {
             }
         }
         .alert(
-            t(
-                ja: "L4 は再現性が高い一方、プライバシーは弱くなります。続行しますか？",
-                en: "L4 improves reconstruction but weakens privacy. Continue?",
-                zh: "L4 会提升重建效果，但会削弱隐私保护。要继续吗？"
-            ),
+            l("new_post.l4_warning.title"),
             isPresented: $showL2PrimeWarning
         ) {
-            Button(t(ja: "続行", en: "Continue", zh: "继续"), role: .destructive) {
+            Button(l("new_post.continue"), role: .destructive) {
                 hasAcknowledgedCurrentL4Selection = true
                 previousModeBeforeL4Warning = nil
                 if warningTriggeredFromPostAction {
@@ -143,7 +135,7 @@ struct NewPostView: View {
                     Task { await handlePost() }
                 }
             }
-            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {
+            Button(l("common.cancel"), role: .cancel) {
                 if let prev = previousModeBeforeL4Warning {
                     selectedMode = prev
                     hasAcknowledgedCurrentL4Selection = true
@@ -174,7 +166,7 @@ extension NewPostView {
                     .font(.subheadline.weight(.semibold))
             }
 
-            Text(t(ja: "サーバーへ送信中の情報", en: "What's being sent", zh: "正在发送到服务器的信息"))
+            Text(l("new_post.whats_being_sent"))
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -239,7 +231,7 @@ extension NewPostView {
                             .font(.subheadline.weight(.semibold))
                         Spacer()
                         if selectedImage != nil {
-                            Label(t(ja: "画像あり", en: "Image attached", zh: "已附图片"), systemImage: "photo")
+                            Label(l("new_post.image_attached"), systemImage: "photo")
                                 .font(.caption.weight(.semibold))
                                 .foregroundColor(.secondary)
                         }
@@ -247,7 +239,7 @@ extension NewPostView {
 
                     ZStack(alignment: .topLeading) {
                         if userText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            Text(t(ja: "いまどうしてる？", en: "What's happening?", zh: "现在发生了什么？"))
+                            Text(l("new_post.placeholder"))
                                 .foregroundColor(.secondary)
                                 .padding(.top, 10)
                                 .padding(.leading, 6)
@@ -268,7 +260,7 @@ extension NewPostView {
 
             HStack {
                 PhotosPicker(selection: $selectedItem, matching: .images) {
-                    Label(t(ja: "画像", en: "Image", zh: "图片"), systemImage: "photo")
+                    Label(l("new_post.image"), systemImage: "photo")
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
@@ -297,11 +289,7 @@ extension NewPostView {
 
                         if isLCMSelected {
                             Text(
-                                t(
-                                    ja: "LCM 使用中: モード切替不可 / img2img 無効",
-                                    en: "LCM active: mode switch disabled / img2img off",
-                                    zh: "LCM 使用中：无法切换模式 / img2img 已关闭"
-                                )
+                                l("new_post.lcm_note")
                             )
                             .font(.caption2)
                             .foregroundColor(.orange)
@@ -320,7 +308,7 @@ extension NewPostView {
             HStack {
                 if selectedImage != nil {
                     Label(
-                        t(ja: "意味圧縮を適用", en: "Semantic compression enabled", zh: "已启用语义压缩"),
+                        l("new_post.semantic_compression_enabled"),
                         systemImage: "sparkles"
                     )
                     .font(.caption)
@@ -405,11 +393,11 @@ extension NewPostView {
                     .disabled(!PrivacyModeAccessPolicy.canUse(mode: mode))
                 }
             }
-            .navigationTitle(t(ja: "投稿モード", en: "Post Mode", zh: "发帖模式"))
+            .navigationTitle(l("new_post.post_mode"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(t(ja: "閉じる", en: "Close", zh: "关闭")) { showModeSheet = false }
+                    Button(l("new_post.close")) { showModeSheet = false }
                 }
             }
         }
@@ -418,13 +406,13 @@ extension NewPostView {
     private func modeDescription(_ mode: PrivacyMode) -> String {
         switch mode {
         case .l1:
-            return t(ja: "画像情報なし", en: "No image data", zh: "不包含图像数据")
+            return l("new_post.mode.l1")
         case .l2:
-            return t(ja: "軽量要約", en: "Compact summary", zh: "轻量摘要")
+            return l("new_post.mode.l2")
         case .l3:
-            return t(ja: "低周波係数", en: "Low-frequency DCT", zh: "低频 DCT")
+            return l("new_post.mode.l3")
         case .l2Prime:
-            return t(ja: "極低解像ピクセル", en: "Extreme low-res pixels", zh: "超低分辨率像素")
+            return l("new_post.mode.l2prime")
         }
     }
 
@@ -480,36 +468,24 @@ extension NewPostView {
                     .shadow(radius: 4)
                     .padding(18)
             }
-            .accessibilityLabel(t(ja: "画像を削除", en: "Remove image", zh: "移除图片"))
+            .accessibilityLabel(l("new_post.remove_image"))
         }
     }
 
     private var imageUnderstandingStatusCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label(
-                t(ja: "意味を抽出して再構成します", en: "Extracting semantics and reconstructing", zh: "正在提取语义并重建"),
+                l("new_post.extracting_semantics"),
                 systemImage: "sparkles.rectangle.stack"
             )
             .font(.subheadline.weight(.semibold))
 
-            Text(
-                t(
-                    ja: "現在の解析バックエンド: \(modelManager.resolvedImageUnderstandingBackendTitle)",
-                    en: "Current analysis backend: \(modelManager.resolvedImageUnderstandingBackendTitle)",
-                    zh: "当前解析后端：\(modelManager.resolvedImageUnderstandingBackendTitle)"
-                )
-            )
+            Text(l("new_post.current_backend", modelManager.resolvedImageUnderstandingBackendTitle))
             .font(.caption)
             .foregroundColor(.secondary)
 
             if modelManager.resolvedImageUnderstandingBackend == .vision {
-                Text(
-                    t(
-                        ja: "追加モデル未導入時は Apple Vision で簡易 prompt を生成します。",
-                        en: "When no downloaded model is available, Apple Vision generates a lightweight prompt.",
-                        zh: "未安装额外模型时，会使用 Apple Vision 生成轻量 prompt。"
-                    )
-                )
+                Text(l("new_post.apple_vision_fallback"))
                 .font(.caption2)
                 .foregroundColor(.secondary)
             }
@@ -578,21 +554,13 @@ extension NewPostView {
         let trimmed = userText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !PrivacyModeAccessPolicy.canUse(mode: selectedMode) {
             await MainActor.run {
-                errorMessage = t(
-                    ja: "このモードは現在利用できません。",
-                    en: "This mode is currently unavailable.",
-                    zh: "当前无法使用这个模式。"
-                )
+                errorMessage = l("new_post.error.mode_unavailable")
             }
             return
         }
         if containsProhibitedText(trimmed) {
             await MainActor.run {
-                errorMessage = t(
-                    ja: "不適切な可能性がある語句を検出しました。内容を修正して再投稿してください。",
-                    en: "Potentially objectionable words were detected. Please revise your text.",
-                    zh: "检测到可能不合适的词语。请修改内容后再发布。"
-                )
+                errorMessage = l("new_post.error.prohibited_text")
             }
             return
         }
@@ -602,11 +570,7 @@ extension NewPostView {
 
         if imageForPost != nil && modeForPost != .l1 && payload == nil {
             await MainActor.run {
-                errorMessage = t(
-                    ja: "中間表現の生成に失敗しました。画像を変更して再試行してください。",
-                    en: "Failed to build payload. Please retry with another image.",
-                    zh: "生成中间表示失败。请更换图片后重试。"
-                )
+                errorMessage = l("new_post.error.payload_failed")
             }
             return
         }
@@ -723,13 +687,13 @@ extension NewPostView {
             await MainActor.run {
                 posts.removeAll { $0.id == tempPost.id }
                 showSemanticCompletionMessage = false
-                errorMessage = t(ja: "アップロードに失敗しました", en: "Upload failed", zh: "上传失败")
+                errorMessage = l("new_post.error.upload_failed")
             }
         }
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 
     private func containsProhibitedText(_ text: String) -> Bool {
@@ -740,34 +704,18 @@ extension NewPostView {
     private func postingPhaseTitle(_ phase: PostingPhase) -> String {
         switch phase {
         case .generatingPrompt:
-            return t(
-                ja: "プロンプト生成中…",
-                en: "Generating prompts...",
-                zh: "正在生成 prompt…"
-            )
+            return l("new_post.phase.generating_prompt")
         case .uploading:
-            return t(
-                ja: "投稿データ送信中…",
-                en: "Uploading post data...",
-                zh: "正在上传帖子数据…"
-            )
+            return l("new_post.phase.uploading")
         }
     }
 
     private func postingPhaseSubtitle(_ phase: PostingPhase) -> String {
         switch phase {
         case .generatingPrompt:
-            return t(
-                ja: "画像理解バックエンドで caption / prompt / tags を作っています。",
-                en: "The image-understanding backend is generating caption, prompt, and tags.",
-                zh: "图像理解后端正在生成 caption、prompt 和 tags。"
-            )
+            return l("new_post.phase.generating_prompt_detail")
         case .uploading:
-            return t(
-                ja: "意味情報と投稿内容をサーバーへ送信しています。",
-                en: "Semantic metadata and post content are being uploaded.",
-                zh: "正在上传语义信息和帖子内容。"
-            )
+            return l("new_post.phase.uploading_detail")
         }
     }
 

@@ -21,10 +21,81 @@ enum RegenerationEvaluationMetric: String, Codable {
 struct RegenerationEvaluation: Codable {
     var metric: RegenerationEvaluationMetric = .siglipCosine
     var score: Double?
+    var semanticScore: Double?
+    var lpipsDistance: Double?
     var promptGenerationDuration: TimeInterval?
     var promptGenerationMemoryMB: Double?
     var imageGenerationDuration: TimeInterval?
     var imageGenerationMemoryMB: Double?
+
+    init(
+        metric: RegenerationEvaluationMetric = .siglipCosine,
+        score: Double? = nil,
+        semanticScore: Double? = nil,
+        lpipsDistance: Double? = nil,
+        promptGenerationDuration: TimeInterval? = nil,
+        promptGenerationMemoryMB: Double? = nil,
+        imageGenerationDuration: TimeInterval? = nil,
+        imageGenerationMemoryMB: Double? = nil
+    ) {
+        self.metric = metric
+        self.score = score
+        self.semanticScore = semanticScore ?? (metric == .siglipCosine ? score : nil)
+        self.lpipsDistance = lpipsDistance ?? (metric == .lpips ? score : nil)
+        self.promptGenerationDuration = promptGenerationDuration
+        self.promptGenerationMemoryMB = promptGenerationMemoryMB
+        self.imageGenerationDuration = imageGenerationDuration
+        self.imageGenerationMemoryMB = imageGenerationMemoryMB
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let metric = try container.decodeIfPresent(RegenerationEvaluationMetric.self, forKey: .metric) ?? .siglipCosine
+        let legacyScore = try container.decodeIfPresent(Double.self, forKey: .score)
+
+        self.metric = metric
+        self.score = legacyScore
+        self.semanticScore = try container.decodeIfPresent(Double.self, forKey: .semanticScore)
+            ?? (metric == .siglipCosine ? legacyScore : nil)
+        self.lpipsDistance = try container.decodeIfPresent(Double.self, forKey: .lpipsDistance)
+            ?? (metric == .lpips ? legacyScore : nil)
+        self.promptGenerationDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .promptGenerationDuration)
+        self.promptGenerationMemoryMB = try container.decodeIfPresent(Double.self, forKey: .promptGenerationMemoryMB)
+        self.imageGenerationDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .imageGenerationDuration)
+        self.imageGenerationMemoryMB = try container.decodeIfPresent(Double.self, forKey: .imageGenerationMemoryMB)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(metric, forKey: .metric)
+        try container.encodeIfPresent(semanticScore, forKey: .score)
+        try container.encodeIfPresent(semanticScore, forKey: .semanticScore)
+        try container.encodeIfPresent(lpipsDistance, forKey: .lpipsDistance)
+        try container.encodeIfPresent(promptGenerationDuration, forKey: .promptGenerationDuration)
+        try container.encodeIfPresent(promptGenerationMemoryMB, forKey: .promptGenerationMemoryMB)
+        try container.encodeIfPresent(imageGenerationDuration, forKey: .imageGenerationDuration)
+        try container.encodeIfPresent(imageGenerationMemoryMB, forKey: .imageGenerationMemoryMB)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case metric
+        case score
+        case semanticScore
+        case lpipsDistance
+        case promptGenerationDuration
+        case promptGenerationMemoryMB
+        case imageGenerationDuration
+        case imageGenerationMemoryMB
+    }
+
+    var isEmpty: Bool {
+        semanticScore == nil &&
+        lpipsDistance == nil &&
+        promptGenerationDuration == nil &&
+        promptGenerationMemoryMB == nil &&
+        imageGenerationDuration == nil &&
+        imageGenerationMemoryMB == nil
+    }
 }
 
 // MARK: - Region tag
@@ -177,16 +248,22 @@ final class Post: Identifiable, ObservableObject, Codable {
 
 extension Post {
     var semanticFidelityScore: Double? {
-        get { regenerationEvaluation?.score }
+        get { regenerationEvaluation?.semanticScore }
         set {
             var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
             evaluation.metric = .siglipCosine
             evaluation.score = newValue
-            regenerationEvaluation = (newValue == nil &&
-                                      evaluation.promptGenerationDuration == nil &&
-                                      evaluation.imageGenerationDuration == nil)
-                ? nil
-                : evaluation
+            evaluation.semanticScore = newValue
+            regenerationEvaluation = evaluation.isEmpty ? nil : evaluation
+        }
+    }
+
+    var lpipsDistance: Double? {
+        get { regenerationEvaluation?.lpipsDistance }
+        set {
+            var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
+            evaluation.lpipsDistance = newValue
+            regenerationEvaluation = evaluation.isEmpty ? nil : evaluation
         }
     }
 
@@ -194,14 +271,14 @@ extension Post {
         var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
         evaluation.promptGenerationDuration = duration
         evaluation.promptGenerationMemoryMB = memoryMB
-        regenerationEvaluation = evaluation
+        regenerationEvaluation = evaluation.isEmpty ? nil : evaluation
     }
 
     func updateImageGenerationDiagnostics(duration: TimeInterval?, memoryMB: Double?) {
         var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
         evaluation.imageGenerationDuration = duration
         evaluation.imageGenerationMemoryMB = memoryMB
-        regenerationEvaluation = evaluation
+        regenerationEvaluation = evaluation.isEmpty ? nil : evaluation
     }
 
     func clearRegenerationEvaluation() {

@@ -18,7 +18,7 @@ struct NotificationsView: View {
         NavigationStack {
             Group {
                 if items.isEmpty && isLoading {
-                    ProgressView(t(ja: "通知を読み込み中...", en: "Loading notifications...", zh: "正在加载通知..."))
+                    ProgressView(l("notifications.loading"))
                 } else if items.isEmpty {
                     emptyView
                 } else {
@@ -35,11 +35,11 @@ struct NotificationsView: View {
                 }
             }
             .background(Color(.systemBackground))
-            .navigationTitle(t(ja: "通知", en: "Notifications", zh: "通知"))
+            .navigationTitle(l("notifications.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(t(ja: "閉じる", en: "Close", zh: "关闭")) { dismiss() }
+                    Button(l("notifications.close")) { dismiss() }
                 }
             }
             .task {
@@ -86,9 +86,9 @@ struct NotificationsView: View {
             Image(systemName: "bell.slash")
                 .font(.system(size: 34))
                 .foregroundColor(.secondary)
-            Text(t(ja: "通知はまだありません", en: "No notifications yet", zh: "还没有通知"))
+            Text(l("notifications.empty.title"))
                 .font(.headline)
-            Text(t(ja: "いいね、コメント、フォローが来るとここに表示されます。", en: "Likes, comments, and follows will appear here.", zh: "点赞、评论和关注会显示在这里。"))
+            Text(l("notifications.empty.message"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -126,7 +126,7 @@ struct NotificationsView: View {
             PushNotificationManager.shared.setBadgeCount(0)
             errorMessage = nil
         } catch {
-            errorMessage = t(ja: "通知の読み込みに失敗しました", en: "Failed to load notifications", zh: "加载通知失败")
+            errorMessage = l("notifications.error.load_failed")
         }
     }
 
@@ -144,12 +144,12 @@ struct NotificationsView: View {
                 selectedPost = try await FeedLoader.fetchPost(id: postId)
             }
         } catch {
-            errorMessage = t(ja: "対象の読み込みに失敗しました", en: "Failed to open destination", zh: "打开目标失败")
+            errorMessage = l("notifications.error.open_failed")
         }
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 }
 
@@ -200,14 +200,14 @@ private struct NotificationRow: View {
     }
 
     private var message: String {
-        let actor = item.actorDisplayName ?? localizedText(languageCode: languageCode, ja: "誰か", en: "Someone", zh: "某人")
+        let actor = item.actorDisplayName ?? L10n.tr("notifications.actor.someone", languageCode: languageCode)
         switch item.type {
         case .like:
-            return localizedText(languageCode: languageCode, ja: "\(actor) があなたの投稿にいいねしました", en: "\(actor) liked your post", zh: "\(actor) 赞了你的帖子")
+            return L10n.tr("notifications.message.like", languageCode: languageCode, fallback: nil, actor)
         case .comment:
-            return localizedText(languageCode: languageCode, ja: "\(actor) があなたの投稿にコメントしました", en: "\(actor) commented on your post", zh: "\(actor) 评论了你的帖子")
+            return L10n.tr("notifications.message.comment", languageCode: languageCode, fallback: nil, actor)
         case .follow:
-            return localizedText(languageCode: languageCode, ja: "\(actor) があなたをフォローしました", en: "\(actor) followed you", zh: "\(actor) 关注了你")
+            return L10n.tr("notifications.message.follow", languageCode: languageCode, fallback: nil, actor)
         }
     }
 

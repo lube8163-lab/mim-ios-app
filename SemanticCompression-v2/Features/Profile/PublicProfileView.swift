@@ -33,11 +33,11 @@ struct PublicProfileView: View {
             .padding(.vertical, 16)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
-        .navigationTitle(t(ja: "プロフィール", en: "Profile", zh: "个人资料"))
+        .navigationTitle(l("profile.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(t(ja: "閉じる", en: "Close", zh: "关闭")) { dismiss() }
+                Button(l("profile.close")) { dismiss() }
             }
         }
         .task {
@@ -65,7 +65,7 @@ struct PublicProfileView: View {
                 .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(profile?.displayName ?? t(ja: "読み込み中…", en: "Loading...", zh: "加载中…"))
+                    Text(profile?.displayName ?? l("profile.loading"))
                         .font(.title3.weight(.bold))
 
                     if let bio = profile?.bio?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -81,9 +81,9 @@ struct PublicProfileView: View {
             }
 
             HStack(spacing: 18) {
-                statView(value: profile?.postCount ?? 0, labelJA: "投稿", labelEN: "Posts", labelZH: "帖子")
-                statView(value: profile?.followerCount ?? 0, labelJA: "フォロワー", labelEN: "Followers", labelZH: "粉丝")
-                statView(value: profile?.followingCount ?? 0, labelJA: "フォロー中", labelEN: "Following", labelZH: "关注中")
+                statView(value: profile?.postCount ?? 0, label: l("profile.posts"))
+                statView(value: profile?.followerCount ?? 0, label: l("profile.followers"))
+                statView(value: profile?.followingCount ?? 0, label: l("profile.following"))
             }
 
             if shouldShowFollowButton {
@@ -95,8 +95,8 @@ struct PublicProfileView: View {
                             .frame(maxWidth: .infinity)
                     } else {
                         Text((profile?.isFollowing ?? false)
-                             ? t(ja: "フォロー解除", en: "Unfollow", zh: "取消关注")
-                             : t(ja: "フォロー", en: "Follow", zh: "关注"))
+                             ? l("profile.unfollow")
+                             : l("profile.follow"))
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                     }
@@ -113,7 +113,7 @@ struct PublicProfileView: View {
     private var postsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text(t(ja: "投稿", en: "Posts", zh: "帖子"))
+                Text(l("profile.posts"))
                     .font(.headline)
                 Spacer()
                 if isLoadingPosts {
@@ -123,7 +123,7 @@ struct PublicProfileView: View {
             .padding(.horizontal, 16)
 
             if !isLoadingPosts && posts.isEmpty {
-                Text(t(ja: "まだ投稿はありません", en: "No posts yet", zh: "还没有帖子"))
+                Text(l("profile.no_posts"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 16)
@@ -159,7 +159,7 @@ struct PublicProfileView: View {
                 userInfo: ["postIDs": posts.map(\.id)]
             )
         } catch {
-            errorMessage = t(ja: "プロフィールの取得に失敗しました", en: "Failed to load profile", zh: "加载个人资料失败")
+            errorMessage = l("profile.error.load_failed")
         }
     }
 
@@ -186,23 +186,23 @@ struct PublicProfileView: View {
             if !message.isEmpty, message != URLError(.badServerResponse).localizedDescription {
                 errorMessage = message
             } else {
-                errorMessage = t(ja: "フォロー状態の更新に失敗しました", en: "Failed to update follow state", zh: "更新关注状态失败")
+                errorMessage = l("profile.error.follow_failed")
             }
         }
     }
 
-    private func statView(value: Int, labelJA: String, labelEN: String, labelZH: String? = nil) -> some View {
+    private func statView(value: Int, label: String) -> some View {
         VStack(spacing: 4) {
             Text("\(value)")
                 .font(.headline.weight(.bold))
-            Text(t(ja: labelJA, en: labelEN, zh: labelZH))
+            Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 }

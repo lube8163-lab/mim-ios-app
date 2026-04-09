@@ -12,38 +12,38 @@ struct LegalDocumentsView: View {
 
     var body: some View {
         List {
-            Section(t(ja: "同意状況", en: "Consent Status", zh: "同意状态")) {
-                Text("\(t(ja: "Privacy", en: "Privacy", zh: "隐私")): \(statusText(acceptedPrivacyVersion))")
-                Text("\(t(ja: "Terms", en: "Terms", zh: "条款")): \(statusText(acceptedTermsVersion))")
+            Section(l("legal.consent_status")) {
+                Text("\(l("legal.privacy")): \(statusText(acceptedPrivacyVersion))")
+                Text("\(l("legal.terms")): \(statusText(acceptedTermsVersion))")
                 if !acceptedPolicyAt.isEmpty {
-                    Text("\(t(ja: "同意日時", en: "Accepted At", zh: "同意时间")): \(acceptedPolicyAt)")
+                    Text("\(l("legal.accepted_at")): \(acceptedPolicyAt)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
 
-            Section(t(ja: "ドキュメント", en: "Documents", zh: "文档")) {
-                Link(t(ja: "プライバシーポリシー", en: "Privacy Policy", zh: "隐私政策"), destination: AppPreferences.privacyPolicyURL)
-                Link(t(ja: "利用規約", en: "Terms of Service", zh: "使用条款"), destination: AppPreferences.termsOfServiceURL)
+            Section(l("legal.documents")) {
+                Link(l("legal.privacy_policy"), destination: AppPreferences.privacyPolicyURL)
+                Link(l("legal.terms_of_service"), destination: AppPreferences.termsOfServiceURL)
             }
 
-            Section(t(ja: "連絡先", en: "Contact", zh: "联系方式")) {
+            Section(l("legal.contact")) {
                 Link("support@mim-protocol.com", destination: URL(string: "mailto:support@mim-protocol.com")!)
-                Text(t(ja: "不適切なコンテンツや利用者の報告は上記メールへご連絡ください。", en: "Please use the email above to report inappropriate content or users.", zh: "如需举报不当内容或用户，请通过上方邮箱联系我们。"))
+                Text(l("legal.contact_note"))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
-        .navigationTitle(t(ja: "法務", en: "Legal", zh: "法律"))
+        .navigationTitle(l("legal.title"))
     }
 
     private func statusText(_ version: String) -> String {
         version.isEmpty
-            ? t(ja: "未同意", en: "Not Accepted", zh: "未同意")
+            ? l("legal.not_accepted")
             : "v\(version)"
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 }
