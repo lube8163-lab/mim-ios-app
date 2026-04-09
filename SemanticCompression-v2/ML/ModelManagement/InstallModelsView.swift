@@ -21,46 +21,27 @@ struct InstallModelsView: View {
         VStack(spacing: 24) {
 
             // MARK: - Title
-            Text(t(ja: "AIモデルのインストール", en: "Install AI Models", zh: "安装 AI 模型"))
+            Text(l("model_install.title"))
                 .font(.largeTitle.bold())
                 .padding(.top, 40)
 
             // MARK: - Description
-            Text(t(
-                ja: """
-このアプリは追加モデルがなくても、そのまま画像投稿と閲覧を始められます。
-
-今はスキップして、あとから設定の「AI モデルの管理」からインストールすることもできます。
-画像理解を入れるなら、より文脈に強い Qwen3.5-VL を推奨します。
-""",
-                en: """
-You can start posting and viewing images right away, even without downloading extra models.
-
-You can skip this for now and install models later from Settings under Manage AI Models.
-If you want a stronger image-understanding model, Qwen3.5-VL is the recommended option.
-""",
-                zh: """
-即使不下载额外模型，现在也可以直接开始发图和看图。
-
-你可以先跳过，之后再从设置里的“管理 AI 模型”安装。
-如果要安装图像理解模型，推荐优先选择更擅长上下文理解的 Qwen3.5-VL。
-"""
-            ))
+            Text(l("model_install.description"))
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
 
             VStack(alignment: .leading, spacing: 10) {
                 Label(
-                    t(ja: "今はスキップ可", en: "Skipping is OK", zh: "现在可以跳过"),
+                    l("model_install.bullet.skip_ok"),
                     systemImage: "checkmark.circle"
                 )
                 Label(
-                    t(ja: "あとから設定で追加可能", en: "Install later from Settings", zh: "之后可在设置中安装"),
+                    l("model_install.bullet.install_later"),
                     systemImage: "gearshape"
                 )
                 Label(
-                    t(ja: "画像理解は Qwen3.5-VL 推奨", en: "Qwen3.5-VL is recommended for image understanding", zh: "图像理解推荐 Qwen3.5-VL"),
+                    l("model_install.bullet.qwen_recommended"),
                     systemImage: "star"
                 )
             }
@@ -77,18 +58,7 @@ If you want a stronger image-understanding model, Qwen3.5-VL is the recommended 
             .frame(maxHeight: 460)
             
             if modelManager.siglipInstalled || modelManager.qwenInstalled || modelManager.hasAnySDInstalled {
-                Text(t(
-                    ja: """
-※ モデルのインストール完了後は、
-アプリを一度終了して再起動してください。
-""",
-                    en: """
-After installation completes, please close and restart the app.
-""",
-                    zh: """
-安装完成后，请关闭并重新启动应用。
-"""
-                ))
+                Text(l("model_install.restart_note"))
                     .font(.footnote)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -108,7 +78,7 @@ After installation completes, please close and restart the app.
                 Button {
                     dismiss()
                 } label: {
-                    Text(t(ja: "今はスキップ", en: "Skip for now", zh: "暂时跳过"))
+                    Text(l("model_install.skip_now"))
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
@@ -123,11 +93,7 @@ After installation completes, please close and restart the app.
         .safeAreaInset(edge: .bottom) {
             if showInstallCompletedToast {
                 Text(
-                    t(
-                        ja: "インストールが完了しました。安定動作のためアプリを再起動してください。",
-                        en: "Installation completed. Please restart the app for stable behavior.",
-                        zh: "安装完成。为了稳定运行，请重新启动应用。"
-                    )
+                    l("model_install.completed_toast")
                 )
                 .font(.footnote)
                 .foregroundColor(.white)
@@ -160,8 +126,8 @@ After installation completes, please close and restart the app.
         }
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 }
 

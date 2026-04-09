@@ -23,8 +23,8 @@ struct OTPLoginView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(t(ja: "ログイン", en: "Sign In", zh: "登录"))) {
-                    TextField(t(ja: "メールアドレス", en: "Email", zh: "邮箱地址"), text: $email)
+                Section(header: Text(l("otp.section.sign_in"))) {
+                    TextField(l("otp.email.placeholder"), text: $email)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
                         .autocorrectionDisabled()
@@ -35,14 +35,14 @@ struct OTPLoginView: View {
                         if isSending {
                             ProgressView()
                         } else {
-                            Text(t(ja: "認証コードを送信", en: "Send Code", zh: "发送验证码"))
+                            Text(l("otp.send_code"))
                         }
                     }
                     .disabled(isSending || email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
 
                 if sent {
-                    Section(header: Text(t(ja: "認証コード", en: "Verification Code", zh: "验证码"))) {
+                    Section(header: Text(l("otp.section.verification_code"))) {
                         TextField("123456", text: $otp)
                             .keyboardType(.numberPad)
 
@@ -52,7 +52,7 @@ struct OTPLoginView: View {
                             if isVerifying {
                                 ProgressView()
                             } else {
-                                Text(t(ja: "ログイン", en: "Sign In", zh: "登录"))
+                                Text(l("otp.sign_in"))
                             }
                         }
                         .disabled(isVerifying || otp.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -67,11 +67,11 @@ struct OTPLoginView: View {
                     }
                 }
             }
-            .navigationTitle(t(ja: "メール認証", en: "Email OTP", zh: "邮箱验证"))
+            .navigationTitle(l("otp.title"))
             .toolbar {
                 if allowsSkip {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button(t(ja: "あとで", en: "Later", zh: "稍后")) {
+                        Button(l("otp.later")) {
                             dismiss()
                         }
                     }
@@ -102,11 +102,7 @@ struct OTPLoginView: View {
             try await authManager.startOtp(email: email)
             sent = true
             message = nil
-            sentToastText = t(
-                ja: "認証コードを送信しました。メールをご確認ください。",
-                en: "Code sent. Please check your email.",
-                zh: "验证码已发送，请检查邮箱。"
-            )
+            sentToastText = l("otp.toast.code_sent")
             withAnimation(.easeInOut(duration: 0.2)) {
                 showSentToast = true
             }
@@ -118,13 +114,9 @@ struct OTPLoginView: View {
             }
         } catch {
             if case let AuthError.server(serverMessage) = error {
-                message = t(
-                    ja: "認証コード送信に失敗しました: \(serverMessage)",
-                    en: "Failed to send code: \(serverMessage)",
-                    zh: "发送验证码失败：\(serverMessage)"
-                )
+                message = l("otp.error.send_code_server", serverMessage)
             } else {
-                message = t(ja: "認証コード送信に失敗しました。", en: "Failed to send code.", zh: "发送验证码失败。")
+                message = l("otp.error.send_code")
             }
         }
     }
@@ -139,18 +131,14 @@ struct OTPLoginView: View {
             dismiss()
         } catch {
             if case let AuthError.server(serverMessage) = error {
-                message = t(
-                    ja: "コード認証に失敗しました: \(serverMessage)",
-                    en: "Failed to verify code: \(serverMessage)",
-                    zh: "验证码校验失败：\(serverMessage)"
-                )
+                message = l("otp.error.verify_code_server", serverMessage)
             } else {
-                message = t(ja: "コード認証に失敗しました。", en: "Failed to verify code.", zh: "验证码校验失败。")
+                message = l("otp.error.verify_code")
             }
         }
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 }

@@ -97,7 +97,7 @@ final class ImageCacheManager {
     }
 
     func loadSemanticScore(for key: String) -> Double? {
-        if let evaluation = loadRegenerationEvaluation(for: key), let score = evaluation.score {
+        if let evaluation = loadRegenerationEvaluation(for: key), let score = evaluation.semanticScore {
             return score
         }
 

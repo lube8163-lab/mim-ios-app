@@ -72,12 +72,7 @@ enum ServerDate {
         }
 
         if abs(clampedDate.timeIntervalSince(referenceDate)) < 5 {
-            return localizedText(
-                languageCode: languageCode,
-                ja: "たった今",
-                en: "just now",
-                zh: "刚刚"
-            )
+            return L10n.tr("server_date.just_now", languageCode: languageCode)
         }
 
         let formatter = RelativeDateTimeFormatter()

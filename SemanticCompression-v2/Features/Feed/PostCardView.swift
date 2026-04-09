@@ -60,7 +60,7 @@ struct PostCardView: View {
                 }
             }
             .confirmationDialog(
-                t(ja: "この投稿を通報しますか？", en: "Report this post?"),
+                l("post_card.dialog.report.title"),
                 isPresented: $showReportDialog,
                 titleVisibility: .visible
             ) {
@@ -69,48 +69,48 @@ struct PostCardView: View {
                         submitReport(reason)
                     }
                 }
-                Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
+                Button(l("common.cancel"), role: .cancel) {}
             }
-            .alert(t(ja: "通報を受け付けました", en: "Report submitted"), isPresented: $showReportThanks) {
+            .alert(l("post_card.alert.report_submitted.title"), isPresented: $showReportThanks) {
                 Button("OK") {}
             } message: {
-                Text(t(ja: "内容を確認の上、必要に応じて対応します。", en: "We will review the report and take appropriate action if needed."))
+                Text(l("post_card.alert.report_submitted.message"))
             }
             .alert(
-                t(ja: "通報に失敗しました", en: "Report failed"),
+                l("post_card.alert.report_failed.title"),
                 isPresented: $showReportError
             ) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text(t(ja: "時間をおいて再度お試しください。", en: "Please try again later."))
+                Text(l("post_card.alert.try_again_later"))
             }
             .confirmationDialog(
-                t(ja: "このユーザーをブロックしますか？", en: "Block this user?"),
+                l("post_card.dialog.block_user.title"),
                 isPresented: $showBlockConfirm,
                 titleVisibility: .visible
             ) {
-                Button(t(ja: "ブロックする", en: "Block"), role: .destructive) {
+                Button(l("post_card.dialog.block_user.confirm"), role: .destructive) {
                     blockAuthorIfNeeded()
                 }
-                Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
+                Button(l("common.cancel"), role: .cancel) {}
             }
             .confirmationDialog(
-                t(ja: "この投稿を削除しますか？", en: "Delete this post?"),
+                l("post_card.dialog.delete_post.title"),
                 isPresented: $showDeleteConfirm,
                 titleVisibility: .visible
             ) {
-                Button(t(ja: "削除する", en: "Delete"), role: .destructive) {
+                Button(l("post_card.dialog.delete_post.confirm"), role: .destructive) {
                     deletePost()
                 }
-                Button(t(ja: "キャンセル", en: "Cancel"), role: .cancel) {}
+                Button(l("common.cancel"), role: .cancel) {}
             }
             .alert(
-                t(ja: "投稿を削除できませんでした", en: "Failed to delete post"),
+                l("post_card.alert.delete_failed.title"),
                 isPresented: $showDeleteError
             ) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text(t(ja: "時間をおいて再度お試しください。", en: "Please try again later."))
+                Text(l("post_card.alert.try_again_later"))
             }
     }
     
@@ -127,17 +127,17 @@ struct PostCardView: View {
         func label(languageCode: String) -> String {
             switch self {
             case .inappropriate:
-                return localizedText(languageCode: languageCode, ja: "不適切な画像", en: "Inappropriate content")
+                return L10n.tr("post_card.report_reason.inappropriate", languageCode: languageCode)
             case .violence:
-                return localizedText(languageCode: languageCode, ja: "暴力・残虐", en: "Violence or gore")
+                return L10n.tr("post_card.report_reason.violence", languageCode: languageCode)
             case .sexual:
-                return localizedText(languageCode: languageCode, ja: "性的コンテンツ", en: "Sexual content")
+                return L10n.tr("post_card.report_reason.sexual", languageCode: languageCode)
             case .hate:
-                return localizedText(languageCode: languageCode, ja: "ヘイト・差別", en: "Hate or discrimination")
+                return L10n.tr("post_card.report_reason.hate", languageCode: languageCode)
             case .spam:
-                return localizedText(languageCode: languageCode, ja: "スパム", en: "Spam")
+                return L10n.tr("post_card.report_reason.spam", languageCode: languageCode)
             case .other:
-                return localizedText(languageCode: languageCode, ja: "その他", en: "Other")
+                return L10n.tr("post_card.report_reason.other", languageCode: languageCode)
             }
         }
 
@@ -247,7 +247,7 @@ extension PostCardView {
                     .overlay(Circle().stroke(avatarStrokeColor, lineWidth: 1))
 
                     VStack(alignment: .leading) {
-                        Text(post.displayName ?? t(ja: "ユーザー", en: "User"))
+                        Text(post.displayName ?? l("post_card.user_fallback"))
                             .font(.subheadline.weight(.semibold))
                         Text(post.createdAt.formatted())
                             .font(.caption2)
@@ -265,20 +265,20 @@ extension PostCardView {
                     Button(role: .destructive) {
                         showDeleteConfirm = true
                     } label: {
-                        Label(t(ja: "削除", en: "Delete"), systemImage: "trash")
+                        Label(l("post_card.menu.delete"), systemImage: "trash")
                     }
                 } else {
                     Button(role: .destructive) {
                         showReportDialog = true
                     } label: {
-                        Label(t(ja: "通報", en: "Report"), systemImage: "flag")
+                        Label(l("post_card.menu.report"), systemImage: "flag")
                     }
                 }
                 if shouldShowBlockAction {
                     Button(role: .destructive) {
                         showBlockConfirm = true
                     } label: {
-                        Label(t(ja: "このユーザーをブロック", en: "Block User"), systemImage: "person.crop.circle.badge.xmark")
+                        Label(l("post_card.menu.block_user"), systemImage: "person.crop.circle.badge.xmark")
                     }
                 }
             } label: {
@@ -310,7 +310,7 @@ extension PostCardView {
     private var avatarInitial: String {
         let base = (post.displayName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
             ? post.displayName!
-            : t(ja: "ユーザー", en: "User")
+            : l("post_card.user_fallback")
         return String(base.prefix(1)).uppercased()
     }
 
@@ -344,16 +344,23 @@ extension PostCardView {
     private var semanticFidelitySection: some View {
         if isCurrentUsersPost, let evaluation = post.regenerationEvaluation {
             VStack(alignment: .leading, spacing: 4) {
-                if let score = evaluation.score {
+                if let score = evaluation.semanticScore {
+                    let formattedSemanticPercent = String(format: "%.1f", score * 100)
                     HStack(spacing: 6) {
                         Image(systemName: "waveform.path.ecg")
                             .font(.caption2)
-                        Text(
-                            t(
-                                ja: "意味保持率 \(Int((score * 100).rounded()))%",
-                                en: "Semantic fidelity \(Int((score * 100).rounded()))%"
-                            )
-                        )
+                        Text(l("post_card.metric.semantic_fidelity", formattedSemanticPercent))
+                        .font(.caption2.weight(.semibold))
+                    }
+                }
+
+                if let distance = evaluation.lpipsDistance {
+                    let normalizedSimilarity = max(0, min(1, 1 - distance))
+                    let formattedLPIPSPercent = String(format: "%.1f", normalizedSimilarity * 100)
+                    HStack(spacing: 6) {
+                        Image(systemName: "ruler")
+                            .font(.caption2)
+                        Text(l("post_card.metric.lpips_match", formattedLPIPSPercent))
                         .font(.caption2.weight(.semibold))
                     }
                 }
@@ -361,6 +368,7 @@ extension PostCardView {
                 if isProModeEnabled {
                     if let promptLine = diagnosticLine(
                         labelJA: "Prompt",
+                        labelKO: "프롬프트",
                         labelEN: "Prompt",
                         duration: evaluation.promptGenerationDuration,
                         memoryMB: evaluation.promptGenerationMemoryMB
@@ -371,6 +379,7 @@ extension PostCardView {
 
                     if let imageLine = diagnosticLine(
                         labelJA: "生成",
+                        labelKO: "생성",
                         labelEN: "Image",
                         duration: evaluation.imageGenerationDuration,
                         memoryMB: evaluation.imageGenerationMemoryMB
@@ -391,6 +400,7 @@ extension PostCardView {
 
     private func diagnosticLine(
         labelJA: String,
+        labelKO: String,
         labelEN: String,
         duration: TimeInterval?,
         memoryMB: Double?
@@ -399,10 +409,15 @@ extension PostCardView {
 
         let durationText = duration.map { String(format: "%.1fs", $0) } ?? "-"
         let memoryText = memoryMB.map { formatMemory($0) } ?? "-"
-        return t(
-            ja: "\(labelJA) \(durationText) / \(memoryText)",
-            en: "\(labelEN) \(durationText) / \(memoryText)"
-        )
+        let label: String
+        if selectedLanguage.hasPrefix(AppLanguage.japanese.rawValue) {
+            label = labelJA
+        } else if selectedLanguage.hasPrefix(AppLanguage.korean.rawValue) {
+            label = labelKO
+        } else {
+            label = labelEN
+        }
+        return "\(label) \(durationText) / \(memoryText)"
     }
 
     private func formatMemory(_ valueMB: Double) -> String {
@@ -434,8 +449,8 @@ extension PostCardView {
         showComments = true
     }
 
-    private func t(ja: String, en: String) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 }
 
@@ -477,7 +492,7 @@ extension PostCardView {
                     VStack(spacing: 6) {
                         RainbowAILoader()
                             .shadow(color: .purple.opacity(0.6), radius: 8)
-                        Text(t(ja: "生成中…", en: "Generating..."))
+                        Text(l("post_card.generating"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -494,7 +509,7 @@ extension PostCardView {
                     .fill(Color.gray.opacity(0.1))
                     .frame(maxHeight: 260)
                     .overlay(
-                        Text(t(ja: "画像生成を利用できません", en: "Image generation unavailable"))
+                        Text(l("post_card.image_generation_unavailable"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     )
@@ -523,7 +538,7 @@ extension PostCardView {
                                             .lineLimit(3)
                                     }
                                     if post.imageGenerationFailureReason == nil {
-                                        Text(t(ja: "もう一度お試しください。", en: "Please try again."))
+                                        Text(l("post_card.try_again"))
                                             .font(.caption2)
                                             .foregroundColor(.secondary)
                                             .multilineTextAlignment(.center)
@@ -537,7 +552,7 @@ extension PostCardView {
                                 VStack(spacing: 12) {
                                     RainbowAILoader()
                                         .shadow(color: .purple.opacity(0.6), radius: 8)
-                                    Text(t(ja: "生成中…", en: "Generating..."))
+                                    Text(l("post_card.generating"))
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -591,19 +606,19 @@ extension PostCardView {
 
     private var generationStatusLabel: String? {
         if post.imageGenerationFailed {
-            return t(ja: "失敗", en: "Failed")
+            return l("post_card.status.failed")
         }
         if post.status == .failed {
-            return t(ja: "失敗", en: "Failed")
+            return l("post_card.status.failed")
         }
         if post.localImage != nil {
             return nil
         }
         if post.effectivePrompt != nil {
-            return t(ja: "再生成待ち", en: "Queued")
+            return l("post_card.status.queued")
         }
         if post.hasImage && (post.status == .pending || post.status == .processing) {
-            return t(ja: "準備中", en: "Preparing")
+            return l("post_card.status.preparing")
         }
         return nil
     }
@@ -634,13 +649,13 @@ extension PostCardView {
                     .lineLimit(3)
 
                 if let backend = post.imageUnderstandingBackendLabel, post.hasImage {
-                    Text(t(ja: "画像理解: \(backend)", en: "Image understanding: \(backend)"))
+                    Text(l("post_card.image_understanding", backend))
                         .font(.caption2.weight(.semibold))
                         .foregroundColor(.secondary)
                 }
 
                 if cap.count > 140 {
-                    Button(t(ja: "続きを読む", en: "Read more")) {
+                    Button(l("post_card.read_more")) {
                         showCaptionDetail = true
                     }
                     .font(.caption)
@@ -712,18 +727,18 @@ extension PostCardView {
                         .textSelection(.enabled)
 
                     if let backend = post.imageUnderstandingBackendLabel, post.hasImage {
-                        Text(t(ja: "この投稿の画像理解: \(backend)", en: "Image understanding for this post: \(backend)"))
+                        Text(l("post_card.image_understanding_detail", backend))
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
                 }
                 .padding(16)
             }
-            .navigationTitle(t(ja: "キャプション全文", en: "Full Caption"))
+            .navigationTitle(l("post_card.full_caption"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(t(ja: "閉じる", en: "Close")) {
+                    Button(l("post_card.close")) {
                         showCaptionDetail = false
                     }
                 }
@@ -741,7 +756,7 @@ extension PostCardView {
         } else if let text = post.caption {
             ActivityView(activityItems: [text])
         } else {
-            ActivityView(activityItems: [t(ja: "この投稿をチェックしてみてください！", en: "Check out this post on SemanticCompression!")])
+            ActivityView(activityItems: [l("post_card.share_fallback")])
         }
     }
 }

@@ -50,52 +50,46 @@ struct UserProfileView: View {
             // MARK: - DANGER ZONE
             dangerZoneSection
         }
-        .navigationTitle(t(ja: "プロフィール", en: "Profile", zh: "个人资料"))
+        .navigationTitle(l("profile.title"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(showsCloseButton)
         .toolbar {
             if showsCloseButton {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(t(ja: "閉じる", en: "Close", zh: "关闭")) { dismiss() }
+                    Button(l("profile.close")) { dismiss() }
                 }
             }
         }
-        .alert(t(ja: "コピーしました", en: "Copied!", zh: "已复制"), isPresented: $showCopied) {
+        .alert(l("profile.alert.copied"), isPresented: $showCopied) {
             Button("OK", role: .cancel) {}
         }
-        .alert(t(ja: "アカウント", en: "Account", zh: "账户"), isPresented: $showAccountAlert) {
+        .alert(l("profile.account"), isPresented: $showAccountAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(accountAlertMessage)
         }
         .alert(
-            t(ja: "ログアウトしますか？", en: "Log out?", zh: "要退出登录吗？"),
+            l("profile.alert.logout.title"),
             isPresented: $showLogoutConfirm
         ) {
-            Button(t(ja: "ログアウト", en: "Log Out", zh: "退出登录"), role: .destructive) {
+            Button(l("profile.log_out"), role: .destructive) {
                 Task { await authManager.logout() }
             }
-            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {}
+            Button(l("common.cancel"), role: .cancel) {}
         } message: {
-            Text(
-                t(
-                    ja: "現在のアカウントからサインアウトします。",
-                    en: "You will be signed out of the current account.",
-                    zh: "你将退出当前账号。"
-                )
-            )
+            Text(l("content.alert.logout.message"))
         }
         .confirmationDialog(
-            t(ja: "アカウントを削除しますか？", en: "Delete this account?", zh: "要删除此账户吗？"),
+            l("profile.alert.delete_account.title"),
             isPresented: $showDeleteConfirm,
             titleVisibility: .visible
         ) {
-            Button(t(ja: "削除する", en: "Delete", zh: "删除"), role: .destructive) {
+            Button(l("profile.delete_account"), role: .destructive) {
                 Task { await deleteAccount() }
             }
-            Button(t(ja: "キャンセル", en: "Cancel", zh: "取消"), role: .cancel) {}
+            Button(l("common.cancel"), role: .cancel) {}
         } message: {
-            Text(t(ja: "この操作は取り消せません。投稿は匿名化されます。", en: "This action cannot be undone. Posts will be anonymized.", zh: "此操作无法撤销。帖子将被匿名化。"))
+            Text(l("profile.alert.delete_account.message"))
         }
         .onAppear {
             newName = userManager.currentUser.displayName
@@ -109,18 +103,18 @@ struct UserProfileView: View {
     // MARK: - Sections
 
     private var userInfoSection: some View {
-        Section(header: Text(t(ja: "ユーザー", en: "User", zh: "用户"))) {
+        Section(header: Text(l("profile.user"))) {
             if !authManager.isAuthenticated {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(t(ja: "現在はゲストモードです", en: "You are in guest mode", zh: "当前为访客模式"))
+                    Text(l("profile.guest_mode"))
                         .font(.subheadline.weight(.semibold))
-                    Text(t(ja: "ログインすると投稿、いいね、ブロック機能が有効になります。", en: "Sign in to enable posting, likes, and block features.", zh: "登录后即可使用发帖、点赞和屏蔽功能。"))
+                    Text(l("profile.guest_mode_detail"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Button {
                         showLoginSheet = true
                     } label: {
-                        Text(t(ja: "メールでログイン", en: "Sign in with Email", zh: "使用邮箱登录"))
+                        Text(l("profile.sign_in_with_email"))
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -157,7 +151,7 @@ struct UserProfileView: View {
                             .font(.caption)
                             .foregroundColor(.gray)
                             .contextMenu {
-                                Button(t(ja: "ユーザーIDをコピー", en: "Copy User ID", zh: "复制用户 ID")) {
+                                Button(l("profile.copy_user_id")) {
                                     UIPasteboard.general.string =
                                         userManager.currentUser.id
                                     showCopied = true
@@ -181,20 +175,20 @@ struct UserProfileView: View {
                 selection: $selectedPhoto,
                 matching: .images
             ) {
-                Label(t(ja: "アバターを変更", en: "Change Avatar", zh: "更改头像"), systemImage: "photo")
+                Label(l("profile.change_avatar"), systemImage: "photo")
             }
             if selectedPhoto != nil {
-                Text(t(ja: "新しいアバターは保存時に反映されます。", en: "The new avatar will be applied when you save.", zh: "新头像会在保存时应用。"))
+                Text(l("profile.change_avatar_note"))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
-            TextField(t(ja: "表示名", en: "Display Name", zh: "显示名称"), text: $newName)
+            TextField(l("profile.display_name"), text: $newName)
 
-            TextField(t(ja: "自己紹介", en: "Bio", zh: "个人简介"), text: $newBio, axis: .vertical)
+            TextField(l("profile.bio"), text: $newBio, axis: .vertical)
                 .lineLimit(2...4)
 
-            Text(t(ja: "最大120文字まで。", en: "Up to 120 characters.", zh: "最多 120 个字符。"))
+            Text(l("profile.bio_limit"))
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -204,29 +198,29 @@ struct UserProfileView: View {
                 if isSavingChanges {
                     ProgressView()
                 } else {
-                    Text(t(ja: "変更を保存", en: "Save Changes", zh: "保存更改"))
+                    Text(l("profile.save_changes"))
                 }
             }
             .disabled(isSavingChanges || !hasPendingChanges || !authManager.isAuthenticated)
             .frame(maxWidth: .infinity, alignment: .center)
         } header: {
-            Text(t(ja: "アカウント", en: "Account", zh: "账户"))
+            Text(l("profile.account"))
         } footer: {
             Text(
                 authManager.isAuthenticated
-                ? t(ja: "メール認証済みアカウントです。", en: "Signed in with email OTP.", zh: "已通过邮箱验证码登录。")
-                : t(ja: "編集や投稿にはログインが必要です。", en: "Sign in is required for editing and posting.", zh: "编辑和发帖需要先登录。")
+                ? l("profile.email_otp_signed_in")
+                : l("profile.sign_in_required")
             )
         }
     }
 
     private var appSettingsSection: some View {
-        Section(header: Text(t(ja: "アプリ", en: "App", zh: "应用"))) {
+        Section(header: Text(l("profile.app"))) {
 
             NavigationLink {
                 SettingsView()
             } label: {
-                Label(t(ja: "設定", en: "Settings", zh: "设置"), systemImage: "gear")
+                Label(l("profile.settings"), systemImage: "gear")
             }
 
             NavigationLink {
@@ -238,7 +232,7 @@ struct UserProfileView: View {
             NavigationLink {
                 BlockedUsersView()
             } label: {
-                Label(t(ja: "ブロック管理", en: "Blocked Users", zh: "屏蔽管理"), systemImage: "person.2.slash")
+                Label(l("profile.blocked.title"), systemImage: "person.2.slash")
             }
         }
     }
@@ -249,26 +243,26 @@ struct UserProfileView: View {
                 Button(role: .destructive) {
                     showLogoutConfirm = true
                 } label: {
-                    Text(t(ja: "ログアウト", en: "Log Out", zh: "退出登录"))
+                    Text(l("profile.log_out"))
                 }
 
                 Button(role: .destructive) {
                     showDeleteConfirm = true
                 } label: {
-                    Text(t(ja: "アカウントを削除", en: "Delete Account", zh: "删除账户"))
+                    Text(l("profile.delete_account"))
                 }
             } else {
                 Button {
                     showLoginSheet = true
                 } label: {
-                    Text(t(ja: "メールでログイン", en: "Sign in with Email", zh: "使用邮箱登录"))
+                    Text(l("profile.sign_in_with_email"))
                 }
             }
         }
     }
 
-    private func t(ja: String, en: String, zh: String? = nil) -> String {
-        localizedText(languageCode: selectedLanguage, ja: ja, en: en, zh: zh)
+    private func l(_ key: String, _ arguments: CVarArg...) -> String {
+        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
     }
 
     // MARK: - Avatar Upload
@@ -308,7 +302,7 @@ struct UserProfileView: View {
         let avatarChanged = selectedPhoto != nil
 
         guard nameChanged || bioChanged || avatarChanged else {
-            accountAlertMessage = t(ja: "変更はありません。", en: "No changes to save.")
+            accountAlertMessage = l("profile.alert.no_changes")
             showAccountAlert = true
             return
         }
@@ -332,11 +326,11 @@ struct UserProfileView: View {
             userManager.saveUser(updated)
             await UserService.register(updated)
             selectedPhoto = nil
-            accountAlertMessage = t(ja: "変更を保存しました。", en: "Changes saved.")
+            accountAlertMessage = l("profile.alert.saved")
             showAccountAlert = true
             if showsCloseButton { dismiss() }
         } catch {
-            accountAlertMessage = t(ja: "保存に失敗しました。時間をおいて再度お試しください。", en: "Save failed. Please try again later.")
+            accountAlertMessage = l("profile.alert.save_failed")
             showAccountAlert = true
         }
     }
