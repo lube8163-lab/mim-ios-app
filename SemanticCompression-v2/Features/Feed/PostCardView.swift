@@ -40,9 +40,6 @@ struct PostCardView: View {
             .sheet(isPresented: $showLoginSheet) {
                 OTPLoginView(allowsSkip: true)
             }
-            .sheet(isPresented: $showCaptionDetail) {
-                captionDetailSheet
-            }
             .sheet(isPresented: $showComments) {
                 NavigationStack {
                     PostDetailView(
@@ -159,6 +156,11 @@ struct PostCardView: View {
             RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .stroke(cardStrokeColor, lineWidth: 0.8)
         )
+        .overlay {
+            if showCaptionDetail {
+                captionDetailOverlay
+            }
+        }
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.14 : 0.05), radius: 10, y: 4)
     }
 
@@ -646,7 +648,7 @@ extension PostCardView {
                 Text("-\(cap)")
                     .font(.footnote)
                     .foregroundColor(.secondary)
-                    .lineLimit(3)
+                    .lineLimit(2)
 
                 if let backend = post.imageUnderstandingBackendLabel, post.hasImage {
                     Text(l("post_card.image_understanding", backend))
@@ -654,7 +656,7 @@ extension PostCardView {
                         .foregroundColor(.secondary)
                 }
 
-                if cap.count > 140 {
+                if shouldShowCaptionPreviewExpansion(for: cap) {
                     Button(l("post_card.read_more")) {
                         showCaptionDetail = true
                     }
@@ -717,33 +719,84 @@ extension PostCardView {
 
 extension PostCardView {
     @ViewBuilder
-    private var captionDetailSheet: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(post.caption ?? "")
-                        .font(.body)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
+    private var captionDetailOverlay: some View {
+        ZStack {
+            Color.black.opacity(colorScheme == .dark ? 0.34 : 0.24)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    showCaptionDetail = false
+                }
+                .gesture(
+                    DragGesture(minimumDistance: 1)
+                        .onChanged { _ in
+                            showCaptionDetail = false
+                        }
+                )
 
-                    if let backend = post.imageUnderstandingBackendLabel, post.hasImage {
-                        Text(l("post_card.image_understanding_detail", backend))
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(16)
-            }
-            .navigationTitle(l("post_card.full_caption"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(l("post_card.close")) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top) {
+                    Text(captionDetailTitle)
+                        .font(.headline)
+                    Spacer()
+                    Button {
                         showCaptionDetail = false
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.caption.weight(.bold))
+                            .padding(8)
+                            .background(chromeFillColor, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(post.caption ?? "")
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+
+                        if let backend = post.imageUnderstandingBackendLabel, post.hasImage {
+                            Text(l("post_card.image_understanding_detail", backend))
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
+                .frame(maxHeight: 220)
             }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color.black.opacity(colorScheme == .dark ? 0.28 : 0.10))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(cardStrokeColor, lineWidth: 0.8)
+            )
+            .padding(.horizontal, 12)
+            .padding(.vertical, 24)
         }
+        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+    }
+
+    private var captionDetailTitle: String {
+        if selectedLanguage.hasPrefix(AppLanguage.japanese.rawValue) {
+            return "全文"
+        }
+        if selectedLanguage.hasPrefix(AppLanguage.korean.rawValue) {
+            return "전체 보기"
+        }
+        return "Full text"
+    }
+
+    private func shouldShowCaptionPreviewExpansion(for caption: String) -> Bool {
+        caption.count > 90 || caption.contains("\n")
     }
 }
 

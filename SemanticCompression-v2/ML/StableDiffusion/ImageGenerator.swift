@@ -25,7 +25,7 @@ actor ImageGenerator {
         let pipe = try StableDiffusionPipeline(
             resourcesAt: modelsDirectory,
             controlNet: [],
-            reduceMemory: true
+            reduceMemory: false
         )
 
         try pipe.loadResources()

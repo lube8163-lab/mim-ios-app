@@ -65,6 +65,7 @@ enum AppPreferences {
     static let forceSDTextToImageKey = "force_sd_text_to_image"
     static let proModeEnabledKey = "pro_mode_enabled"
     static let proModeCacheLimitMBKey = "pro_mode_cache_limit_mb"
+    static let proModeSDStepCountKey = "pro_mode_sd_step_count"
     static let onboardingCompletedKey = "onboarding_completed"
     static let acceptedPrivacyVersionKey = "accepted_privacy_version"
     static let acceptedTermsVersionKey = "accepted_terms_version"

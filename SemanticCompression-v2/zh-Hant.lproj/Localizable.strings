@@ -36,6 +36,7 @@
 "content.drawer.profile" = "個人資料";
 "content.drawer.settings" = "設定與隱私";
 "content.drawer.sign_in_email" = "使用電子郵件登入";
+"content.feed.fetching" = "正在載入貼文...";
 "content.following.empty" = "你追蹤的人還沒有帖子";
 "content.following.login_description" = "只查看你追蹤使用者的帖子。";
 "content.following.login_title" = "登入後查看追蹤動態";
@@ -66,6 +67,7 @@
 "content.my_posts.empty" = "還沒有帖子";
 "content.my_posts.login_description" = "可以管理你在此裝置上的發帖紀錄和草稿。";
 "content.my_posts.login_title" = "登入後查看你的帖子";
+"content.sign_in_to_post" = "登入後發帖";
 "content.sign_in" = "登入";
 "content.tab.following" = "追蹤中";
 "content.tab.home" = "首頁";
@@ -245,6 +247,7 @@
 "post_detail.error.load_comments" = "載入留言失敗";
 "post_detail.error.send_comment" = "傳送留言失敗";
 "post_detail.no_comments" = "還沒有留言";
+"post_detail.reply" = "回覆";
 "post_detail.regenerate" = "重新生成";
 "post_detail.replying_to" = "正在回復 %@";
 "post_detail.send" = "傳送";

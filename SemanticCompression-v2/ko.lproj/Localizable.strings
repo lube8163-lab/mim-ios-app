@@ -38,6 +38,7 @@
 "content.genlog.following_page_failed" = "⚠️ 팔로잉 게시물을 더 불러오지 못했습니다";
 "content.genlog.liked_failed" = "⚠️ 좋아요한 게시물을 불러오지 못했습니다";
 "content.genlog.liked_page_failed" = "⚠️ 좋아요한 게시물 페이지를 불러오지 못했습니다";
+"content.feed.fetching" = "게시물을 불러오는 중...";
 "content.genlog.model_switch_failed" = "⚠️ 모델 전환 적용에 실패했습니다. 앱을 재시작하면 해결될 수 있습니다.";
 "content.genlog.my_posts_failed" = "⚠️ 내 게시물을 불러오지 못했습니다";
 "content.genlog.my_posts_page_failed" = "⚠️ 내 게시물 페이지를 불러오지 못했습니다";
@@ -60,6 +61,7 @@
 "content.my_posts.empty" = "아직 게시물이 없습니다";
 "content.my_posts.login_description" = "이 기기에서 올린 게시물 기록을 관리합니다.";
 "content.my_posts.login_title" = "내 게시물을 보려면 로그인";
+"content.sign_in_to_post" = "게시하려면 로그인";
 "content.sign_in" = "로그인";
 "content.tab.following" = "팔로잉";
 "content.tab.home" = "홈";
@@ -237,6 +239,7 @@
 "post_detail.error.load_comments" = "댓글을 불러오지 못했습니다";
 "post_detail.error.send_comment" = "댓글 전송에 실패했습니다";
 "post_detail.no_comments" = "아직 댓글이 없습니다";
+"post_detail.reply" = "답글";
 "post_detail.regenerate" = "다시 생성";
 "post_detail.replying_to" = "%@님에게 답글 작성 중";
 "post_detail.send" = "보내기";

@@ -36,6 +36,7 @@
 "content.drawer.profile" = "Profile";
 "content.drawer.settings" = "Settings and Privacy";
 "content.drawer.sign_in_email" = "Sign in with Email";
+"content.feed.fetching" = "Fetching posts...";
 "content.following.empty" = "No posts from people you follow yet";
 "content.following.login_description" = "See posts only from people you follow.";
 "content.following.login_title" = "Sign in to see following feed";
@@ -66,6 +67,7 @@
 "content.my_posts.empty" = "No posts yet";
 "content.my_posts.login_description" = "Manage your post history on this device.";
 "content.my_posts.login_title" = "Sign in to see your posts";
+"content.sign_in_to_post" = "Sign in to post";
 "content.sign_in" = "Sign In";
 "content.tab.following" = "Following";
 "content.tab.home" = "Home";
@@ -245,6 +247,7 @@
 "post_detail.error.load_comments" = "Failed to load comments";
 "post_detail.error.send_comment" = "Failed to send comment";
 "post_detail.no_comments" = "No comments yet";
+"post_detail.reply" = "Reply";
 "post_detail.regenerate" = "Regenerate";
 "post_detail.replying_to" = "Replying to %@";
 "post_detail.send" = "Send";

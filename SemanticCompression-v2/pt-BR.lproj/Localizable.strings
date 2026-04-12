@@ -36,6 +36,7 @@
 "content.drawer.profile" = "Perfil";
 "content.drawer.settings" = "Configurações e privacidade";
 "content.drawer.sign_in_email" = "Entrar com e-mail";
+"content.feed.fetching" = "Carregando postagens...";
 "content.following.empty" = "Ainda não há postagens de pessoas que você segue";
 "content.following.login_description" = "Veja apenas postagens de pessoas que você segue.";
 "content.following.login_title" = "Entre para ver o feed de seguindo";
@@ -66,6 +67,7 @@
 "content.my_posts.empty" = "Ainda não há postagens";
 "content.my_posts.login_description" = "Gerencie o histórico das suas postagens neste dispositivo.";
 "content.my_posts.login_title" = "Entre para ver suas postagens";
+"content.sign_in_to_post" = "Entre para publicar";
 "content.sign_in" = "Entrar";
 "content.tab.following" = "Seguindo";
 "content.tab.home" = "Início";
@@ -245,6 +247,7 @@
 "post_detail.error.load_comments" = "Falha ao carregar comentários";
 "post_detail.error.send_comment" = "Falha ao enviar comentário";
 "post_detail.no_comments" = "Ainda não há comentários";
+"post_detail.reply" = "Responder";
 "post_detail.regenerate" = "Regenerar";
 "post_detail.replying_to" = "Respondendo a %@";
 "post_detail.send" = "Enviar";

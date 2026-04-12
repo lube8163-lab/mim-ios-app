@@ -36,6 +36,7 @@
 "content.drawer.profile" = "プロフィール";
 "content.drawer.settings" = "設定とプライバシー";
 "content.drawer.sign_in_email" = "メールでログイン";
+"content.feed.fetching" = "投稿を読み込み中...";
 "content.following.empty" = "フォロー中ユーザーの投稿はまだありません";
 "content.following.login_description" = "フォローしたユーザーの新着だけを追えます。";
 "content.following.login_title" = "フォロー中タイムラインを見るにはログイン";
@@ -66,6 +67,7 @@
 "content.my_posts.empty" = "自分の投稿はまだありません";
 "content.my_posts.login_description" = "この端末で投稿した履歴や下書きを管理できます。";
 "content.my_posts.login_title" = "投稿履歴を見るにはログイン";
+"content.sign_in_to_post" = "投稿するにはログイン";
 "content.sign_in" = "ログインする";
 "content.tab.following" = "フォロー中";
 "content.tab.home" = "ホーム";
@@ -245,6 +247,7 @@
 "post_detail.error.load_comments" = "コメントの読み込みに失敗しました";
 "post_detail.error.send_comment" = "コメントの送信に失敗しました";
 "post_detail.no_comments" = "まだコメントはありません";
+"post_detail.reply" = "返信";
 "post_detail.regenerate" = "再生成";
 "post_detail.replying_to" = "%@ に返信中";
 "post_detail.send" = "送信";

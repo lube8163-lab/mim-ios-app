@@ -520,6 +520,10 @@ private enum ImagePixelSampler {
 }
 
 struct SDModeProfile {
+    static let defaultStandardStepCount = 25
+    static let minProModeStepCount = 10
+    static let maxProModeStepCount = 60
+
     let denoiseStrength: Float
     let guidanceScale: Float
     let stepCount: Int
@@ -536,8 +540,18 @@ struct SDModeProfile {
         return SDModeProfile(
             denoiseStrength: denoiseStrength(for: mode),
             guidanceScale: guidanceScale(for: mode),
-            stepCount: 25
+            stepCount: standardStepCount()
         )
+    }
+
+    private static func standardStepCount() -> Int {
+        guard UserDefaults.standard.bool(forKey: AppPreferences.proModeEnabledKey) else {
+            return defaultStandardStepCount
+        }
+
+        let configured = UserDefaults.standard.integer(forKey: AppPreferences.proModeSDStepCountKey)
+        let resolved = configured == 0 ? defaultStandardStepCount : configured
+        return min(max(resolved, minProModeStepCount), maxProModeStepCount)
     }
 
     private static func denoiseStrength(for mode: PrivacyMode) -> Float {

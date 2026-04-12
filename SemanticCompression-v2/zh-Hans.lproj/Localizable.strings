@@ -36,6 +36,7 @@
 "content.drawer.profile" = "个人资料";
 "content.drawer.settings" = "设置与隐私";
 "content.drawer.sign_in_email" = "使用邮箱登录";
+"content.feed.fetching" = "正在加载帖子...";
 "content.following.empty" = "你关注的人还没有帖子";
 "content.following.login_description" = "只查看你关注用户的帖子。";
 "content.following.login_title" = "登录后查看关注动态";
@@ -66,6 +67,7 @@
 "content.my_posts.empty" = "还没有帖子";
 "content.my_posts.login_description" = "可以管理你在此设备上的发帖记录和草稿。";
 "content.my_posts.login_title" = "登录后查看你的帖子";
+"content.sign_in_to_post" = "登录后发帖";
 "content.sign_in" = "登录";
 "content.tab.following" = "关注中";
 "content.tab.home" = "首页";
@@ -245,6 +247,7 @@
 "post_detail.error.load_comments" = "加载评论失败";
 "post_detail.error.send_comment" = "发送评论失败";
 "post_detail.no_comments" = "还没有评论";
+"post_detail.reply" = "回复";
 "post_detail.regenerate" = "重新生成";
 "post_detail.replying_to" = "正在回复 %@";
 "post_detail.send" = "发送";

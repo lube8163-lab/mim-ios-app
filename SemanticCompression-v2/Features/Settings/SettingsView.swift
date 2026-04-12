@@ -18,6 +18,8 @@ struct SettingsView: View {
     private var forceSDTextToImage = false
     @AppStorage(AppPreferences.proModeCacheLimitMBKey)
     private var proModeCacheLimitMB = ImageCacheManager.defaultProModeCacheLimitMB
+    @AppStorage(AppPreferences.proModeSDStepCountKey)
+    private var proModeSDStepCount = SDModeProfile.defaultStandardStepCount
     @State private var pendingProModeEnabled = false
     @State private var showProModeWarning = false
     @State private var showSigLIPRequirementInfo = false
@@ -162,6 +164,21 @@ struct SettingsView: View {
                 }
 
                 if isProModeEnabled {
+                    if modelManager.hasAnySDInstalled {
+                        Stepper(
+                            value: $proModeSDStepCount,
+                            in: SDModeProfile.minProModeStepCount...SDModeProfile.maxProModeStepCount,
+                            step: 1
+                        ) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(proModeStepCountTitle)
+                                Text(proModeStepCountNote)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+
                     Button(role: .destructive) {
                         showCacheMaintenanceConfirm = true
                     } label: {
@@ -306,6 +323,26 @@ struct SettingsView: View {
     private var proModeCacheUsageSummary: String {
         let bytes = ImageCacheManager.shared.totalCacheUsageBytes(in: [.originalImages, .semanticScores])
         return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    }
+
+    private var proModeStepCountTitle: String {
+        if selectedLanguage.hasPrefix(AppLanguage.japanese.rawValue) {
+            return "Stable Diffusion step数（通常版）: \(proModeSDStepCount)"
+        }
+        if selectedLanguage.hasPrefix(AppLanguage.korean.rawValue) {
+            return "Stable Diffusion step 수 (일반판): \(proModeSDStepCount)"
+        }
+        return "Stable Diffusion steps (standard model): \(proModeSDStepCount)"
+    }
+
+    private var proModeStepCountNote: String {
+        if selectedLanguage.hasPrefix(AppLanguage.japanese.rawValue) {
+            return "Pro Mode時のみ有効です。step数を上げるほど生成は遅くなり、端末負荷も増えます。通常版 SD1.5 にのみ反映され、LCM には反映されません。"
+        }
+        if selectedLanguage.hasPrefix(AppLanguage.korean.rawValue) {
+            return "Pro Mode에서만 적용됩니다. step 수를 높일수록 생성 속도는 느려지고 기기 부하는 커집니다. 일반 SD1.5에만 적용되며 LCM에는 적용되지 않습니다."
+        }
+        return "Only used in Pro Mode. Higher step counts slow generation and increase device load. This applies to standard SD1.5 only, not LCM."
     }
 
     private var installedModelsSummary: String {
