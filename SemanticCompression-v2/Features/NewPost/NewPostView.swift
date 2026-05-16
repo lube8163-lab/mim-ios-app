@@ -14,8 +14,9 @@ struct NewPostView: View {
 
     @EnvironmentObject var taggerHolder: TaggerHolder
     @EnvironmentObject var modelManager: ModelManager
-    var onSemanticProcessingWillStart: (() -> Void)? = nil
-    var onSemanticProcessingDidFinish: (() -> Void)? = nil
+    var isImagePostingTemporarilyDisabled = false
+    var onSemanticProcessingWillStart: (() async -> Void)? = nil
+    var onSemanticProcessingDidFinish: (() async -> Void)? = nil
 
     // UI state
     @State private var selectedItem: PhotosPickerItem?
@@ -66,9 +67,6 @@ struct NewPostView: View {
                                 imageUnderstandingStatusCard
                             }
 
-                            if isPosting, selectedImage != nil {
-                                postingTagStreamSection
-                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 14)
@@ -97,7 +95,8 @@ struct NewPostView: View {
                     .disabled(
                         isPosting ||
                         (selectedImage == nil &&
-                         userText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                         userText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ||
+                        (selectedImage != nil && isImagePostingTemporarilyDisabled)
                     )
                 }
             }
@@ -307,12 +306,21 @@ extension NewPostView {
 
             HStack {
                 if selectedImage != nil {
-                    Label(
-                        l("new_post.semantic_compression_enabled"),
-                        systemImage: "sparkles"
-                    )
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    if isImagePostingTemporarilyDisabled {
+                        Label(
+                            l("new_post.image_post_model_preparing_short"),
+                            systemImage: "hourglass"
+                        )
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    } else {
+                        Label(
+                            l("new_post.semantic_compression_enabled"),
+                            systemImage: "sparkles"
+                        )
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    }
                 }
 
                 Spacer()
@@ -489,6 +497,12 @@ extension NewPostView {
                 .font(.caption2)
                 .foregroundColor(.secondary)
             }
+
+            if isImagePostingTemporarilyDisabled {
+                Text(l("new_post.image_post_model_preparing_detail"))
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
@@ -510,6 +524,10 @@ extension NewPostView {
 extension NewPostView {
 
     private func requestPost() {
+        if selectedImage != nil && isImagePostingTemporarilyDisabled {
+            errorMessage = l("new_post.error.image_post_model_preparing")
+            return
+        }
         if selectedImage != nil && selectedMode == .l2Prime && !hasAcknowledgedCurrentL4Selection {
             warningTriggeredFromPostAction = true
             showL2PrimeWarning = true
@@ -534,6 +552,12 @@ extension NewPostView {
 
         guard !isPosting else { return }
         let imageForPost = forceTextOnly ? nil : selectedImage
+        if imageForPost != nil && isImagePostingTemporarilyDisabled {
+            await MainActor.run {
+                errorMessage = l("new_post.error.image_post_model_preparing")
+            }
+            return
+        }
         await MainActor.run {
             isPosting = true
             errorMessage = nil
@@ -608,9 +632,11 @@ extension NewPostView {
         }
 
         if imageForPost != nil {
-            onSemanticProcessingWillStart?()
+            await onSemanticProcessingWillStart?()
             defer {
-                onSemanticProcessingDidFinish?()
+                Task {
+                    await onSemanticProcessingDidFinish?()
+                }
             }
         }
 

@@ -31,13 +31,27 @@ actor QwenVisionLanguageService {
     func generateMetadata(from image: UIImage) async throws -> QwenGeneratedMetadata {
         let files = try await ModelManager.shared.findQwenVLModelFiles()
         try ensureContext(modelPath: files.modelURL.path, mmprojPath: files.mmprojURL.path)
+        defer {
+            resetContext()
+        }
 
         let imagePath = try writeImageToTemporaryFile(image)
         defer {
             try? FileManager.default.removeItem(atPath: imagePath)
         }
 
-        return try runWithFallbackPromptIfNeeded(imagePath: imagePath)
+        do {
+            let metadata = try runWithFallbackPromptIfNeeded(imagePath: imagePath)
+            if metadata.caption == "An image is shown." {
+                return try await AppleVisionImageUnderstandingService.shared.generateMetadata(from: image)
+            }
+            return metadata
+        } catch {
+            #if DEBUG
+            print("Qwen metadata generation fell back to Apple Vision:", error)
+            #endif
+            return try await AppleVisionImageUnderstandingService.shared.generateMetadata(from: image)
+        }
     }
 
     private func ensureContext(modelPath: String, mmprojPath: String) throws {
@@ -56,6 +70,10 @@ actor QwenVisionLanguageService {
         openedMMProjPath = nil
     }
 
+    func releaseResources() {
+        resetContext()
+    }
+
     private func runWithFallbackPromptIfNeeded(imagePath: String) throws -> QwenGeneratedMetadata {
         let attempts: [(label: String, prompt: String)] = [
             ("primary", Self.metadataPrompt),
@@ -71,11 +89,13 @@ actor QwenVisionLanguageService {
                 let result = try bridge.run(prompt: attempt.prompt, imagePath: imagePath)
                 let text = sanitizeOutput(result.text)
                 logModelOutput(text, label: attempt.label)
+                if let metadata = parseDirectCaptionMetadata(from: text) {
+                    return metadata
+                }
                 if let metadata = parseMetadataIfValid(from: text) {
                     return metadata
                 }
-                if attempt.label == "rescue",
-                   let metadata = parseRescueMetadata(from: text) {
+                if let metadata = parseLooseMetadata(from: text) {
                     return metadata
                 }
             } catch let LlamaCppBridgeError.runFailed(code, message) where code == -13 {
@@ -100,8 +120,8 @@ actor QwenVisionLanguageService {
     }
 
     private func writeImageToTemporaryFile(_ image: UIImage) throws -> String {
-        let resized = downscaleIfNeeded(image, maxSide: 896)
-        guard let data = resized.jpegData(compressionQuality: 0.9) else {
+        let resized = downscaleIfNeeded(image, maxSide: 672)
+        guard let data = resized.jpegData(compressionQuality: 0.82) else {
             throw QwenVisionLanguageServiceError.imageEncodingFailed
         }
 
@@ -190,10 +210,22 @@ actor QwenVisionLanguageService {
         guard cleaned != "An image is shown." else {
             return nil
         }
+        guard !Self.looksLikeInstructionPayload(cleaned) else {
+            return nil
+        }
+        guard Self.hasUsefulContent(cleaned) else {
+            return nil
+        }
 
         let prompt = Self.removeUnsafeTerms(from: cleaned.lowercased())
             .replacingOccurrences(of: ".", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !Self.looksLikeInstructionPayload(prompt) else {
+            return nil
+        }
+        guard Self.hasUsefulContent(prompt) else {
+            return nil
+        }
         let tags = Array(Self.sanitizeTags(Self.extractTags(from: prompt)).prefix(6))
 
         return QwenGeneratedMetadata(
@@ -201,6 +233,50 @@ actor QwenVisionLanguageService {
             semanticPrompt: prompt.isEmpty ? "photo, image" : prompt,
             tags: tags.isEmpty ? ["photo", "image"] : tags
         )
+    }
+
+    private func parseDirectCaptionMetadata(from text: String) -> QwenGeneratedMetadata? {
+        let cleanedLines = text
+            .split(whereSeparator: \.isNewline)
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard let firstUseful = cleanedLines.first(where: { line in
+            !Self.looksLikeInstructionLine(line)
+                && !line.uppercased().hasPrefix("CAPTION:")
+                && !line.uppercased().hasPrefix("PROMPT:")
+                && !line.uppercased().hasPrefix("TAGS:")
+                && Self.hasUsefulContent(line)
+        }) else {
+            return nil
+        }
+
+        return parseRescueMetadata(from: firstUseful)
+    }
+
+    private func parseLooseMetadata(from text: String) -> QwenGeneratedMetadata? {
+        let lines = text
+            .split(whereSeparator: \.isNewline)
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        let hasStructuredLine = lines.contains {
+            $0.uppercased().hasPrefix("CAPTION:")
+                || $0.uppercased().hasPrefix("PROMPT:")
+                || $0.uppercased().hasPrefix("TAGS:")
+        }
+
+        if hasStructuredLine {
+            let metadata = parseMetadata(from: text)
+            guard !Self.looksLikeInstructionPayload(metadata.caption),
+                  !Self.looksLikeInstructionPayload(metadata.semanticPrompt),
+                  metadata.caption != "An image is shown." else {
+                return nil
+            }
+            return metadata
+        }
+
+        return parseRescueMetadata(from: text)
     }
 
     private func lineValue(prefix: String, in lines: [String]) -> String {
@@ -231,6 +307,13 @@ actor QwenVisionLanguageService {
         return safe + "."
     }
 
+    private static func hasUsefulContent(_ text: String) -> Bool {
+        let tokens = text
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { $0.count >= 2 }
+        return !tokens.isEmpty
+    }
+
     private func sanitizePrompt(_ prompt: String, fallbackTags: [String], fallbackCaption: String) -> String {
         let raw = Self.parseCommaSeparatedItems(prompt)
 
@@ -257,8 +340,10 @@ actor QwenVisionLanguageService {
     }
 
     private func logModelOutput(_ text: String, label: String) {
+        #if DEBUG
         let flattened = text.replacingOccurrences(of: "\n", with: "\\n")
         print("Qwen \(label) output: \(flattened)")
+        #endif
     }
 
     private func genericMetadata() -> QwenGeneratedMetadata {
@@ -298,9 +383,16 @@ actor QwenVisionLanguageService {
             "visible scene",
             "short comma-separated tags",
             "visual keywords only",
+            "visual keywords",
             "visual keywords separated by commas",
             "simple short tags separated by commas",
-            "one sentence describing the visible image"
+            "one sentence describing the visible image",
+            "short factual sentence",
+            "nouns only",
+            "describe the visible image",
+            "mention the main visible objects",
+            "what is in this image",
+            "visible objects only"
         ]
         return instructionFragments.contains(where: { normalized.contains($0) })
     }
@@ -356,19 +448,11 @@ actor QwenVisionLanguageService {
     }
 
     private static let metadataPrompt = """
-    Reply in English using exactly these 3 lines:
-    CAPTION: one sentence describing the visible image
-    PROMPT: visual keywords separated by commas
-    TAGS: simple nouns separated by commas
-    No extra text. No instruction words. No placeholders.
+    Describe the visible image in one concise English sentence. Mention the main visible objects and setting only.
     """
 
     private static let fallbackPrompt = """
-    Respond in English with exactly 3 lines:
-    CAPTION: describe only the visible image in one sentence
-    PROMPT: visual keywords separated by commas
-    TAGS: simple short tags separated by commas
-    No extra text. Do not repeat the instruction text. Do not use placeholder wording.
+    What is in this image? Answer with one short English sentence about visible objects only.
     """
 
     private static let rescuePrompt = """

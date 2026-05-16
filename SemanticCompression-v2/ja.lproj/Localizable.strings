@@ -53,6 +53,8 @@
 "content.genlog.ready" = "準備完了";
 "content.genlog.refresh_failed" = "⚠️ 更新に失敗";
 "content.genlog.sd_restart_required" = "Stable Diffusion の反映は再起動後に行われます";
+"content.sd_load.preparing" = "Stable Diffusion を読み込み中";
+"content.sd_load.ready" = "Stable Diffusion の読み込みが完了しました";
 "content.guest.description" = "投稿・いいね・ブロックはログイン後に利用できます。";
 "content.guest.title" = "ゲスト閲覧中";
 "content.image_generation.failed" = "画像生成に失敗しました。もう一度お試しください。";
@@ -129,12 +131,15 @@
 "new_post.continue" = "続行";
 "new_post.current_backend" = "現在の解析バックエンド: %@";
 "new_post.error.mode_unavailable" = "このモードは現在利用できません。";
+"new_post.error.image_post_model_preparing" = "AIモデルを準備中です。完了後に画像付き投稿をお試しください。";
 "new_post.error.payload_failed" = "中間表現の生成に失敗しました。画像を変更して再試行してください。";
 "new_post.error.prohibited_text" = "不適切な可能性がある語句を検出しました。内容を修正して再投稿してください。";
 "new_post.error.upload_failed" = "アップロードに失敗しました";
 "new_post.extracting_semantics" = "意味を抽出して再構成します";
 "new_post.image" = "画像";
 "new_post.image_attached" = "画像あり";
+"new_post.image_post_model_preparing_detail" = "Stable Diffusion の読み込みが完了するまで、画像付き投稿は一時停止しています。";
+"new_post.image_post_model_preparing_short" = "AIモデルを準備中";
 "new_post.l4_warning.title" = "L4 は再現性が高い一方、プライバシーは弱くなります。続行しますか？";
 "new_post.lcm_note" = "LCM 使用中: モード切替不可 / img2img 無効";
 "new_post.mode.l1" = "画像情報なし";

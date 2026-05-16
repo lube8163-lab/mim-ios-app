@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 typedef struct vlm_context {
     struct llama_model * model;
@@ -19,11 +20,21 @@ typedef struct vlm_context {
     int32_t n_ctx;
 } vlm_context;
 
-static const int32_t k_default_n_ctx = 1024;
-static const int32_t k_default_n_batch = 256;
-static const int32_t k_default_n_threads = 4;
-static const int32_t k_max_first_token_eog_retries = 8;
-static const int32_t k_min_generated_tokens = 24;
+static const int32_t k_default_n_ctx = 1536;
+static const int32_t k_default_n_batch = 512;
+static const int32_t k_max_first_token_eog_retries = 4;
+static const int32_t k_min_generated_tokens = 12;
+
+static int32_t default_thread_count(void) {
+    long processor_count = sysconf(_SC_NPROCESSORS_ONLN);
+    if (processor_count < 2) {
+        return 2;
+    }
+    if (processor_count > 6) {
+        return 6;
+    }
+    return (int32_t) processor_count;
+}
 
 static void set_error(vlm_context * ctx, const char * msg) {
     if (ctx == NULL) {
@@ -147,12 +158,13 @@ int vlm_create_context(const char * model_path, const char * mmproj_path, void *
     }
 
     struct llama_context_params cparams = llama_context_default_params();
+    const int32_t n_threads = default_thread_count();
     ctx->n_ctx = k_default_n_ctx;
     cparams.n_ctx = (uint32_t) ctx->n_ctx;
     cparams.n_batch = k_default_n_batch;
     cparams.n_ubatch = k_default_n_batch;
-    cparams.n_threads = k_default_n_threads;
-    cparams.n_threads_batch = k_default_n_threads;
+    cparams.n_threads = n_threads;
+    cparams.n_threads_batch = n_threads;
 
     ctx->lctx = llama_init_from_model(ctx->model, cparams);
     if (ctx->lctx == NULL) {
@@ -184,9 +196,10 @@ int vlm_create_context(const char * model_path, const char * mmproj_path, void *
     if (has_non_empty(mmproj_path)) {
         struct mtmd_context_params mmparams = mtmd_context_params_default();
         mmparams.use_gpu = true;
-        mmparams.n_threads = k_default_n_threads;
+        mmparams.n_threads = n_threads;
         mmparams.warmup = false;
-        mmparams.image_max_tokens = 576;
+        mmparams.image_min_tokens = 1024;
+        mmparams.image_max_tokens = 1024;
         ctx->mctx = mtmd_init_from_file(mmproj_path, ctx->model, mmparams);
         if (ctx->mctx == NULL) {
             set_error(ctx, "failed to initialize mtmd context from mmproj");
@@ -316,7 +329,7 @@ int vlm_run(void * raw_ctx, const char * prompt, const char * image_path, vlm_to
     }
 
     llama_sampler_reset(ctx->sampler);
-    const int32_t n_predict = 128;
+    const int32_t n_predict = 96;
 
     int32_t n_generated = 0;
     for (int32_t i = 0; i < n_predict; i++) {

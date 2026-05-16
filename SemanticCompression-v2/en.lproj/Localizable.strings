@@ -53,6 +53,8 @@
 "content.genlog.ready" = "Ready";
 "content.genlog.refresh_failed" = "⚠️ Refresh failed";
 "content.genlog.sd_restart_required" = "Stable Diffusion will be applied after restart";
+"content.sd_load.preparing" = "Loading Stable Diffusion";
+"content.sd_load.ready" = "Stable Diffusion is ready";
 "content.guest.description" = "Posting, likes, and block controls are available after sign-in.";
 "content.guest.title" = "Browsing as Guest";
 "content.image_generation.failed" = "Image generation failed. Please try again.";
@@ -129,12 +131,15 @@
 "new_post.continue" = "Continue";
 "new_post.current_backend" = "Current analysis backend: %@";
 "new_post.error.mode_unavailable" = "This mode is currently unavailable.";
+"new_post.error.image_post_model_preparing" = "AI models are still preparing. Please try posting with an image after preparation finishes.";
 "new_post.error.payload_failed" = "Failed to build payload. Please retry with another image.";
 "new_post.error.prohibited_text" = "Potentially objectionable words were detected. Please revise your text.";
 "new_post.error.upload_failed" = "Upload failed";
 "new_post.extracting_semantics" = "Extracting semantics and reconstructing";
 "new_post.image" = "Image";
 "new_post.image_attached" = "Image attached";
+"new_post.image_post_model_preparing_detail" = "Image posts are paused until Stable Diffusion finishes loading.";
+"new_post.image_post_model_preparing_short" = "Preparing AI models";
 "new_post.l4_warning.title" = "L4 improves reconstruction but weakens privacy. Continue?";
 "new_post.lcm_note" = "LCM active: mode switch disabled / img2img off";
 "new_post.mode.l1" = "No image data";

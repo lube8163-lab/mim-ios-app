@@ -55,6 +55,10 @@ struct ContentView: View {
 
     @State private var generator: ImageGenerator?
     @State private var isGeneratorReady = false
+    @State private var isGeneratorLoading = false
+    @State private var isStableDiffusionPreparingForImagePosts = false
+    @State private var showStableDiffusionReadyNotice = false
+    @State private var hasShownStableDiffusionReadyNotice = false
     @State private var loadedGenerationCacheKey: String?
 
     // Pagination
@@ -248,11 +252,12 @@ struct ContentView: View {
         .sheet(isPresented: $showNewPost) {
             NewPostView(
                 posts: $postList.items,
+                isImagePostingTemporarilyDisabled: isStableDiffusionPreparingForImagePosts,
                 onSemanticProcessingWillStart: {
-                    Task { await suspendImageGenerationForPosting() }
+                    await suspendImageGenerationForPosting()
                 },
                 onSemanticProcessingDidFinish: {
-                    Task { await resumeImageGenerationAfterPosting() }
+                    await resumeImageGenerationAfterPosting()
                 }
             )
         }
@@ -443,35 +448,19 @@ extension ContentView {
             await blockManager.refreshFromServerIfPossible()
         }
 
-        guard modelManager.resolvedImageGenerationBackend == .stableDiffusion else {
-            appBootState = .ready
-            loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
-            await loadInitialPage()
-            return
-        }
-
-        appBootState = .preparingModel
-
-        // SD 初期化（ここで固まっても OK）
-        let sdDir = modelManager.selectedSDModelDirectory
-
-        do {
-            let gen = try ImageGenerator(modelsDirectory: sdDir)
-            self.generator = gen
-            self.isGeneratorReady = true
-            self.loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
-        } catch {
-            #if DEBUG
-            print("❌ SD init failed:", error)
-            #endif
-            self.generator = nil
-            self.isGeneratorReady = false
-            self.loadedGenerationCacheKey = nil
-        }
-
+        let shouldLoadStableDiffusion = modelManager.resolvedImageGenerationBackend == .stableDiffusion
+        isStableDiffusionPreparingForImagePosts = shouldLoadStableDiffusion
         appBootState = .ready
+        if !shouldLoadStableDiffusion {
+            isStableDiffusionPreparingForImagePosts = false
+            loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
+        }
         await loadInitialPage()
         await refreshUnreadNotificationsIfNeeded(force: true)
+
+        if shouldLoadStableDiffusion {
+            Task { await maybeReloadGeneratorForSelectedModel() }
+        }
     }
 }
 
@@ -575,6 +564,14 @@ extension ContentView {
 
     private var bottomOverlay: some View {
         VStack(spacing: 0) {
+            if selectedTab == .timeline,
+               isStableDiffusionPreparingForImagePosts || showStableDiffusionReadyNotice {
+                stableDiffusionLoadStatusBanner
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
             if !isChromeHidden {
                 customTabBar
                     .padding(.horizontal, 20)
@@ -584,6 +581,37 @@ extension ContentView {
         }
         .ignoresSafeArea(edges: .bottom)
         .animation(.easeInOut(duration: 0.18), value: isChromeHidden)
+        .animation(.easeInOut(duration: 0.2), value: isStableDiffusionPreparingForImagePosts)
+        .animation(.easeInOut(duration: 0.2), value: showStableDiffusionReadyNotice)
+    }
+
+    private var stableDiffusionLoadStatusBanner: some View {
+        let isReady = showStableDiffusionReadyNotice && !isStableDiffusionPreparingForImagePosts
+        return HStack(spacing: 8) {
+            if isReady {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+                Image(systemName: "wand.and.sparkles")
+                    .foregroundColor(.secondary)
+            }
+
+            Text(isReady ? l("content.sd_load.ready") : l("content.sd_load.preparing"))
+                .font(.caption.weight(.semibold))
+                .foregroundColor(isReady ? .green : .primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(isReady ? Color.green.opacity(0.38) : Color.white.opacity(0.4), lineWidth: 0.8)
+        )
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.08), radius: 12, y: 6)
     }
 
     private var customTabBar: some View {
@@ -1526,6 +1554,10 @@ extension ContentView {
                     return
                 }
             }
+            if backend == .stableDiffusion {
+                await QwenVisionLanguageService.shared.releaseResources()
+                try? await Task.sleep(nanoseconds: 250_000_000)
+            }
             let modelID = modelManager.activeImageGenerationCacheKey
             let rawInitImage = post.makeInitImage()
             let shouldDisableInitImage = backend == .stableDiffusion &&
@@ -1554,7 +1586,10 @@ extension ContentView {
                 post.imageGenerationFailureReason = localizedImageGenerationFailureReason(error: error, backend: backend)
             }
 
-            try? await Task.sleep(nanoseconds: 400_000_000)
+            let cooldown = generationCooldownNanoseconds(for: backend)
+            if cooldown > 0 {
+                try? await Task.sleep(nanoseconds: cooldown)
+            }
         }
     }
 
@@ -1595,6 +1630,9 @@ extension ContentView {
                     seed: seed
                 )
             } catch {
+                guard shouldRetryStableDiffusionAsTextToImage(error: error) else {
+                    throw error
+                }
                 #if DEBUG
                 print("⚠️ SD img2img failed, retrying with txt2img:", error)
                 #endif
@@ -1621,6 +1659,31 @@ extension ContentView {
                 userInfo: [NSLocalizedDescriptionKey: "Image generation backend is unresolved."]
             )
         }
+    }
+
+    private func generationCooldownNanoseconds(for backend: ImageGenerationBackend) -> UInt64 {
+        switch backend {
+        case .stableDiffusion:
+            return modelManager.selectedSDModelID == ModelManager.sd15LCMModelID
+                ? 80_000_000
+                : 150_000_000
+        case .imagePlayground, .automatic:
+            return 0
+        }
+    }
+
+    private func shouldRetryStableDiffusionAsTextToImage(error: Error) -> Bool {
+        let message = "\(String(describing: error)) \((error as NSError).localizedDescription)".lowercased()
+        let retryFragments = [
+            "starting",
+            "init",
+            "image",
+            "dimension",
+            "size",
+            "shape",
+            "latent"
+        ]
+        return retryFragments.contains { message.contains($0) }
     }
 
     private func l(_ key: String, _ arguments: CVarArg...) -> String {
@@ -1964,14 +2027,19 @@ extension ContentView {
         if modelManager.resolvedImageGenerationBackend == .stableDiffusion {
             if deferStableDiffusionReloadUntilRestart {
                 genLogKey = "content.genlog.sd_restart_required"
+                isStableDiffusionPreparingForImagePosts = false
                 return
             }
-            guard loadedGenerationCacheKey != activeKey || generator == nil else { return }
+            guard loadedGenerationCacheKey != activeKey || generator == nil else {
+                isStableDiffusionPreparingForImagePosts = false
+                return
+            }
             await reloadGeneratorForSelectedModel()
             return
         }
 
         deferStableDiffusionReloadUntilRestart = false
+        isStableDiffusionPreparingForImagePosts = false
         generationTask?.cancel()
         generationTask = nil
         generationQueue.removeAll()
@@ -1992,7 +2060,16 @@ extension ContentView {
     @MainActor
     private func reloadGeneratorForSelectedModel() async {
         guard !isGenerationSuspendedForPosting else { return }
-        let previousKey = loadedGenerationCacheKey
+        guard !isGeneratorLoading else { return }
+        isGeneratorLoading = true
+        isStableDiffusionPreparingForImagePosts = true
+        defer {
+            isGeneratorLoading = false
+            isStableDiffusionPreparingForImagePosts = false
+        }
+
+        let activeKey = modelManager.activeImageGenerationCacheKey
+        let sdDirectory = modelManager.selectedSDModelDirectory
 
         generationTask?.cancel()
         generationTask = nil
@@ -2006,20 +2083,36 @@ extension ContentView {
         }
 
         guard modelManager.resolvedImageGenerationBackend == .stableDiffusion else {
-            loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
+            loadedGenerationCacheKey = activeKey
             enqueueImages(for: allKnownPosts)
             return
         }
 
         do {
-            let gen = try ImageGenerator(modelsDirectory: modelManager.selectedSDModelDirectory)
+            let gen = try await Task.detached(priority: .low) {
+                try ImageGenerator(modelsDirectory: sdDirectory)
+            }.value
+
+            guard modelManager.resolvedImageGenerationBackend == .stableDiffusion,
+                  modelManager.activeImageGenerationCacheKey == activeKey else {
+                await gen.unloadResources()
+                return
+            }
+
             generator = gen
             isGeneratorReady = true
-            loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
+            loadedGenerationCacheKey = activeKey
+
+            guard !isGenerationSuspendedForPosting else {
+                genLogKey = "content.genlog.paused_during_posting"
+                return
+            }
+
             genLogKey = "content.genlog.ready"
 
-            try? await Task.sleep(nanoseconds: 250_000_000)
             enqueueImages(for: allKnownPosts)
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            showStableDiffusionReadyNoticeIfNeeded()
         } catch {
             #if DEBUG
             print("❌ SD re-init failed:", error)
@@ -2028,6 +2121,17 @@ extension ContentView {
             isGeneratorReady = false
             loadedGenerationCacheKey = nil
             genLogKey = "content.genlog.model_switch_failed"
+        }
+    }
+
+    @MainActor
+    private func showStableDiffusionReadyNoticeIfNeeded() {
+        guard !hasShownStableDiffusionReadyNotice else { return }
+        hasShownStableDiffusionReadyNotice = true
+        showStableDiffusionReadyNotice = true
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_200_000_000)
+            showStableDiffusionReadyNotice = false
         }
     }
 
@@ -2058,11 +2162,11 @@ extension ContentView {
         semanticScoreTasks.removeAll()
         isGenerating = false
 
-        if let current = generator {
-            await current.unloadResources()
-            generator = nil
-            isGeneratorReady = false
+        while isGeneratorLoading, !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 100_000_000)
         }
+
+        try? await Task.sleep(nanoseconds: 250_000_000)
 
         genLogKey = "content.genlog.paused_during_posting"
     }
@@ -2072,7 +2176,10 @@ extension ContentView {
         guard isGenerationSuspendedForPosting else { return }
         isGenerationSuspendedForPosting = false
 
-        await maybeReloadGeneratorForSelectedModel()
+        if modelManager.resolvedImageGenerationBackend == .stableDiffusion,
+           generator == nil {
+            await maybeReloadGeneratorForSelectedModel()
+        }
         enqueueImages(for: allKnownPosts)
         if canGenerateImagesNow {
             genLogKey = "content.genlog.ready"

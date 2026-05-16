@@ -198,14 +198,14 @@ actor ImageGenerator {
 
     func unloadResources() async {
         guard let pipeline = self.pipeline else { return }
+        self.pipeline = nil
 
-        DispatchQueue.global(qos: .utility).async {
+        autoreleasepool {
             pipeline.unloadResources()
-            #if DEBUG
-            print("🧹 Stable Diffusion resources unloaded")
-            #endif
         }
 
-        self.pipeline = nil
+        #if DEBUG
+        print("🧹 Stable Diffusion resources unloaded")
+        #endif
     }
 }
