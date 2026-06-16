@@ -3,9 +3,15 @@ import SwiftUI
 struct ModelInstallContentView: View {
 
     @ObservedObject var modelManager: ModelManager
+    let showsIntro: Bool
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
     @State private var activeAlert: ActiveAlert?
+
+    init(modelManager: ModelManager, showsIntro: Bool = true) {
+        self.modelManager = modelManager
+        self.showsIntro = showsIntro
+    }
 
     private enum DeleteTarget: Identifiable {
         case siglip
@@ -54,8 +60,10 @@ struct ModelInstallContentView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                introCard
+            VStack(alignment: .leading, spacing: 20) {
+                if showsIntro {
+                    introCard
+                }
 
                 modelSection(
                     title: l("model_management.image_understanding.title"),
@@ -122,25 +130,25 @@ struct ModelInstallContentView: View {
                         )
                     }
 
-                    Text(
-                        l("model_management.image_generation.notice")
-                    )
-                    .font(.caption)
-                    .foregroundColor(.orange)
+                    if showsIntro {
+                        Text(
+                            l("model_management.image_generation.notice")
+                        )
+                        .font(.caption)
+                        .foregroundColor(.orange)
 
-                    Text(
-                        l("model_management.image_generation.playground_note")
-                    )
-                    .font(.caption)
-                    .foregroundColor(.orange)
+                        Text(
+                            l("model_management.image_generation.playground_note")
+                        )
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    }
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 18)
+            .padding(.vertical, 16)
         }
-        .background(
-            Color(.systemBackground)
-        )
+        .background(Color(.systemBackground))
         .onChange(of: modelManager.installError?.id) { _ in
             if let context = modelManager.installError {
                 activeAlert = .installError(context)
@@ -305,7 +313,7 @@ struct ModelInstallContentView: View {
                 }
             }
 
-            if modelID == ModelManager.qwenVLModelID {
+            if showsIntro && modelID == ModelManager.qwenVLModelID {
                 Text(
                     l("model_management.model.qwen.description")
                 )
@@ -313,7 +321,7 @@ struct ModelInstallContentView: View {
                 .foregroundColor(.secondary)
             }
 
-            if modelID == ModelManager.siglipModelID {
+            if showsIntro && modelID == ModelManager.siglipModelID {
                 Text(
                     l("model_management.model.siglip.description")
                 )
@@ -321,7 +329,7 @@ struct ModelInstallContentView: View {
                 .foregroundColor(.secondary)
             }
 
-            if modelID == ModelManager.sd15ModelID {
+            if showsIntro && modelID == ModelManager.sd15ModelID {
                 Text(
                     l("model_management.model.sd15.description")
                 )
@@ -329,7 +337,7 @@ struct ModelInstallContentView: View {
                 .foregroundColor(.secondary)
             }
 
-            if modelID == ModelManager.sd15LCMModelID {
+            if showsIntro && modelID == ModelManager.sd15LCMModelID {
                 Text(
                     l("model_management.model.lcm.description")
                 )
@@ -375,11 +383,11 @@ struct ModelInstallContentView: View {
                 }
             }
         }
-        .padding(18)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.primary.opacity(0.08), lineWidth: 0.8)
         )
     }
@@ -396,11 +404,11 @@ private extension ModelInstallContentView {
             .font(.subheadline)
             .foregroundColor(.secondary)
         }
-        .padding(18)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.primary.opacity(0.08), lineWidth: 0.8)
         )
     }
@@ -414,12 +422,14 @@ private extension ModelInstallContentView {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.title3.weight(.bold))
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                if showsIntro {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
                 content()
             }
         }

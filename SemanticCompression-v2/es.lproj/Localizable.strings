@@ -35,7 +35,7 @@
 "content.drawer.log_out" = "Cerrar sesión";
 "content.drawer.profile" = "Perfil";
 "content.drawer.settings" = "Configuración y privacidad";
-"content.drawer.sign_in_email" = "Iniciar sesión con correo";
+"content.drawer.sign_in_email" = "Iniciar sesión";
 "content.feed.fetching" = "Cargando publicaciones...";
 "content.following.empty" = "Aún no hay publicaciones de personas que sigues";
 "content.following.login_description" = "Mira solo publicaciones de personas que sigues.";
@@ -96,7 +96,7 @@
 "model_install.bullet.qwen_recommended" = "Qwen3.5-VL es recomendado para comprensión de imágenes";
 "model_install.bullet.skip_ok" = "Omitir está bien";
 "model_install.completed_toast" = "La instalación ha finalizado. Reinicia la app para un comportamiento estable.";
-"model_install.description" = "Puedes empezar a publicar y ver imágenes ahora mismo, incluso sin descargar modelos extra.\n\nPuedes omitirlo por ahora e instalar modelos más tarde desde Configuración, en Gestionar modelos de IA.\nSi quieres un modelo de comprensión de imágenes más potente, Qwen3.5-VL es la opción recomendada.";
+"model_install.description" = "Los modelos extra son opcionales. Puedes agregarlos más tarde desde Configuración.";
 "model_install.restart_note" = "Cuando termine la instalación, cierra y reinicia la app.";
 "model_install.skip_now" = "Omitir por ahora";
 "model_install.title" = "Instalar modelos de IA";
@@ -196,13 +196,16 @@
 "onboarding.legal.terms.description" = "Revisa las condiciones de uso y las restricciones.";
 "onboarding.legal.terms.title" = "Términos del servicio";
 "onboarding.welcome" = "Bienvenido";
-"onboarding.welcome.subtitle" = "Empieza eligiendo tu idioma, revisa rápidamente cómo funciona la app y luego completa los consentimientos necesarios.";
+"onboarding.welcome.subtitle" = "Las imágenes se comparten como datos de significado y se regeneran en cada dispositivo.";
 "otp.email.placeholder" = "Correo";
+"otp.error.apple_sign_in" = "No se pudo iniciar sesión con Apple.";
+"otp.error.apple_sign_in_server" = "No se pudo iniciar sesión con Apple: %@";
 "otp.error.send_code" = "No se pudo enviar el código.";
 "otp.error.send_code_server" = "No se pudo enviar el código: %@";
 "otp.error.verify_code" = "No se pudo verificar el código.";
 "otp.error.verify_code_server" = "No se pudo verificar el código: %@";
 "otp.later" = "Más tarde";
+"otp.section.apple_id" = "Apple ID";
 "otp.section.sign_in" = "Iniciar sesión";
 "otp.section.verification_code" = "Código de verificación";
 "otp.send_code" = "Enviar código";

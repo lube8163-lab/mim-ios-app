@@ -1,11 +1,6 @@
 import SwiftUI
 
 struct OnboardingFlowView: View {
-    private enum Step {
-        case language
-        case overview
-    }
-
     @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage(AppPreferences.selectedLanguageKey)
@@ -19,7 +14,7 @@ struct OnboardingFlowView: View {
 
     @State private var acceptedPrivacy = false
     @State private var acceptedTerms = false
-    @State private var step: Step = .language
+    @State private var presentedLegalDocument: LegalDocumentKind?
 
     let onComplete: () -> Void
 
@@ -32,191 +27,131 @@ struct OnboardingFlowView: View {
             ZStack {
                 onboardingBackground
 
-                if step == .language {
-                    languageSelectionPage
-                } else {
-                    ScrollView(showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 28) {
-                            heroSection
-                            explainerSection
-                            aiFallbackSection
-                            legalSection
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 28)
-                        .padding(.bottom, 144)
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 22) {
+                        heroSection
+                        workflowPreviewSection
+                        legalSection
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 24)
+                    .padding(.bottom, 144)
                 }
             }
             .safeAreaInset(edge: .bottom) {
                 bottomCTA
+            }
+            .sheet(item: $presentedLegalDocument) { document in
+                NavigationStack {
+                    LegalDocumentDetailView(kind: document, showsCloseButton: true)
+                }
             }
             .toolbar(.hidden, for: .navigationBar)
         }
     }
 
     private var onboardingBackground: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    colorScheme == .dark
-                        ? Color(red: 0.08, green: 0.10, blue: 0.16)
-                        : Color(red: 0.95, green: 0.96, blue: 0.99),
-                    colorScheme == .dark
-                        ? Color(red: 0.10, green: 0.12, blue: 0.20)
-                        : Color(red: 0.98, green: 0.98, blue: 1.0)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            Circle()
-                .fill(Color(red: 0.76, green: 0.89, blue: 1.0).opacity(colorScheme == .dark ? 0.16 : 0.24))
-                .frame(width: 260, height: 260)
-                .blur(radius: 18)
-                .offset(x: 130, y: -270)
-
-            Circle()
-                .fill(Color(red: 0.82, green: 0.93, blue: 0.85).opacity(colorScheme == .dark ? 0.12 : 0.18))
-                .frame(width: 220, height: 220)
-                .blur(radius: 24)
-                .offset(x: -120, y: 320)
-        }
+        LinearGradient(
+            colors: colorScheme == .dark
+                ? [Color(.systemBackground), Color(.secondarySystemBackground)]
+                : [Color(.systemGroupedBackground), Color(.systemBackground)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
     }
 
     private var heroSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             topBrandHeader
 
             VStack(alignment: .leading, spacing: 10) {
                 Text(l("onboarding.welcome"))
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.primary)
 
                 Text(l("onboarding.welcome.subtitle"))
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.top, 8)
+        .padding(.top, 4)
     }
 
-    private var explainerSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+    private var topBrandHeader: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.accentColor.opacity(colorScheme == .dark ? 0.22 : 0.14))
+                    .frame(width: 40, height: 40)
+
+                Image(systemName: "sparkles.rectangle.stack")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.accentColor)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Semantic Compression")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.primary)
+
+                Text("Mim")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+    }
+
+    private var workflowPreviewSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
             Text(l("onboarding.how_it_works"))
                 .font(.headline.weight(.semibold))
                 .foregroundColor(.secondary)
 
-            VStack(spacing: 12) {
-                explainerCard(
-                    icon: "square.stack.3d.up",
-                    title: l("onboarding.explainer.compress.title"),
-                    body: l("onboarding.explainer.compress.body")
-                )
-
-                explainerCard(
-                    icon: "cpu",
-                    title: l("onboarding.explainer.backend.title"),
-                    body: l("onboarding.explainer.backend.body")
-                )
-
-                explainerCard(
-                    icon: "photo.artframe",
-                    title: l("onboarding.explainer.reconstruct.title"),
-                    body: l("onboarding.explainer.reconstruct.body")
-                )
-            }
-        }
-    }
-
-    private var languageSelectionPage: some View {
-        VStack(alignment: .leading, spacing: 26) {
-            topBrandHeader
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text(l("onboarding.language.title"))
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.primary)
-            }
-
             onboardingCard {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        ForEach(Array(AppLanguage.allCases.enumerated()), id: \.element.id) { index, language in
-                            languageRow(for: language)
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .center, spacing: 10) {
+                        workflowNode(
+                            icon: "photo",
+                            title: l("new_post.post"),
+                            tint: .blue
+                        )
 
-                            if index < AppLanguage.allCases.count - 1 {
-                                Divider()
-                                    .padding(.leading, 52)
-                            }
-                        }
+                        workflowArrow
+
+                        workflowNode(
+                            icon: "tag",
+                            title: semanticPacketLabel,
+                            tint: .teal
+                        )
+
+                        workflowArrow
+
+                        workflowNode(
+                            icon: "wand.and.stars",
+                            title: l("content.alert.regenerate.confirm"),
+                            tint: .purple
+                        )
                     }
                 }
-                .frame(maxHeight: 430)
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 144)
-    }
-
-    private var topBrandHeader: some View {
-        HStack {
-            Text("Semantic Compression")
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(Color.accentColor.opacity(0.9))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Color.white.opacity(0.68), in: Capsule())
-
-            Spacer()
-        }
-        .padding(.top, 2)
-    }
-
-    private var aiFallbackSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(l("onboarding.ai_fallback.title"))
-                .font(.headline.weight(.semibold))
-                .foregroundColor(.secondary)
-
-            VStack(spacing: 12) {
-                explainerCard(
-                    icon: "eye",
-                    title: l("onboarding.ai_fallback.understanding.title"),
-                    body: l("onboarding.ai_fallback.understanding.body")
-                )
-
-                explainerCard(
-                    icon: "wand.and.stars",
-                    title: l("onboarding.ai_fallback.generation.title"),
-                    body: l("onboarding.ai_fallback.generation.body"),
-                    emphasis: l("onboarding.ai_fallback.generation.emphasis")
-                )
-
-                explainerCard(
-                    icon: "slider.horizontal.3",
-                    title: l("onboarding.ai_fallback.settings.title"),
-                    body: l("onboarding.ai_fallback.settings.body")
-                )
+                .padding(6)
             }
         }
     }
 
     private var legalSection: some View {
         onboardingCard(title: l("onboarding.before_you_start")) {
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 legalItem(
                     icon: "checkmark.shield",
                     title: l("onboarding.legal.privacy.title"),
                     description: l("onboarding.legal.privacy.description"),
                     isAccepted: $acceptedPrivacy,
                     openTitle: l("onboarding.legal.open_document"),
-                    destination: AppPreferences.privacyPolicyURL
+                    document: .privacy
                 )
 
                 legalItem(
@@ -225,7 +160,7 @@ struct OnboardingFlowView: View {
                     description: l("onboarding.legal.terms.description"),
                     isAccepted: $acceptedTerms,
                     openTitle: l("onboarding.legal.open_document"),
-                    destination: AppPreferences.termsOfServiceURL
+                    document: .terms
                 )
             }
         }
@@ -234,42 +169,32 @@ struct OnboardingFlowView: View {
     private var bottomCTA: some View {
         VStack(spacing: 10) {
             Button {
-                if step == .language {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        step = .overview
-                    }
-                } else {
-                    completeOnboarding()
-                }
+                completeOnboarding()
             } label: {
-                Text(step == .language ? l("common.continue") : l("onboarding.get_started"))
+                Text(l("onboarding.get_started"))
                     .font(.headline.weight(.semibold))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
+                    .frame(minHeight: 58)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .foregroundColor(step == .language || canContinue ? .white : disabledCTAForegroundColor)
+            .foregroundColor(canContinue ? .white : disabledCTAForegroundColor)
             .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(
-                        step == .language || canContinue
-                        ? AnyShapeStyle(
-                            LinearGradient(
-                                colors: [Color.accentColor, Color.accentColor.opacity(0.72)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        canContinue
+                        ? AnyShapeStyle(Color.accentColor)
                         : AnyShapeStyle(disabledCTABackgroundStyle)
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(step == .language || canContinue ? Color.white.opacity(0.16) : disabledCTABorderColor, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(canContinue ? Color.white.opacity(0.16) : disabledCTABorderColor, lineWidth: 1)
             )
-            .disabled(step == .overview && !canContinue)
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .disabled(!canContinue)
 
-            Text(step == .language ? l("onboarding.language.change_later") : l("onboarding.agreements_review"))
+            Text(l("onboarding.agreements_review"))
                 .font(.footnote)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -290,12 +215,11 @@ struct OnboardingFlowView: View {
                 content()
             }
             .padding(10)
-            .background(cardBackgroundColor, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .background(cardBackgroundColor, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(cardStrokeColor, lineWidth: 1)
             )
-            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.04), radius: 18, x: 0, y: 10)
         }
     }
 
@@ -304,125 +228,84 @@ struct OnboardingFlowView: View {
             content()
         }
         .padding(10)
-        .background(cardBackgroundColor, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(cardBackgroundColor, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(cardStrokeColor, lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.04), radius: 18, x: 0, y: 10)
     }
 
-    private func explainerCard(icon: String, title: String, body: String, emphasis: String? = nil) -> some View {
-        HStack(alignment: .top, spacing: 14) {
+    private var workflowArrow: some View {
+        Image(systemName: "chevron.right")
+            .font(.system(size: 12, weight: .bold))
+            .foregroundColor(.secondary.opacity(0.72))
+    }
+
+    private func workflowNode(icon: String, title: String, tint: Color) -> some View {
+        VStack(spacing: 8) {
             ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.accentColor.opacity(colorScheme == .dark ? 0.18 : 0.12))
-                    .frame(width: 44, height: 44)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(tint.opacity(colorScheme == .dark ? 0.22 : 0.14))
+                    .frame(height: 64)
 
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.accentColor)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(tint)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.primary)
-
-                Text(body)
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let emphasis {
-                    Text(emphasis)
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(.orange)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.orange.opacity(colorScheme == .dark ? 0.16 : 0.12))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(Color.orange.opacity(colorScheme == .dark ? 0.32 : 0.24), lineWidth: 1)
-                        )
-                        .padding(.top, 4)
-                }
-            }
-
-            Spacer()
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.75)
+                .multilineTextAlignment(.center)
+                .frame(height: 32, alignment: .top)
         }
-        .padding(16)
-        .background(cardBackgroundColor, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(cardStrokeColor, lineWidth: 1)
-        )
+        .frame(maxWidth: .infinity)
     }
 
-    private func languageRow(for language: AppLanguage) -> some View {
-        Button {
-            selectedLanguage = language.rawValue
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(selectedLanguage == language.rawValue ? Color.accentColor.opacity(0.16) : Color.black.opacity(0.05))
-                        .frame(width: 34, height: 34)
-
-                    Image(systemName: selectedLanguage == language.rawValue ? "checkmark" : "globe")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(selectedLanguage == language.rawValue ? .accentColor : .secondary)
-                }
-
-                Text(language.label)
-                    .font(.title3.weight(.medium))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                    .allowsTightening(true)
-
-                Spacer()
-
-                if selectedLanguage == language.rawValue {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.title3)
-                        .foregroundColor(.accentColor)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 16)
-            .frame(minHeight: 84)
-            .contentShape(Rectangle())
+    private var semanticPacketLabel: String {
+        if selectedLanguage.hasPrefix(AppLanguage.japanese.rawValue) {
+            return "意味情報"
         }
-        .buttonStyle(.plain)
+        if selectedLanguage.hasPrefix(AppLanguage.spanish.rawValue) {
+            return "Datos"
+        }
+        if selectedLanguage.hasPrefix(AppLanguage.portugueseBrazil.rawValue)
+            || selectedLanguage.hasPrefix("pt") {
+            return "Dados"
+        }
+        if selectedLanguage.hasPrefix(AppLanguage.korean.rawValue) {
+            return "의미 정보"
+        }
+        if selectedLanguage.hasPrefix(AppLanguage.chineseTraditional.rawValue) {
+            return "語意資訊"
+        }
+        if selectedLanguage.hasPrefix(AppLanguage.chineseSimplified.rawValue) {
+            return "语义信息"
+        }
+        return "Meaning"
     }
 
     private func legalItem(
         icon: String,
         title: String,
-        description: String,
+        description _: String,
         isAccepted: Binding<Bool>,
         openTitle: String,
-        destination: URL
+        document: LegalDocumentKind
     ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.accentColor)
                     .frame(width: 28, height: 28)
-                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.headline)
-                    Text(description)
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Spacer(minLength: 12)
@@ -432,8 +315,14 @@ struct OnboardingFlowView: View {
             }
 
             HStack {
-                Link(openTitle, destination: destination)
-                    .font(.subheadline.weight(.semibold))
+                Button {
+                    presentedLegalDocument = document
+                } label: {
+                    Label(openTitle, systemImage: "doc.text.magnifyingglass")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.accentColor)
 
                 Spacer()
 
@@ -449,20 +338,20 @@ struct OnboardingFlowView: View {
             }
             .padding(.leading, 40)
         }
-        .padding(14)
-        .background(legalCardBackgroundColor, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(12)
+        .background(legalCardBackgroundColor, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var cardBackgroundColor: Color {
         colorScheme == .dark
-            ? Color(.secondarySystemBackground).opacity(0.94)
-            : Color.white.opacity(0.84)
+            ? Color(.secondarySystemBackground).opacity(0.86)
+            : Color(.systemBackground)
     }
 
     private var cardStrokeColor: Color {
         colorScheme == .dark
             ? Color.white.opacity(0.08)
-            : Color.white.opacity(0.88)
+            : Color.black.opacity(0.06)
     }
 
     private var legalCardBackgroundColor: Color {
@@ -473,7 +362,7 @@ struct OnboardingFlowView: View {
 
     private var bottomBarBackground: some View {
         Rectangle()
-            .fill(colorScheme == .dark ? Color(.systemBackground).opacity(0.92) : Color.white.opacity(0.72))
+            .fill(colorScheme == .dark ? Color(.systemBackground).opacity(0.92) : Color(.systemBackground).opacity(0.78))
             .background(.ultraThinMaterial)
     }
 

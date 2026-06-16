@@ -57,6 +57,27 @@ final class AuthManager: ObservableObject {
             deviceName: deviceName
         )
 
+        applySessionPayload(payload)
+    }
+
+    func signInWithApple(
+        identityToken: String,
+        nonce: String,
+        fullName: AppleSignInFullName?,
+        authorizationCode: String?
+    ) async throws {
+        let payload = try await AuthService.signInWithApple(
+            identityToken: identityToken,
+            nonce: nonce,
+            fullName: fullName,
+            authorizationCode: authorizationCode,
+            deviceName: "iOS"
+        )
+
+        applySessionPayload(payload)
+    }
+
+    private func applySessionPayload(_ payload: AuthSessionPayload) {
         tokens = payload.tokens
         pendingOtpChallengeId = nil
         AuthTokenStore.save(payload.tokens)

@@ -35,7 +35,7 @@
 "content.drawer.log_out" = "登出";
 "content.drawer.profile" = "個人資料";
 "content.drawer.settings" = "設定與隱私";
-"content.drawer.sign_in_email" = "使用電子郵件登入";
+"content.drawer.sign_in_email" = "登入";
 "content.feed.fetching" = "正在載入貼文...";
 "content.following.empty" = "你追蹤的人還沒有帖子";
 "content.following.login_description" = "只查看你追蹤使用者的帖子。";
@@ -96,7 +96,7 @@
 "model_install.bullet.qwen_recommended" = "圖像理解推薦 Qwen3.5-VL";
 "model_install.bullet.skip_ok" = "現在可以跳過";
 "model_install.completed_toast" = "安裝完成。為了穩定運行，請重新啟動應用。";
-"model_install.description" = "即使不下載額外模型，現在也可以直接開始發圖和看圖。\n\n你可以先跳過，之後再從設定裡的「管理 AI 模型」安裝。\n如果要安裝圖像理解模型，建議優先選擇更擅長上下文理解的 Qwen3.5-VL。";
+"model_install.description" = "額外模型是選用項目。之後可在設定中新增。";
 "model_install.restart_note" = "安裝完成後，請關閉並重新啟動應用。";
 "model_install.skip_now" = "暫時跳過";
 "model_install.title" = "安裝 AI 模型";
@@ -196,13 +196,16 @@
 "onboarding.legal.terms.description" = "查看使用條件和限制事项。";
 "onboarding.legal.terms.title" = "使用條款";
 "onboarding.welcome" = "歡迎";
-"onboarding.welcome.subtitle" = "先選擇顯示語言，快速看一眼應用的使用方式，然後完成開始前所需同意。";
+"onboarding.welcome.subtitle" = "圖像會以語意資料共享，並在各裝置上重新生成。";
 "otp.email.placeholder" = "電子郵件地址";
+"otp.error.apple_sign_in" = "使用 Apple ID 登入失敗。";
+"otp.error.apple_sign_in_server" = "使用 Apple ID 登入失敗：%@";
 "otp.error.send_code" = "傳送驗證碼失敗。";
 "otp.error.send_code_server" = "傳送驗證碼失敗：%@";
 "otp.error.verify_code" = "驗證碼驗證失敗。";
 "otp.error.verify_code_server" = "驗證碼驗證失敗：%@";
 "otp.later" = "稍後";
+"otp.section.apple_id" = "Apple ID";
 "otp.section.sign_in" = "登入";
 "otp.section.verification_code" = "驗證碼";
 "otp.send_code" = "傳送驗證碼";

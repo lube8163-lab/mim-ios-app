@@ -7,7 +7,7 @@ struct UserProfileView: View {
     @StateObject private var userManager = UserManager.shared
     @EnvironmentObject private var authManager: AuthManager
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
 
     // Profile edit
     @State private var newName = ""

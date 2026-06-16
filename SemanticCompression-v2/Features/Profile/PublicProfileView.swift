@@ -7,7 +7,7 @@ struct PublicProfileView: View {
     @EnvironmentObject private var authManager: AuthManager
     @EnvironmentObject private var modelManager: ModelManager
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
 
     @State private var profile: PublicUserProfile?
     @State private var posts: [Post] = []

@@ -8,7 +8,7 @@ struct PostDetailView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
 
     @State private var comments: [PostComment] = []
     @State private var isLoading = false

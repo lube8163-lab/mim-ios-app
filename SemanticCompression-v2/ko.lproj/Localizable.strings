@@ -29,7 +29,7 @@
 "content.drawer.log_out" = "로그아웃";
 "content.drawer.profile" = "프로필";
 "content.drawer.settings" = "설정 및 개인정보";
-"content.drawer.sign_in_email" = "이메일로 로그인";
+"content.drawer.sign_in_email" = "로그인";
 "content.following.empty" = "팔로우 중인 사용자의 게시물이 아직 없습니다";
 "content.following.login_description" = "팔로우한 사용자의 게시물만 볼 수 있습니다.";
 "content.following.login_title" = "팔로잉 피드를 보려면 로그인";
@@ -88,7 +88,7 @@
 "model_install.bullet.qwen_recommended" = "이미지 이해에는 Qwen3.5-VL 권장";
 "model_install.bullet.skip_ok" = "지금 건너뛰어도 됩니다";
 "model_install.completed_toast" = "설치가 완료되었습니다. 안정적인 동작을 위해 앱을 다시 실행해 주세요.";
-"model_install.description" = "추가 모델을 다운로드하지 않아도 바로 게시하거나 이미지를 볼 수 있습니다.\n\n지금은 건너뛰고 나중에 설정의 AI 모델 관리에서 설치할 수 있습니다.\n더 강한 이미지 이해 모델이 필요하면 Qwen3.5-VL을 권장합니다.";
+"model_install.description" = "추가 모델은 선택 사항입니다. 나중에 설정에서 추가할 수 있습니다.";
 "model_install.restart_note" = "설치가 끝나면 앱을 종료했다가 다시 실행해 주세요.";
 "model_install.skip_now" = "지금은 건너뛰기";
 "model_install.title" = "AI 모델 설치";
@@ -188,13 +188,16 @@
 "onboarding.legal.terms.description" = "사용 조건과 제한 사항을 확인합니다.";
 "onboarding.legal.terms.title" = "이용 약관";
 "onboarding.welcome" = "환영합니다";
-"onboarding.welcome.subtitle" = "먼저 언어를 선택하고, 앱의 흐름을 간단히 확인한 뒤 필요한 동의를 마치세요.";
+"onboarding.welcome.subtitle" = "이미지는 의미 정보로 공유되고 각 기기에서 다시 생성됩니다.";
 "otp.email.placeholder" = "이메일";
+"otp.error.apple_sign_in" = "Apple ID 로그인에 실패했습니다.";
+"otp.error.apple_sign_in_server" = "Apple ID 로그인에 실패했습니다: %@";
 "otp.error.send_code" = "코드 전송에 실패했습니다.";
 "otp.error.send_code_server" = "코드 전송에 실패했습니다: %@";
 "otp.error.verify_code" = "코드 확인에 실패했습니다.";
 "otp.error.verify_code_server" = "코드 확인에 실패했습니다: %@";
 "otp.later" = "나중에";
+"otp.section.apple_id" = "Apple ID";
 "otp.section.sign_in" = "로그인";
 "otp.section.verification_code" = "인증 코드";
 "otp.send_code" = "코드 보내기";

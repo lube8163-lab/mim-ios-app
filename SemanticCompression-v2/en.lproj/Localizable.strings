@@ -35,7 +35,7 @@
 "content.drawer.log_out" = "Log Out";
 "content.drawer.profile" = "Profile";
 "content.drawer.settings" = "Settings and Privacy";
-"content.drawer.sign_in_email" = "Sign in with Email";
+"content.drawer.sign_in_email" = "Sign In";
 "content.feed.fetching" = "Fetching posts...";
 "content.following.empty" = "No posts from people you follow yet";
 "content.following.login_description" = "See posts only from people you follow.";
@@ -98,7 +98,7 @@
 "model_install.bullet.qwen_recommended" = "Qwen3.5-VL is recommended for image understanding";
 "model_install.bullet.skip_ok" = "Skipping is OK";
 "model_install.completed_toast" = "Installation completed. Please restart the app for stable behavior.";
-"model_install.description" = "You can start posting and viewing images right away, even without downloading extra models.\n\nYou can skip this for now and install models later from Settings under Manage AI Models.\nIf you want a stronger image-understanding model, Qwen3.5-VL is the recommended option.";
+"model_install.description" = "Extra models are optional. You can add them later from Settings.";
 "model_install.restart_note" = "After installation completes, please close and restart the app.";
 "model_install.skip_now" = "Skip for now";
 "model_install.title" = "Install AI Models";
@@ -201,13 +201,16 @@
 "onboarding.legal.terms.description" = "Review the usage terms and restrictions.";
 "onboarding.legal.terms.title" = "Terms of Service";
 "onboarding.welcome" = "Welcome";
-"onboarding.welcome.subtitle" = "Start by choosing your language, take a quick look at how the app works, then finish the required agreements.";
+"onboarding.welcome.subtitle" = "Images are shared as meaning data and regenerated on each device.";
 "otp.email.placeholder" = "Email";
+"otp.error.apple_sign_in" = "Sign in with Apple failed.";
+"otp.error.apple_sign_in_server" = "Sign in with Apple failed: %@";
 "otp.error.send_code" = "Failed to send code.";
 "otp.error.send_code_server" = "Failed to send code: %@";
 "otp.error.verify_code" = "Failed to verify code.";
 "otp.error.verify_code_server" = "Failed to verify code: %@";
 "otp.later" = "Later";
+"otp.section.apple_id" = "Apple ID";
 "otp.section.sign_in" = "Sign In";
 "otp.section.verification_code" = "Verification Code";
 "otp.send_code" = "Send Code";

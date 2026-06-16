@@ -11,7 +11,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var modelManager: ModelManager
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
     @AppStorage(AppPreferences.proModeEnabledKey)
     private var isProModeEnabled = false
     @AppStorage(AppPreferences.forceSDTextToImageKey)

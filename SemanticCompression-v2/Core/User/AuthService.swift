@@ -25,6 +25,26 @@ struct OtpStartPayload {
     let challengeId: String
 }
 
+struct AppleSignInFullName: Encodable {
+    let givenName: String?
+    let familyName: String?
+    let nickname: String?
+
+    init?(_ components: PersonNameComponents?) {
+        let givenName = components?.givenName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let familyName = components?.familyName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let nickname = components?.nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard [givenName, familyName, nickname].contains(where: { ($0 ?? "").isEmpty == false }) else {
+            return nil
+        }
+
+        self.givenName = givenName?.isEmpty == false ? givenName : nil
+        self.familyName = familyName?.isEmpty == false ? familyName : nil
+        self.nickname = nickname?.isEmpty == false ? nickname : nil
+    }
+}
+
 enum AuthService {
     private static let base = "https://semantic-feed.semantic-compression.workers.dev"
 
@@ -93,12 +113,54 @@ enum AuthService {
         }
 
         let decoded = try JSONDecoder().decode(VerifyResponse.self, from: data)
+        return sessionPayload(from: decoded)
+    }
+
+    static func signInWithApple(
+        identityToken: String,
+        nonce: String,
+        fullName: AppleSignInFullName?,
+        authorizationCode: String?,
+        deviceName: String
+    ) async throws -> AuthSessionPayload {
+        guard let url = URL(string: "\(base)/auth/apple") else {
+            throw AuthError.badURL
+        }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONEncoder().encode(
+            AppleSignInRequest(
+                identityToken: identityToken,
+                nonce: nonce,
+                fullName: fullName,
+                authorizationCode: authorizationCode,
+                deviceName: deviceName
+            )
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw AuthError.invalidResponse
+        }
+
+        guard http.statusCode == 200 else {
+            if http.statusCode == 401 { throw AuthError.unauthorized }
+            let message = String(data: data, encoding: .utf8) ?? "Failed to sign in with Apple"
+            throw AuthError.server(message)
+        }
+
+        let decoded = try JSONDecoder().decode(VerifyResponse.self, from: data)
+        return sessionPayload(from: decoded)
+    }
+
+    private static func sessionPayload(from decoded: VerifyResponse) -> AuthSessionPayload {
         let tokens = AuthTokens(
             accessToken: decoded.accessToken,
             refreshToken: decoded.refreshToken,
             accessTokenExpiresAt: Date().addingTimeInterval(TimeInterval(decoded.accessTokenExpiresIn))
         )
-
         return AuthSessionPayload(user: decoded.user, tokens: tokens)
     }
 
@@ -162,6 +224,14 @@ private struct VerifyResponse: Decodable {
     let accessToken: String
     let refreshToken: String
     let accessTokenExpiresIn: Int
+}
+
+private struct AppleSignInRequest: Encodable {
+    let identityToken: String
+    let nonce: String
+    let fullName: AppleSignInFullName?
+    let authorizationCode: String?
+    let deviceName: String
 }
 
 private struct RefreshResponse: Decodable {

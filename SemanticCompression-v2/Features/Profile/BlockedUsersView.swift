@@ -3,7 +3,7 @@ import SwiftUI
 struct BlockedUsersView: View {
     @StateObject private var blockManager = BlockManager.shared
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
     @State private var userNames: [String: String] = [:]
 
     var body: some View {

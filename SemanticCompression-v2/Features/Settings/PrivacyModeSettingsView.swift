@@ -3,7 +3,7 @@ import SwiftUI
 struct PrivacyModeSettingsView: View {
     @EnvironmentObject var modelManager: ModelManager
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
     @AppStorage(AppPreferences.selectedPrivacyModeKey)
     private var selectedModeRaw = PrivacyMode.l2.storageValue
     @State private var showL4Warning = false

@@ -9,7 +9,7 @@ import SwiftUI
 
 struct LicenseView: View {
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
 
     var body: some View {
         ScrollView {

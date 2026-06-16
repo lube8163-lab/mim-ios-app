@@ -14,7 +14,7 @@ struct PostCardView: View {
     var onPostReported: ((String) -> Void)? = nil
     var onPostDeleted: ((String) -> Void)? = nil
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
     @AppStorage(AppPreferences.proModeEnabledKey)
     private var isProModeEnabled = false
 

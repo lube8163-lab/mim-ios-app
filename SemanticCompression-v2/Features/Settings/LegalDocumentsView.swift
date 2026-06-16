@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LegalDocumentsView: View {
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
     @AppStorage(AppPreferences.acceptedPrivacyVersionKey)
     private var acceptedPrivacyVersion = ""
     @AppStorage(AppPreferences.acceptedTermsVersionKey)
@@ -23,8 +23,17 @@ struct LegalDocumentsView: View {
             }
 
             Section(l("legal.documents")) {
-                Link(l("legal.privacy_policy"), destination: AppPreferences.privacyPolicyURL)
-                Link(l("legal.terms_of_service"), destination: AppPreferences.termsOfServiceURL)
+                NavigationLink {
+                    LegalDocumentDetailView(kind: .privacy)
+                } label: {
+                    Label(l("legal.privacy_policy"), systemImage: "checkmark.shield")
+                }
+
+                NavigationLink {
+                    LegalDocumentDetailView(kind: .terms)
+                } label: {
+                    Label(l("legal.terms_of_service"), systemImage: "doc.text")
+                }
             }
 
             Section(l("legal.contact")) {

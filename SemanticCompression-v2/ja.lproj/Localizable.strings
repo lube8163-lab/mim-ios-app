@@ -35,7 +35,7 @@
 "content.drawer.log_out" = "ログアウト";
 "content.drawer.profile" = "プロフィール";
 "content.drawer.settings" = "設定とプライバシー";
-"content.drawer.sign_in_email" = "メールでログイン";
+"content.drawer.sign_in_email" = "ログインする";
 "content.feed.fetching" = "投稿を読み込み中...";
 "content.following.empty" = "フォロー中ユーザーの投稿はまだありません";
 "content.following.login_description" = "フォローしたユーザーの新着だけを追えます。";
@@ -98,7 +98,7 @@
 "model_install.bullet.qwen_recommended" = "画像理解は Qwen3.5-VL 推奨";
 "model_install.bullet.skip_ok" = "今はスキップ可";
 "model_install.completed_toast" = "インストールが完了しました。安定動作のためアプリを再起動してください。";
-"model_install.description" = "このアプリは追加モデルがなくても、そのまま画像投稿と閲覧を始められます。\n\n今はスキップして、あとから設定の「AI モデルの管理」からインストールすることもできます。\n画像理解を入れるなら、より文脈に強い Qwen3.5-VL を推奨します。";
+"model_install.description" = "追加モデルは任意です。あとから設定で追加できます。";
 "model_install.restart_note" = "※ モデルのインストール完了後は、\nアプリを一度終了して再起動してください。";
 "model_install.skip_now" = "今はスキップ";
 "model_install.title" = "AIモデルのインストール";
@@ -201,13 +201,16 @@
 "onboarding.legal.terms.description" = "利用条件と禁止事項を確認できます。";
 "onboarding.legal.terms.title" = "利用規約";
 "onboarding.welcome" = "ようこそ";
-"onboarding.welcome.subtitle" = "まずは表示言語を選んで、アプリの流れをさっと見てから利用前の同意を済ませましょう。";
+"onboarding.welcome.subtitle" = "画像は意味情報として送られ、端末で再生成されます。";
 "otp.email.placeholder" = "メールアドレス";
+"otp.error.apple_sign_in" = "Apple IDでのログインに失敗しました。";
+"otp.error.apple_sign_in_server" = "Apple IDでのログインに失敗しました: %@";
 "otp.error.send_code" = "認証コード送信に失敗しました。";
 "otp.error.send_code_server" = "認証コード送信に失敗しました: %@";
 "otp.error.verify_code" = "コード認証に失敗しました。";
 "otp.error.verify_code_server" = "コード認証に失敗しました: %@";
 "otp.later" = "あとで";
+"otp.section.apple_id" = "Apple ID";
 "otp.section.sign_in" = "ログイン";
 "otp.section.verification_code" = "認証コード";
 "otp.send_code" = "認証コードを送信";

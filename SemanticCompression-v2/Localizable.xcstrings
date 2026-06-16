@@ -1710,43 +1710,43 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sign in with Email"
+            "value": "Sign In"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Iniciar sesión con correo"
+            "value": "Iniciar sesión"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "メールでログイン"
+            "value": "ログインする"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이메일로 로그인"
+            "value": "로그인"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Entrar com e-mail"
+            "value": "Entrar"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用邮箱登录"
+            "value": "登录"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用電子郵件登入"
+            "value": "登入"
           }
         }
       }
@@ -4565,43 +4565,43 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You can start posting and viewing images right away, even without downloading extra models.\n\nYou can skip this for now and install models later from Settings under Manage AI Models.\nIf you want a stronger image-understanding model, Qwen3.5-VL is the recommended option."
+            "value": "Extra models are optional. You can add them later from Settings."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Puedes empezar a publicar y ver imágenes ahora mismo, incluso sin descargar modelos extra.\n\nPuedes omitirlo por ahora e instalar modelos más tarde desde Configuración, en Gestionar modelos de IA.\nSi quieres un modelo de comprensión de imágenes más potente, Qwen3.5-VL es la opción recomendada."
+            "value": "Los modelos extra son opcionales. Puedes agregarlos más tarde desde Configuración."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このアプリは追加モデルがなくても、そのまま画像投稿と閲覧を始められます。\n\n今はスキップして、あとから設定の「AI モデルの管理」からインストールすることもできます。\n画像理解を入れるなら、より文脈に強い Qwen3.5-VL を推奨します。"
+            "value": "追加モデルは任意です。あとから設定で追加できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "추가 모델을 다운로드하지 않아도 바로 게시하거나 이미지를 볼 수 있습니다.\n\n지금은 건너뛰고 나중에 설정의 AI 모델 관리에서 설치할 수 있습니다.\n더 강한 이미지 이해 모델이 필요하면 Qwen3.5-VL을 권장합니다."
+            "value": "추가 모델은 선택 사항입니다. 나중에 설정에서 추가할 수 있습니다."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Você pode começar a postar e visualizar imagens imediatamente, mesmo sem baixar modelos extras.\n\nPode pular por agora e instalar depois em Configurações, em Gerenciar modelos de IA.\nSe quiser um modelo de entendimento de imagem mais forte, Qwen3.5-VL é a opção recomendada."
+            "value": "Modelos extras são opcionais. Você pode adicioná-los depois em Configurações."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "即使不下载额外模型，现在也可以直接开始发图和看图。\n\n你可以先跳过，之后再从设置里的“管理 AI 模型”安装。\n如果要安装图像理解模型，推荐优先选择更擅长上下文理解的 Qwen3.5-VL。"
+            "value": "额外模型是可选的。之后可在设置中添加。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "即使不下載額外模型，現在也可以直接開始發圖和看圖。\n\n你可以先跳過，之後再從設定裡的「管理 AI 模型」安裝。\n如果要安裝圖像理解模型，建議優先選擇更擅長上下文理解的 Qwen3.5-VL。"
+            "value": "額外模型是選用項目。之後可在設定中新增。"
           }
         }
       }
@@ -9265,43 +9265,43 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Start by choosing your language, take a quick look at how the app works, then finish the required agreements."
+            "value": "Images are shared as meaning data and regenerated on each device."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Empieza eligiendo tu idioma, revisa rápidamente cómo funciona la app y luego completa los consentimientos necesarios."
+            "value": "Las imágenes se comparten como datos de significado y se regeneran en cada dispositivo."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "まずは表示言語を選んで、アプリの流れをさっと見てから利用前の同意を済ませましょう。"
+            "value": "画像は意味情報として送られ、端末で再生成されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "먼저 언어를 선택하고, 앱의 흐름을 간단히 확인한 뒤 필요한 동의를 마치세요."
+            "value": "이미지는 의미 정보로 공유되고 각 기기에서 다시 생성됩니다."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Comece escolhendo seu idioma, veja rapidamente como o app funciona e depois conclua os consentimentos necessários."
+            "value": "As imagens são compartilhadas como dados de significado e regeneradas em cada dispositivo."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "先选择显示语言，快速看一眼应用的使用方式，然后完成开始前所需同意。"
+            "value": "图像会以语义数据共享，并在各设备上重新生成。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "先選擇顯示語言，快速看一眼應用的使用方式，然後完成開始前所需同意。"
+            "value": "圖像會以語意資料共享，並在各裝置上重新生成。"
           }
         }
       }
@@ -17480,6 +17480,147 @@
           "stringUnit": {
             "state": "translated",
             "value": "設定"
+          }
+        }
+      }
+    },
+    "otp.error.apple_sign_in": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in with Apple failed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo iniciar sesión con Apple."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple IDでのログインに失敗しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ID 로그인에 실패했습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falha ao entrar com Apple ID."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Apple ID 登录失败。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Apple ID 登入失敗。"
+          }
+        }
+      }
+    },
+    "otp.error.apple_sign_in_server": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in with Apple failed: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo iniciar sesión con Apple: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple IDでのログインに失敗しました: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ID 로그인에 실패했습니다: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falha ao entrar com Apple ID: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Apple ID 登录失败：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Apple ID 登入失敗：%@"
+          }
+        }
+      }
+    },
+    "otp.section.apple_id": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ID"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ID"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ID"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ID"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ID"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ID"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ID"
           }
         }
       }

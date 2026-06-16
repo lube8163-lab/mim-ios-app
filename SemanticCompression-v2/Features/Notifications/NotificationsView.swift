@@ -3,7 +3,7 @@ import SwiftUI
 struct NotificationsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
 
     let onNotificationsLoaded: ([AppNotification]) -> Void
 

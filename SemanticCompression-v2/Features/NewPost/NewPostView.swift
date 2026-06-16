@@ -6,7 +6,7 @@ struct NewPostView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var posts: [Post]
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.japanese.rawValue
+    private var selectedLanguage = AppLanguage.preferred.rawValue
     @AppStorage(AppPreferences.selectedPrivacyModeKey)
     private var selectedPrivacyModeRaw = PrivacyMode.l2.storageValue
     @AppStorage(AppPreferences.proModeEnabledKey)
