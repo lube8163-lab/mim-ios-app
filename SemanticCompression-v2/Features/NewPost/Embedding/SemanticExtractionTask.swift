@@ -200,7 +200,8 @@ actor SemanticExtractionTask {
     ) async throws {
         let metadata = try await QwenVisionLanguageService.shared.generateMetadata(from: image)
         let safeTags = Array(Self.sanitizeTags(metadata.tags).prefix(6))
-        let finalPrompt = metadata.caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalCaption = metadata.caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalPrompt = Self.semanticPrompt(from: metadata, safeTags: safeTags)
 
         if !safeTags.isEmpty {
             await MainActor.run {
@@ -210,7 +211,7 @@ actor SemanticExtractionTask {
 
         await MainActor.run {
             post.regionTags = nil
-            post.caption = finalPrompt
+            post.caption = finalCaption
             post.semanticPrompt = finalPrompt
             post.imageUnderstandingBackend = ImageUnderstandingBackend.qwen35vl.rawValue
             post.tags = safeTags
@@ -225,7 +226,8 @@ actor SemanticExtractionTask {
     ) async throws {
         let metadata = try await AppleVisionImageUnderstandingService.shared.generateMetadata(from: image)
         let safeTags = Array(Self.sanitizeTags(metadata.tags).prefix(6))
-        let finalPrompt = metadata.caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalCaption = metadata.caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalPrompt = Self.semanticPrompt(from: metadata, safeTags: safeTags)
 
         if !safeTags.isEmpty {
             await MainActor.run {
@@ -235,12 +237,25 @@ actor SemanticExtractionTask {
 
         await MainActor.run {
             post.regionTags = nil
-            post.caption = finalPrompt
+            post.caption = finalCaption
             post.semanticPrompt = finalPrompt
             post.imageUnderstandingBackend = ImageUnderstandingBackend.vision.rawValue
             post.tags = safeTags
             post.status = .completed
         }
+    }
+
+    private static func semanticPrompt(from metadata: QwenGeneratedMetadata, safeTags: [String]) -> String {
+        let prompt = metadata.semanticPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !prompt.isEmpty {
+            return prompt
+        }
+        if !safeTags.isEmpty {
+            return safeTags.joined(separator: ", ")
+        }
+
+        let caption = metadata.caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        return caption.isEmpty ? "photo, image" : caption
     }
 
     // MARK: - Multi-scale region extraction (metadata)

@@ -108,7 +108,7 @@
 "model_management.installing" = "설치 중…";
 "model_management.intro.body" = "이 화면에서 로컬 모델을 다운로드, 삭제, 전환할 수 있습니다. Automatic, Apple Vision, Image Playground 동작은 설정의 AI 백엔드에서 따로 고를 수 있습니다.";
 "model_management.intro.title" = "AI 모델";
-"model_management.model.lcm.description" = "LCM은 속도 위주로 조정되어 있습니다. img2img(시작 이미지 워크플로)는 비활성화됩니다.";
+"model_management.model.lcm.description" = "Sana Sprint는 빠른 생성에 최적화되어 있습니다. L1은 프롬프트만 사용하고 L2–L4는 저주파 페이로드 기반 img2img를 지원합니다.";
 "model_management.model.qwen.description" = "Qwen은 이미지에서 caption, prompt, tags를 직접 생성합니다. SigLIP보다 무겁지만 더 문맥적인 결과를 낼 수 있습니다.";
 "model_management.model.sd15.description" = "기본 SD 1.5 모델은 재구성 품질을 우선합니다. 시작 이미지를 사용하는 img2img 워크플로를 지원해 게시 모드 비교에 유리합니다.";
 "model_management.model.siglip.description" = "SigLIP2는 이미지에서 임베딩과 태그를 추출하는 가벼운 비전 모델입니다. caption/prompt 조합에 사용되며 프로 모드 의미 보존율 계산에도 필요합니다.";
@@ -288,7 +288,9 @@
 "profile.error.load_failed" = "프로필을 불러오지 못했습니다";
 "profile.follow" = "팔로우";
 "profile.followers" = "팔로워";
+"profile.followers_empty" = "아직 팔로워가 없습니다";
 "profile.following" = "팔로잉";
+"profile.following_empty" = "아직 팔로우한 사용자가 없습니다";
 "profile.guest_mode" = "현재 게스트 모드입니다";
 "profile.guest_mode_detail" = "로그인하면 게시, 좋아요, 차단 기능을 사용할 수 있습니다.";
 "profile.loading" = "불러오는 중...";

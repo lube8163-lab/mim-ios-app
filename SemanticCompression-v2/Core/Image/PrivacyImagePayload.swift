@@ -529,11 +529,11 @@ struct SDModeProfile {
     let stepCount: Int
 
     static func forMode(_ mode: PrivacyMode, modelID: String) -> SDModeProfile {
-        if modelID == ModelManager.sd15LCMModelID {
+        if modelID == ModelManager.sanaSprintModelID {
             return SDModeProfile(
-                denoiseStrength: lcmDenoiseStrength(for: mode),
-                guidanceScale: 1.5,
-                stepCount: 8
+                denoiseStrength: sanaDenoiseStrength(for: mode),
+                guidanceScale: 4.5,
+                stepCount: mode == .l1 ? 2 : 1
             )
         }
 
@@ -576,16 +576,16 @@ struct SDModeProfile {
         }
     }
 
-    private static func lcmDenoiseStrength(for mode: PrivacyMode) -> Float {
+    private static func sanaDenoiseStrength(for mode: PrivacyMode) -> Float {
         switch mode {
         case .l1:
-            return 0.55
+            return 1.0
         case .l2:
-            return 0.45
+            return 0.85
         case .l3:
-            return 0.50
+            return 0.93
         case .l2Prime:
-            return 0.48
+            return 0.93
         }
     }
 }

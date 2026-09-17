@@ -16,12 +16,6 @@ struct PrivacyModeSettingsView: View {
                 .font(.footnote)
                 .foregroundColor(.secondary)
 
-                if modelManager.resolvedImageGenerationBackend == .stableDiffusion &&
-                    modelManager.selectedSDModelID == ModelManager.sd15LCMModelID {
-                    Text(l("privacy_mode.lcm_disabled"))
-                    .font(.footnote)
-                    .foregroundColor(.orange)
-                }
             }
 
             Section(l("privacy_mode.default_section")) {
@@ -55,10 +49,6 @@ struct PrivacyModeSettingsView: View {
                         }
                     }
                     .disabled(!PrivacyModeAccessPolicy.canUse(mode: mode))
-                    .disabled(
-                        modelManager.resolvedImageGenerationBackend == .stableDiffusion &&
-                        modelManager.selectedSDModelID == ModelManager.sd15LCMModelID
-                    )
                 }
             }
         }

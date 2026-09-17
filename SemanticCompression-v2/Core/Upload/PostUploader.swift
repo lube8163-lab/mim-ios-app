@@ -14,6 +14,8 @@ struct PostUploadPayload: Codable {
     // --- 投稿内容 ---
     let mode: Int
     let payload: PostPayload?
+    let caption: String?
+    let semanticPrompt: String?
     let tags: [String]
     let imageUnderstandingBackend: String?
     let userText: String?
@@ -38,6 +40,8 @@ final class PostUploader {
         let payload = PostUploadPayload(
             mode: post.mode,
             payload: post.payload,
+            caption: post.caption,
+            semanticPrompt: post.semanticPrompt,
             tags: post.tags,
             imageUnderstandingBackend: post.imageUnderstandingBackend,
             userText: post.userText,

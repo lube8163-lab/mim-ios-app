@@ -63,7 +63,9 @@ final class ModelManager: ObservableObject {
     }
 
     static let sd15ModelID = "sd15"
-    static let sd15LCMModelID = "sd15_lcm"
+    static let sanaSprintModelID = "sana_sprint"
+    private static let legacySD15LCMModelID = "sd15_lcm"
+    private static let legacySD15LCMInstallPath = "StableDiffusion/sd15_lcm"
     static let siglipModelID = ImageUnderstandingModel.siglip2.rawValue
     static let qwenVLModelID = ImageUnderstandingModel.qwen35vl.rawValue
     static let qwenVLInstallPath = "Qwen3_5_VL_0_8B"
@@ -91,15 +93,15 @@ final class ModelManager: ObservableObject {
             sha256: "37e4f91b81ac501a9ef7f30ccbc216367de4f5a14a963441fc6ee8abce16e7ed"
         ),
         SDModelConfig(
-            id: sd15LCMModelID,
-            title: "Stable Diffusion 1.5 (LCM)",
-            sizeLabelJA: "約2 GB（Wi-Fi 推奨）",
-            sizeLabelEN: "About 2 GB (Wi-Fi recommended)",
-            installPath: "StableDiffusion/sd15_lcm",
+            id: sanaSprintModelID,
+            title: "Sana Sprint 0.6B",
+            sizeLabelJA: "約2.3 GB（Wi-Fi 推奨）",
+            sizeLabelEN: "About 2.3 GB (Wi-Fi recommended)",
+            installPath: "StableDiffusion/sana_sprint",
             downloadURL: URL(
-                string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/SD/sd15/sd15_lcm_coreml_v1_mlmodelc.zip"
+                string: "https://pub-41a85dcbeaae42d58c317781ea160d68.r2.dev/SD/sana/sana_sprint_coreml_v1.zip"
             )!,
-            sha256: "a45129822a1b199bb639ae1d822a05044f28d7aa911e87bba28879d86a0e49e7"
+            sha256: "06d6e68494337115b5e2923c9f46715f1a4ad1011e493207d105ad1194523429"
         )
     ]
 
@@ -188,7 +190,7 @@ final class ModelManager: ObservableObject {
     }
 
     var hasAnySDInstalled: Bool {
-        Self.supportedSDModels.contains { isInstalled(path: $0.installPath) }
+        Self.supportedSDModels.contains { isSDModelInstalled($0.id) }
     }
 
     var hasAnyDownloadedModel: Bool {
@@ -306,12 +308,26 @@ final class ModelManager: ObservableObject {
         selectedImageUnderstandingModelID = UserDefaults.standard.string(
             forKey: AppPreferences.selectedImageUnderstandingModelKey
         ) ?? Self.siglipModelID
-        selectedSDModelID = UserDefaults.standard.string(
+        let storedSDModelID = UserDefaults.standard.string(
             forKey: AppPreferences.selectedSDModelKey
         ) ?? Self.supportedSDModels[0].id
+        selectedSDModelID = storedSDModelID == Self.legacySD15LCMModelID
+            ? Self.sanaSprintModelID
+            : storedSDModelID
         selectedImagePlaygroundStyleID = UserDefaults.standard.string(
             forKey: AppPreferences.selectedImagePlaygroundStyleKey
         ) ?? ImagePlaygroundStyleOption.animation.rawValue
+        if selectedSDModelID != storedSDModelID {
+            UserDefaults.standard.set(
+                selectedSDModelID,
+                forKey: AppPreferences.selectedSDModelKey
+            )
+            let legacyDirectory = Self.modelsRoot.appendingPathComponent(
+                Self.legacySD15LCMInstallPath,
+                isDirectory: true
+            )
+            try? FileManager.default.removeItem(at: legacyDirectory)
+        }
         normalizeSelectedImageUnderstandingBackendID()
         normalizeSelectedImageGenerationBackendID()
         normalizeSelectedImageUnderstandingModelID()
@@ -348,7 +364,7 @@ final class ModelManager: ObservableObject {
         autoSelectInstalledImageUnderstandingModelIfNeeded()
         normalizeSelectedSDModelID()
         autoSelectInstalledSDModelIfNeeded()
-        sdInstalled = isInstalled(path: selectedSDModel.installPath)
+        sdInstalled = isSDModelInstalled(selectedSDModel.id)
     }
 
     func installSigLIP() {
@@ -495,6 +511,13 @@ final class ModelManager: ObservableObject {
         }
         installError = nil
 
+        // A stale marker from the former LCM package must not make an
+        // incomplete Sana directory look installed.
+        if model.id == Self.sanaSprintModelID && !isSDModelInstalled(model.id) {
+            let directory = Self.modelsRoot.appendingPathComponent(model.installPath)
+            try? FileManager.default.removeItem(at: directory)
+        }
+
         sdInstalling = true
         sdProgress = 0.01
         sdDownloadedBytes = 0
@@ -613,10 +636,13 @@ final class ModelManager: ObservableObject {
     }
 
     func isSDModelInstalled(_ modelID: String) -> Bool {
-        guard let model = Self.supportedSDModels.first(where: { $0.id == modelID }) else {
+        guard let model = Self.supportedSDModels.first(where: { $0.id == modelID }),
+              isInstalled(path: model.installPath) else {
             return false
         }
-        return isInstalled(path: model.installPath)
+        guard model.id == Self.sanaSprintModelID else { return true }
+        let root = Self.modelsRoot.appendingPathComponent(model.installPath)
+        return SanaImageGenerator.validationError(at: root) == nil
     }
 
     func clearInstallError() {
@@ -646,7 +672,7 @@ final class ModelManager: ObservableObject {
 
         if selectedSDModelID == modelID {
             if let installed = Self.supportedSDModels.first(where: {
-                isInstalled(path: $0.installPath)
+                isSDModelInstalled($0.id)
             }) {
                 selectedSDModelID = installed.id
             } else {
@@ -747,12 +773,12 @@ final class ModelManager: ObservableObject {
     }
 
     private func autoSelectInstalledSDModelIfNeeded() {
-        if isInstalled(path: selectedSDModel.installPath) {
+        if isSDModelInstalled(selectedSDModel.id) {
             return
         }
 
         guard let installed = Self.supportedSDModels.first(where: {
-            isInstalled(path: $0.installPath)
+            isSDModelInstalled($0.id)
         }) else {
             return
         }

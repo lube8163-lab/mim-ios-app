@@ -861,13 +861,15 @@ extension ContentView {
             }
 
             HStack(spacing: 24) {
-                profileStatText(
+                profileStatLink(
                     value: currentProfileStats?.followingCount ?? 0,
-                    label: l("content.drawer.following")
+                    label: l("content.drawer.following"),
+                    destination: FollowUserListView(kind: .following)
                 )
-                profileStatText(
+                profileStatLink(
                     value: currentProfileStats?.followerCount ?? 0,
-                    label: l("content.drawer.followers")
+                    label: l("content.drawer.followers"),
+                    destination: FollowUserListView(kind: .followers)
                 )
             }
             .padding(.top, 4)
@@ -977,6 +979,23 @@ extension ContentView {
                 .font(.subheadline)
                 .foregroundColor(drawerSecondaryTextColor)
         }
+    }
+
+    private func profileStatLink<Destination: View>(
+        value: Int,
+        label: String,
+        destination: Destination
+    ) -> some View {
+        NavigationLink {
+            destination
+        } label: {
+            profileStatText(value: value, label: label)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded {
+            profileDrawerDragTranslation = 0
+        })
     }
 
     private var drawerBackgroundColor: Color {
@@ -1560,8 +1579,10 @@ extension ContentView {
             }
             let modelID = modelManager.activeImageGenerationCacheKey
             let rawInitImage = post.makeInitImage()
+            let usesSana = backend == .stableDiffusion &&
+                modelManager.selectedSDModelID == ModelManager.sanaSprintModelID
             let shouldDisableInitImage = backend == .stableDiffusion &&
-                (modelManager.selectedSDModelID == ModelManager.sd15LCMModelID || forceSDTextToImage)
+                (forceSDTextToImage || (usesSana && post.privacyMode == .l1))
             let initImage: UIImage? = shouldDisableInitImage ? nil : rawInitImage
             let cacheKey = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
             let generationStart = Date()
@@ -1610,12 +1631,17 @@ extension ContentView {
             }
 
             let hasInit = (initImage != nil)
-            let enhancedPrompt = hasInit
-                ? "\(prompt), sharp focus, fine detail, highly detailed, crisp texture, high clarity"
-                : prompt
-            let negativePrompt = hasInit
-                ? "blurry, soft focus, low detail, lowres, out of focus"
-                : ""
+            let usesSana = modelManager.selectedSDModelID == ModelManager.sanaSprintModelID
+            let enhancedPrompt = usesSana
+                ? prompt
+                : (hasInit
+                    ? "\(prompt), sharp focus, fine detail, highly detailed, crisp texture, high clarity"
+                    : prompt)
+            let negativePrompt = usesSana
+                ? ""
+                : (hasInit
+                    ? "blurry, soft focus, low detail, lowres, out of focus"
+                    : "")
             let profile = SDModeProfile.forMode(post.privacyMode, modelID: modelManager.selectedSDModelID)
             let seed = deterministicSeed(for: post, modelID: modelManager.selectedSDModelID, prompt: prompt)
 
@@ -1630,7 +1656,7 @@ extension ContentView {
                     seed: seed
                 )
             } catch {
-                guard shouldRetryStableDiffusionAsTextToImage(error: error) else {
+                guard !usesSana, shouldRetryStableDiffusionAsTextToImage(error: error) else {
                     throw error
                 }
                 #if DEBUG
@@ -1664,7 +1690,7 @@ extension ContentView {
     private func generationCooldownNanoseconds(for backend: ImageGenerationBackend) -> UInt64 {
         switch backend {
         case .stableDiffusion:
-            return modelManager.selectedSDModelID == ModelManager.sd15LCMModelID
+            return modelManager.selectedSDModelID == ModelManager.sanaSprintModelID
                 ? 80_000_000
                 : 150_000_000
         case .imagePlayground, .automatic:

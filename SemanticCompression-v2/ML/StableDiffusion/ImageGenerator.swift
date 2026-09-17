@@ -9,8 +9,12 @@ import StableDiffusion
 
 actor ImageGenerator {
 
-    // ✅ actor のプロパティとして保持
-    private var pipeline: StableDiffusionPipeline?
+    private enum Pipeline {
+        case stableDiffusion(StableDiffusionPipeline)
+        case sana(SanaImageGenerator)
+    }
+
+    private var pipeline: Pipeline?
 
     // MARK: - Initializer
 
@@ -18,6 +22,14 @@ actor ImageGenerator {
         #if DEBUG
         print("🧠 Loading Stable Diffusion from:", modelsDirectory.path)
         #endif
+
+        if SanaImageGenerator.validationError(at: modelsDirectory) == nil {
+            self.pipeline = .sana(try SanaImageGenerator(resourcesURL: modelsDirectory))
+            #if DEBUG
+            print("✅ Sana Sprint Core ML pipeline ready")
+            #endif
+            return
+        }
 
         try Self.ensureTokenizerFiles(at: modelsDirectory)
         try Self.ensureCoreMLModelFiles(at: modelsDirectory)
@@ -29,7 +41,7 @@ actor ImageGenerator {
         )
 
         try pipe.loadResources()
-        self.pipeline = pipe
+        self.pipeline = .stableDiffusion(pipe)
 
         #if DEBUG
         print("✅ Stable Diffusion pipeline loaded from Application Support")
@@ -143,6 +155,25 @@ actor ImageGenerator {
             )
         }
 
+        if case .sana(let sana) = pipeline {
+            return try await sana.generate(
+                prompt: prompt,
+                initImage: initImage,
+                strength: strength,
+                steps: steps,
+                guidance: guidance,
+                seed: seed ?? UInt32.random(in: 0...UInt32.max)
+            )
+        }
+
+        guard case .stableDiffusion(let stableDiffusion) = pipeline else {
+            throw NSError(
+                domain: "ImageGenerator",
+                code: 500,
+                userInfo: [NSLocalizedDescriptionKey: "Unsupported image pipeline"]
+            )
+        }
+
         var config = StableDiffusionPipeline.Configuration(prompt: prompt)
         config.negativePrompt = negativePrompt
         config.stepCount = steps
@@ -172,7 +203,7 @@ actor ImageGenerator {
         let cgImages: [CGImage?] = try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
-                    let result = try pipeline.generateImages(configuration: config)
+                    let result = try stableDiffusion.generateImages(configuration: config)
                     continuation.resume(returning: result)
                 } catch {
                     continuation.resume(throwing: error)
@@ -201,7 +232,12 @@ actor ImageGenerator {
         self.pipeline = nil
 
         autoreleasepool {
-            pipeline.unloadResources()
+            switch pipeline {
+            case .stableDiffusion(let stableDiffusion):
+                stableDiffusion.unloadResources()
+            case .sana(let sana):
+                sana.unload()
+            }
         }
 
         #if DEBUG

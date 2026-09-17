@@ -1,5 +1,5 @@
 {
-  "originHash" : "d508d43da1862f4256d8c280a7739e7e248923253415c30b38cb9885ef0760e3",
+  "originHash" : "ce3504cdfddf72781e35f201ca08fedd1c4381dd243ead3eb6d7ef0bbf4220a5",
   "pins" : [
     {
       "identity" : "coremlpipelines",
@@ -8,15 +8,6 @@
       "state" : {
         "branch" : "main",
         "revision" : "d0506042ff753509b88a8e2ff15429072602c0bb"
-      }
-    },
-    {
-      "identity" : "ml-stable-diffusion",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/ml-stable-diffusion",
-      "state" : {
-        "branch" : "main",
-        "revision" : "e12202c1f6405b83918b58a5d097cd61e3e1f702"
       }
     },
     {

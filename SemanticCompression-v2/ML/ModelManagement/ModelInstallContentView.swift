@@ -337,7 +337,7 @@ struct ModelInstallContentView: View {
                 .foregroundColor(.secondary)
             }
 
-            if showsIntro && modelID == ModelManager.sd15LCMModelID {
+            if showsIntro && modelID == ModelManager.sanaSprintModelID {
                 Text(
                     l("model_management.model.lcm.description")
                 )

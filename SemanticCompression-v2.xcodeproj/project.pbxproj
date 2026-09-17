@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0D3A0012F70000100000001 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = C0D3A0032F70000100000003 /* Tokenizers */; };
 		D9208B1C2EB83AD20098AAC5 /* CoreMLPipelines in Frameworks */ = {isa = PBXBuildFile; productRef = D9208B1B2EB83AD20098AAC5 /* CoreMLPipelines */; };
 		D97396992EF2FFCA00072195 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = D97396982EF2FFCA00072195 /* ZIPFoundation */; };
 		D9F5263D2ED73B1E00DEC7BF /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = D9F5263C2ED73B1E00DEC7BF /* StableDiffusion */; };
@@ -21,6 +22,7 @@
 		D9D4532D2F2B9ED100A5E314 /* Exceptions for "SemanticCompression-v2" folder in "SemanticCompression-v2" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"Features/Onboarding/OnboardingFlowView 2.swift",
 				Info.plist,
 				Localizable.xcstrings,
 			);
@@ -44,6 +46,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0D3A0012F70000100000001 /* Tokenizers in Frameworks */,
 				D9208B1C2EB83AD20098AAC5 /* CoreMLPipelines in Frameworks */,
 				D9F5263D2ED73B1E00DEC7BF /* StableDiffusion in Frameworks */,
 				D97396992EF2FFCA00072195 /* ZIPFoundation in Frameworks */,
@@ -98,6 +101,7 @@
 			);
 			name = "SemanticCompression-v2";
 			packageProductDependencies = (
+				C0D3A0032F70000100000003 /* Tokenizers */,
 				D9208B1B2EB83AD20098AAC5 /* CoreMLPipelines */,
 				D9F5263C2ED73B1E00DEC7BF /* StableDiffusion */,
 				D97396982EF2FFCA00072195 /* ZIPFoundation */,
@@ -142,8 +146,9 @@
 			mainGroup = D9208AC22EB839A60098AAC5;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C0D3A0022F70000100000002 /* XCRemoteSwiftPackageReference "swift-transformers" */,
 				D9208B1A2EB83AD20098AAC5 /* XCRemoteSwiftPackageReference "CoreMLPipelines" */,
-				D9F5263B2ED73B1E00DEC7BF /* XCRemoteSwiftPackageReference "ml-stable-diffusion" */,
+				D9F5263B2ED73B1E00DEC7BF /* XCLocalSwiftPackageReference "Vendor/StableDiffusionLocal" */,
 				D97396972EF2FFCA00072195 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -445,7 +450,22 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		D9F5263B2ED73B1E00DEC7BF /* XCLocalSwiftPackageReference "Vendor/StableDiffusionLocal" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Vendor/StableDiffusionLocal;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
+		C0D3A0022F70000100000002 /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-transformers.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		D9208B1A2EB83AD20098AAC5 /* XCRemoteSwiftPackageReference "CoreMLPipelines" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/finnvoor/CoreMLPipelines.git";
@@ -462,17 +482,14 @@
 				minimumVersion = 0.9.20;
 			};
 		};
-		D9F5263B2ED73B1E00DEC7BF /* XCRemoteSwiftPackageReference "ml-stable-diffusion" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/ml-stable-diffusion";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		C0D3A0032F70000100000003 /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0D3A0022F70000100000002 /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
+		};
 		D9208B1B2EB83AD20098AAC5 /* CoreMLPipelines */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D9208B1A2EB83AD20098AAC5 /* XCRemoteSwiftPackageReference "CoreMLPipelines" */;
@@ -485,7 +502,7 @@
 		};
 		D9F5263C2ED73B1E00DEC7BF /* StableDiffusion */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D9F5263B2ED73B1E00DEC7BF /* XCRemoteSwiftPackageReference "ml-stable-diffusion" */;
+			package = D9F5263B2ED73B1E00DEC7BF /* XCLocalSwiftPackageReference "Vendor/StableDiffusionLocal" */;
 			productName = StableDiffusion;
 		};
 /* End XCSwiftPackageProductDependency section */

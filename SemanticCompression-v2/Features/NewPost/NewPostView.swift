@@ -43,11 +43,6 @@ struct NewPostView: View {
         "殺す", "死ね", "自殺", "レイプ", "児童ポルノ", "違法薬物"
     ]
 
-    private var isLCMSelected: Bool {
-        modelManager.resolvedImageGenerationBackend == .stableDiffusion &&
-        modelManager.selectedSDModelID == ModelManager.sd15LCMModelID
-    }
-
     var body: some View {
         NavigationView {
             ZStack {
@@ -269,31 +264,18 @@ extension NewPostView {
                 Spacer()
 
                 if selectedImage != nil {
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Button {
-                            guard !isLCMSelected else { return }
-                            showModeSheet = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: selectedMode.iconName)
-                                Text(selectedMode.title(languageCode: selectedLanguage))
-                                    .font(.caption)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.gray.opacity(0.14))
-                            .clipShape(Capsule())
+                    Button {
+                        showModeSheet = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: selectedMode.iconName)
+                            Text(selectedMode.title(languageCode: selectedLanguage))
+                                .font(.caption)
                         }
-                        .disabled(isLCMSelected)
-
-                        if isLCMSelected {
-                            Text(
-                                l("new_post.lcm_note")
-                            )
-                            .font(.caption2)
-                            .foregroundColor(.orange)
-                            .multilineTextAlignment(.trailing)
-                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.gray.opacity(0.14))
+                        .clipShape(Capsule())
                     }
                 }
             }

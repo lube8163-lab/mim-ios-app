@@ -118,7 +118,7 @@
 "model_management.installing" = "インストール中…";
 "model_management.intro.body" = "ここでは追加モデルのダウンロードや削除、ローカルモデル同士の切替を行えます。Automatic / Apple Vision / Image Playground などの使い分けは設定画面の「AI バックエンド」で選びます。";
 "model_management.intro.title" = "AI Models";
-"model_management.model.lcm.description" = "LCM は高速生成向けです。img2img（元画像ベース）は無効化されます。";
+"model_management.model.lcm.description" = "Sana Sprint は高速生成向けです。L1 はプロンプトのみ、L2〜L4 は低周波画像を使う img2img に対応します。";
 "model_management.model.qwen.description" = "Qwen は画像から caption / prompt / tags を直接生成します。SigLIP より重いですが、より文脈的な出力を狙えます。";
 "model_management.model.sd15.description" = "通常版 SD1.5 は品質重視の再構成向けです。元画像ベースの img2img を使えるため、モード差の比較にも向いています。";
 "model_management.model.siglip.description" = "SigLIP2 は画像から特徴量とタグを抽出する軽量モデルです。caption / prompt の組み立てに使われ、プロモードの意味保持率評価にも必要です。";
@@ -301,7 +301,9 @@
 "profile.error.load_failed" = "プロフィールの取得に失敗しました";
 "profile.follow" = "フォロー";
 "profile.followers" = "フォロワー";
+"profile.followers_empty" = "フォロワーはいません";
 "profile.following" = "フォロー中";
+"profile.following_empty" = "フォロー中のユーザーはいません";
 "profile.guest_mode" = "現在はゲストモードです";
 "profile.guest_mode_detail" = "ログインすると投稿、いいね、ブロック機能が有効になります。";
 "profile.loading" = "読み込み中…";
