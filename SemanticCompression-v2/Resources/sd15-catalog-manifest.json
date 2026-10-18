@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "modelID": "sd15",
+  "revision": "coreml-v2",
+  "family": "sd15",
+  "width": 512,
+  "height": 512,
+  "files": [
+    {
+      "path": "TextEncoder.mlmodelc/analytics/coremldata.bin",
+      "sha256": "8bc3f275b30918dddd91e7930f680f7d6b5845e89b54a975e0c954224bd8b971",
+      "bytes": 207
+    },
+    {
+      "path": "TextEncoder.mlmodelc/coremldata.bin",
+      "sha256": "28b16dfd8857a6aceca18baa860826f33cdf224f4f6d97561e617ae83c4ad506",
+      "bytes": 824
+    },
+    {
+      "path": "TextEncoder.mlmodelc/metadata.json",
+      "sha256": "02bf81097decbb29a0074994805e80f6d9dbaf08a1ce5af0c15fdafaebd6cbd2",
+      "bytes": 2770
+    },
+    {
+      "path": "TextEncoder.mlmodelc/model.mil",
+      "sha256": "574d578c3e43ad460332ef2638c8d6107f87b712529b2bf7fc9ebd7cca58988c",
+      "bytes": 170475
+    },
+    {
+      "path": "TextEncoder.mlmodelc/weights/weight.bin",
+      "sha256": "5f06d5f26514329e65730f88457ee6185e3f210fa94188a4265a781a075b92c9",
+      "bytes": 246145536
+    },
+    {
+      "path": "UnetChunk1.mlmodelc/analytics/coremldata.bin",
+      "sha256": "6e15512ba29b357024ae785d731376b214f844214dac2ceac443cf34b8cb35f7",
+      "bytes": 207
+    },
+    {
+      "path": "UnetChunk1.mlmodelc/coremldata.bin",
+      "sha256": "d5c2ef142d8dd750946024b7a4a894272d9aa563eff06a606ad2ba17dc074fed",
+      "bytes": 528
+    },
+    {
+      "path": "UnetChunk1.mlmodelc/metadata.json",
+      "sha256": "56e551c2cb865869a9eadaddfdd2b76e841eb0d7ee9e0cc056951bd61559fd84",
+      "bytes": 5917
+    },
+    {
+      "path": "UnetChunk1.mlmodelc/model.mil",
+      "sha256": "a81cf9f44a33a876300a8ec70b0d0b05df5416c31ba774f8ede4d450f752bac9",
+      "bytes": 396299
+    },
+    {
+      "path": "UnetChunk1.mlmodelc/weights/weight.bin",
+      "sha256": "25e36225483190f8078081e45670130337cf7909113a838a18ae45fe10376222",
+      "bytes": 887680576
+    },
+    {
+      "path": "UnetChunk2.mlmodelc/analytics/coremldata.bin",
+      "sha256": "5a5c4137d5002be4c170c2de220c6a516fba2d350b36e42ab3b6799fe4849549",
+      "bytes": 207
+    },
+    {
+      "path": "UnetChunk2.mlmodelc/coremldata.bin",
+      "sha256": "4eab18a66c1d11de21b7fb24d28258c32de753621dcd985ed02419d4c943d611",
+      "bytes": 594
+    },
+    {
+      "path": "UnetChunk2.mlmodelc/metadata.json",
+      "sha256": "4ceb4ff68574ec707bdfa907fb7aac9a4db4a0bb1b5eb1e5ee0055f163b5345b",
+      "bytes": 6001
+    },
+    {
+      "path": "UnetChunk2.mlmodelc/model.mil",
+      "sha256": "2947e65157c9c1955cffaf525ded9f3f6b78be64512867b8d8aa28b5f41e8b68",
+      "bytes": 453112
+    },
+    {
+      "path": "UnetChunk2.mlmodelc/weights/weight.bin",
+      "sha256": "141138d2bc02196c8480645538b635fdf177d5e174d3a47ccb866e0d89893635",
+      "bytes": 831664384
+    },
+    {
+      "path": "VAEDecoder.mlmodelc/analytics/coremldata.bin",
+      "sha256": "7c055db5bcfd110de9caf775217990bc8a6fc8fe1de05642ef7299399d90f9ea",
+      "bytes": 207
+    },
+    {
+      "path": "VAEDecoder.mlmodelc/coremldata.bin",
+      "sha256": "114d6143d9b5e7a34c40e627fcc6b6a65b50fd5c8cc2a27bab75ee7d50b91c09",
+      "bytes": 754
+    },
+    {
+      "path": "VAEDecoder.mlmodelc/metadata.json",
+      "sha256": "ad3a7aefd4f5bb7c44314bac788c4821c690826a03a9f01070ff6224cd13cc11",
+      "bytes": 2471
+    },
+    {
+      "path": "VAEDecoder.mlmodelc/model.mil",
+      "sha256": "5dc9e06601d2e01831cb578154e1061929bdae37fee1d5dc5878eba7b7bfd859",
+      "bytes": 174067
+    },
+    {
+      "path": "VAEDecoder.mlmodelc/weights/weight.bin",
+      "sha256": "62acfdfc8411f4effaec4a56c0271220161bf769db00d5c683126fc8e8ba070c",
+      "bytes": 99039232
+    },
+    {
+      "path": "VAEEncoder.mlmodelc/analytics/coremldata.bin",
+      "sha256": "657e981b075d9079558e097e0c7589c72e13685615ab8e3ea8d9b1500990784a",
+      "bytes": 207
+    },
+    {
+      "path": "VAEEncoder.mlmodelc/coremldata.bin",
+      "sha256": "69796e1d32753e2b81d53715c58d8ae756827b24bdbe302811ff2acd98f9ccb0",
+      "bytes": 761
+    },
+    {
+      "path": "VAEEncoder.mlmodelc/metadata.json",
+      "sha256": "4dc95d9acbc31594c22408c9c56d9a443c3f27c705fb207581c844162904ec4b",
+      "bytes": 2460
+    },
+    {
+      "path": "VAEEncoder.mlmodelc/model.mil",
+      "sha256": "d33d5d475d2457cb48abae239a2ba0a6ff14a6fa344633e4866c74c6f7907724",
+      "bytes": 135576
+    },
+    {
+      "path": "VAEEncoder.mlmodelc/weights/weight.bin",
+      "sha256": "4c31357d1d5f8896ad66eba657d641e2238175458c70864b642323bf1bbdb68a",
+      "bytes": 68370240
+    },
+    {
+      "path": "merges.txt",
+      "sha256": "f526393189112391ce6f9795d4695f704121ce452c3aad1f5335cc41337eba85",
+      "bytes": 524657
+    },
+    {
+      "path": "vocab.json",
+      "sha256": "5047b556ce86ccaf6aa22b3ffccfc52d391ea4accdab9c2f2407da5b742d4363",
+      "bytes": 862328
+    }
+  ]
+}

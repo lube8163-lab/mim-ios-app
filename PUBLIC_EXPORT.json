@@ -1,0 +1,1569 @@
+{
+  "exportedAt": "2026-10-18T14:32:25.353078+00:00",
+  "files": [
+    {
+      "path": ".github/workflows/source-safety.yml",
+      "sha256": "6da701fcd490bc6ebd57a41103ec32d6d7250e50ebdf982845764cf7c1ec1dc6"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "824edd49d307a093ea15da77d977ff0c54d676e260f98b0932e8af24c60fac24"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "LOCALIZATION.md",
+      "sha256": "404964546d2e1db0659e33317f9e1104bf6eb6347c1b6404c5ae1b7b9dd24d41"
+    },
+    {
+      "path": "Package.swift",
+      "sha256": "394289dcf19376386bb777b8aeb380140ae5e6a7c8971b1942375f9158e94cfb"
+    },
+    {
+      "path": "README.md",
+      "sha256": "c1d739883dd27ea10b60b0858406bdf6e91eb645f09e4fc8b58088ba5a15985a"
+    },
+    {
+      "path": "SemanticCompression-v2.xcodeproj/project.pbxproj",
+      "sha256": "213b8069b0a8c82dae6194b0fddebaed59597ff5d48f8d926f1f2f046ff974c4"
+    },
+    {
+      "path": "SemanticCompression-v2.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
+      "sha256": "7f3b00b5c3fdb45242d7b87e1e5c4e25d1fa8129a16c94295ecc4e8ea2235c5f"
+    },
+    {
+      "path": "SemanticCompression-v2.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+      "sha256": "8302c0b9c390d33c3833befe6c8f72d515819e4dcaae1fe82942ef68603a1be7"
+    },
+    {
+      "path": "SemanticCompression-v2.xcodeproj/xcshareddata/xcschemes/Mim.xcscheme",
+      "sha256": "2882030499fd3478e1c8d0a7cf871d2d5317bde5e3b7e41300aca2711fcfeebd"
+    },
+    {
+      "path": "SemanticCompression-v2/App Icon.icon/Assets/icon.001.png",
+      "sha256": "b06b08acf9a382792e1137c82fc13046315273f66653e94bdf8d358451db8cce"
+    },
+    {
+      "path": "SemanticCompression-v2/App Icon.icon/icon.json",
+      "sha256": "dbb1df5d14e66766913cd07dfb4385d2a4a8ce7e4b0639803daf253478e720e2"
+    },
+    {
+      "path": "SemanticCompression-v2/App/AppDelegate.swift",
+      "sha256": "d95abdc75c1294f910c94c1dc7d864e71be41f762b26727c055d70d522d2b427"
+    },
+    {
+      "path": "SemanticCompression-v2/App/ContentView.swift",
+      "sha256": "c1a22f5b867a6d44a88f8cdb29c64aae7b6805d6643992b7ac799f658bb4cd62"
+    },
+    {
+      "path": "SemanticCompression-v2/App/Diagnostics/DeviceGenerationSmokeView.swift",
+      "sha256": "8ce27cc81a9db9d6d6afcd42e5958f7d036406f0b908b793392e8ea677116e4c"
+    },
+    {
+      "path": "SemanticCompression-v2/App/Diagnostics/DeviceRefinementCheck.swift",
+      "sha256": "f019781082e2c867dc78358548ef43ee7e9a2da6ee8e0e114a032533da547864"
+    },
+    {
+      "path": "SemanticCompression-v2/App/Diagnostics/FluxAdoptionCheck.swift",
+      "sha256": "b0616adb6198407e187be91b4dae34c8c7db29768e8fb0d48cae85a5a265cdf6"
+    },
+    {
+      "path": "SemanticCompression-v2/App/Diagnostics/SocialValidationLog.swift",
+      "sha256": "a2f86bde5d8540bac26fefaec8f363df6e28f59fbba2728b5992220bc8e5e856"
+    },
+    {
+      "path": "SemanticCompression-v2/App/Diagnostics/UIReviewFixtures.swift",
+      "sha256": "32e1594db61b113ece612949ce939d913aa7bd1c4f215d1a9f53ccb7ca1b853a"
+    },
+    {
+      "path": "SemanticCompression-v2/App/SemanticCompression_v2App.swift",
+      "sha256": "db838de8166d425312acfbb8a83f51af5b98e8d843ccbf92332c234a3eb73a1e"
+    },
+    {
+      "path": "SemanticCompression-v2/Assets.xcassets/AccentColor.colorset/Contents.json",
+      "sha256": "9af65086fa30b49252fae1a1225731691de794f7775af74d71befeb507d12b7c"
+    },
+    {
+      "path": "SemanticCompression-v2/Assets.xcassets/AppIcon.appiconset/Contents.json",
+      "sha256": "d776cfae1b33325f70befa1b0fc5e5420c660655603409e8588d94fd8fc6e112"
+    },
+    {
+      "path": "SemanticCompression-v2/Assets.xcassets/AppLogo.imageset/Contents.json",
+      "sha256": "459198555f520179df2fc74cd8082cd5790586ebf742ea1b763874a3bdcd9c92"
+    },
+    {
+      "path": "SemanticCompression-v2/Assets.xcassets/AppLogo.imageset/appstore.png",
+      "sha256": "b9ae5727597824e6bab022b8db1b9b13a97b2a737d94281fe1c29cfb9380a8a8"
+    },
+    {
+      "path": "SemanticCompression-v2/Assets.xcassets/Contents.json",
+      "sha256": "0fd49ba3c3585c709678e0046a821c3c60685ec7063720d30d3a3448be3a208b"
+    },
+    {
+      "path": "SemanticCompression-v2/Assets.xcassets/OnboardingPhoto.imageset/Contents.json",
+      "sha256": "1124e3ff1fc3890027e5e73407107d9df31dfcfb5dc3ec3359f23d0b4f4f3da3"
+    },
+    {
+      "path": "SemanticCompression-v2/Assets.xcassets/OnboardingPhoto.imageset/one-apple.png",
+      "sha256": "88cbbc92927c86c2b82a630f3b03e2dfd6c431f717a1e17bdd82c61a03605d23"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Cache/ImageCache.swift",
+      "sha256": "3a3fb401a635d88cfbf9d1dded798aeae537f2dcd51278c64888478a66622a7b"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Cache/ImageCacheManager.swift",
+      "sha256": "e71db7ae1023ae3e157cb97184d3b6de9c6bcf34a12efadb0be274a8f8478c21"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/CheckedMedia.swift",
+      "sha256": "2ee2316052c36e8a5160fb48ab69adb1adbf2abab792bfa536cafe938c436878"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/ContentSafetyPolicy.json",
+      "sha256": "63d8de42c45b68963e97c6b620825c932f5a9863f4883fd25d9b88aafa849c4b"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/ContentSafetyPolicy.swift",
+      "sha256": "53f0b915e9669889512295b845b0e1af1f104283961bfd5c46e6e0067ea0386e"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/DiffusionModelShapes.swift",
+      "sha256": "278e61df6981f4d21869872de6454dc37ab802c66c749507c0cb4705822d8b67"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/GenerationRecipe.swift",
+      "sha256": "efe3612f99554bdc70dc299eac00f5a0c58529ee6c1cdbf6c7795ef625e5469c"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/ImageSafetyDecision.swift",
+      "sha256": "4533f1bd30127c85918774a3df02c3c8315964efffa191e9b90106fe5b924b50"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/ModelAssetPath.swift",
+      "sha256": "47f1c81fb5a89817ef1b369f75be63b684e577568333d5b5c1c7da3eb08d209e"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/ModelDownloadPlan.swift",
+      "sha256": "4dc77048809343bb9bb204d8460cbc7d2c40892c00ec51743abd4e2467c5b1b7"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/ModelProviders.swift",
+      "sha256": "e85aa8034219b89f509c8189a4a0248d09d5aa811e6a6864eb402fa702c6e4cc"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/PhotoPostPreparation.swift",
+      "sha256": "43cc96dc1f7f308e850b762b33be7f83c434a7f5bfae89f5cbf597428df4ac57"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/PostDestination.swift",
+      "sha256": "346b0742381297276bead6de6dadddd8f26ae90bc70ad73d735597b9fe44c3a9"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/PromptPolicy.swift",
+      "sha256": "6f07b008acc0858951ab9e8a67f58d7d4036d9003ba18471e50f915fa35f39d7"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/ScenePromptBuilder.swift",
+      "sha256": "d6b5ce59f0304fb462d174fc2b397a72ab39e38ee0da14031d3e7de8357e465e"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/UnderstandingFallback.swift",
+      "sha256": "7292dafa12903f14018244148e6be336a8a8d21ec35fae6817736f5ca7ffab29"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/ViewerSeedStore.swift",
+      "sha256": "8c2279203683e15bab5760bf2093405c93b0bbf485123b66975eda87c09cd95e"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Recipe/VisionScenePayload.swift",
+      "sha256": "f4d27cea188236173a410e0605b73cd6a51b2a00637246e6e37efd72fef23bb8"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Report/ReportService.swift",
+      "sha256": "7691a6fbe29b83a7b450b92cd74c91f206614e178c3ad6e3a6872d51bd18f62f"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Upload/AvatarUploader.swift",
+      "sha256": "8acb2fbaba4d334534e500c37a788b566b3805bf18aac77ddf49573ded7f8ba2"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Upload/BackgroundPhotoPosts.swift",
+      "sha256": "5707159d336c3595a536a003234698426c2c0b2167e0f25f448a26bd593c3f6f"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/Upload/PostUploader.swift",
+      "sha256": "9b6e985823734a5b963032fb601dea21e3a32a7169f2de71bfbe1c2743d8854e"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/AppPreferences.swift",
+      "sha256": "81978b39ae7d1207fa25e7d8b2c47b9b53127be9612fb8f11c59f4d9dde522d7"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/AuthManager.swift",
+      "sha256": "a787db3844507d2070e33cbad9ac4bee6c9df7f0e0a3287aa1b07fa991ade251"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/AuthService.swift",
+      "sha256": "60d670fe5fc600650981b15870107bf23f5a40675bfee6a1633a2b3008a04ef4"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/AuthTokenStore.swift",
+      "sha256": "0c0366c57af5f67f0d0e58b3db58919cb0a59faf87a44ab9a73477e8d3b5756d"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/BlockManager.swift",
+      "sha256": "25bab59ce0f4e0bb2a4e979da3dbbb8c06068aab89ffd182529ec0ef7a5ff234"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/BlockService.swift",
+      "sha256": "5f486052dd8b29dd543b32e462fb81beeb5ed1553bad5f74a3fa841ac2aa7808"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/EmailAuthService.swift",
+      "sha256": "833ea345a8be1455bd4d3265ee9bec167602ec2e4479a7de51aa31fe08ccb7f8"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/KeychainUserID.swift",
+      "sha256": "dc282eddbe9766eaee67429b8eea426e679a30bcda8ff01ac37bb6ed109393e4"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/Localization.swift",
+      "sha256": "b165e538bc2d9a4089e5b189d83957e0994faf135fc28b4ab01d39b37d7ccd64"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/MimCopy.swift",
+      "sha256": "1da90109a4e0e8406aca338802698b82af0607cfc71584b53c5e1469e37e99ba"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/MimStyle.swift",
+      "sha256": "ed10fc64944a507291e8bbbf42f1f31a63e9795462db0063b4f7e925f33cdd2a"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/PushEnvironment.swift",
+      "sha256": "ce7bf8c26e53d0ab8ce2bc0e239fbe3239e463dabea06ab6200971d92f535c6c"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/PushNotificationManager.swift",
+      "sha256": "8b7c3e33d260d46575bfd04b1e1c37c03331bf2fb71ddbad7784d0962c0b5372"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/PushNotificationService.swift",
+      "sha256": "a629c7a5c76456d8074d234ebcfb4a2586b0f2117a11fd3de85a92dce0ac760c"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/ServerDate.swift",
+      "sha256": "a70a955c6d98f5553fbb62dc31ebd5842a05e6961145d44caf900a8e7eb7dbde"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/UserManager.swift",
+      "sha256": "5823633c00335511eca863651b879cae4169ccfb3fb14fe9e6cc63410e3a2e23"
+    },
+    {
+      "path": "SemanticCompression-v2/Core/User/UserService.swift",
+      "sha256": "54cf5615e769d3618eaf1fcdf583f0d0d0b56ec06a7c56a4d56267c768ab1a61"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Auth/AppleIDNonce.swift",
+      "sha256": "e8ada280ae5c1b4473352b6395e0781037e69cb4889d7625fe5125ae7c3e8ffb"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Auth/OTPLoginView.swift",
+      "sha256": "6b09073ffdd4a07007d05bbc878a54f499a9b5acb4e761681488d88fc58cc546"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Feed/Comment.swift",
+      "sha256": "88a874423e9b9c312a15111e00d68a6270200500f39ab2a30041788e3a6904dc"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Feed/CommentService.swift",
+      "sha256": "b0a8c8903f5c0a8050a07eb9493e485827d7b5ce4e9c97ac2dfca0cd3befc454"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Feed/FeedLoader.swift",
+      "sha256": "ea0fa5d4a5e5e1d157faf9da3f4afa84918a38a5907a6eff8f6ce3f6a114ad0f"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Feed/LikeManager.swift",
+      "sha256": "4fc6e37d36d36e043b0c37d98ab3ff525398d42130f2ea5161fe5a0aff354e82"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Feed/Post.swift",
+      "sha256": "85750a82fc8d809ea4db4394e577be94cae078aaf063b77a1d60eb6d1945c33b"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Feed/PostCardView.swift",
+      "sha256": "b74c1249140ecb595dbbbcdbf0e26d93d9d89b95fac5c91f1a67613d2309ed04"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Feed/PostDetailView.swift",
+      "sha256": "75e8695a3968d5f18dca931040dc36c1d274b657b2aa09603f8be724b2b765c4"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Feed/PostStore.swift",
+      "sha256": "3e6228b42c3a966a9aa8e6c70ab8c2c6a9216b9ce6c3aed92ca8f28dbac1ee31"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/NewPost/Embedding/SemanticExtractionTask.swift",
+      "sha256": "1068cfb109e29c8f6013a75647f0690f5c13646386c4e79c9a4c80caedd14fba"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/NewPost/NewPostView.swift",
+      "sha256": "21a98db0a35e58287e4390e3f5c2aac33cc993443307f00397649c60e296b6bc"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Notifications/AppNotification.swift",
+      "sha256": "535a1b70a27005c0e3c76d1c88dd90c724096b3e2d66d3656dfa4f5ce3b469f9"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Notifications/NotificationService.swift",
+      "sha256": "e9732aed1eb25ed0c8a9f4f8b2bc9019ecdea581ad439782bf73ebc748d89ec8"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Notifications/NotificationsView.swift",
+      "sha256": "cd7d0f46c06dafd76ef9a37237ffee2320073a3d0eddbc5f44aa18743203c6ec"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Onboarding/OnboardingFlowView 2.swift",
+      "sha256": "452212b2f191974521a8eccbf14e2829a4abce938de11f6537c95837ab9b21ec"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Onboarding/OnboardingFlowView.swift",
+      "sha256": "1c99fbd1c543b710a673e07921ed3a3ce78e260bdd5d4f916d646c1c19d95ccc"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Profile/AccountService.swift",
+      "sha256": "ca376105c6f5ed121fcd03024bc2ee8d3d2042f52c326416cbb00ddc3db019f5"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Profile/BlockedUsersView.swift",
+      "sha256": "2987f5c3c2e7705dd05c33ffada13c1e20b485424d4b9c28aaaf6a66c563ac56"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Profile/FollowService.swift",
+      "sha256": "44aeefc9b36da0d512f2120b016f445ee2dbf7633f3a7e40d411c0082480109b"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Profile/FollowUserListView.swift",
+      "sha256": "d0cebf8584696d73f2136be490fe555d7635f76375a93e8c9579e057ef9fa1d4"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Profile/PublicProfileView.swift",
+      "sha256": "800b09680c5b5645b26892cbb1a9f72e5ace4bcc6125878a2b77d4971d0e8ef8"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Profile/PublicUserProfile.swift",
+      "sha256": "a07b14770f9b1c85dc94c2235b5cc905be4635722ef2071855d89c7681871066"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Profile/UI/UIImage+Resize.swift",
+      "sha256": "6df3fddd71f380c77cced4bc9c5a7e2599b9ee730c4afb2ded8099136cdc48a6"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Profile/UserProfileView.swift",
+      "sha256": "a8af72e2074bef1612f86ee46f26c18b07390584d21843e044ed3f4a454286f0"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Settings/AppInfoView.swift",
+      "sha256": "eb0f96afdc8de000962075913ab4631242f7c20ab9fbe534f8f9e81de3c9b30a"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Settings/LanguageSettingsView.swift",
+      "sha256": "e487d8316d34fc76500659cb7e747d1d4f0e7ef62c6d86e6e0e6ebfc111b1d6b"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Settings/LegalDocumentDetailView.swift",
+      "sha256": "053344d837a4059cc46c5b3df0c5461d04bd15136471f22d2ddf1baeb49a54e6"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Settings/LegalDocumentsView.swift",
+      "sha256": "0f0429026929ed2f11af87b37abb8abd1393cfb3cbca062e6c6559f713180c0e"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Settings/LicenseView.swift",
+      "sha256": "1e8be63214c0509bb603c756c1de8a981f38e5fa7824852d78bba9433e0522e3"
+    },
+    {
+      "path": "SemanticCompression-v2/Features/Settings/SettingsView.swift",
+      "sha256": "fb6ff1d56361458af7e66bd2fe2d2375073d094ebf57a09429b1fd7cf93f1f73"
+    },
+    {
+      "path": "SemanticCompression-v2/Info.plist",
+      "sha256": "3a624cc90f7a93b9868cc79fd53b3945c060ad7c049cb22441aedec168577995"
+    },
+    {
+      "path": "SemanticCompression-v2/Localizable.xcstrings",
+      "sha256": "a66209cb7d68421dd5df93f10608a444293b4c1f95e2920fa98a7a4a81130d90"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/AppleIntelligence/FoundationPhotoUnderstandingService.swift",
+      "sha256": "3385b59043f64e4bda0f6b9cd11235aa40bdda583adbaebc8f119f7a8f61471d"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelManagement/CoreAIFluxAssets.swift",
+      "sha256": "c72af56babc3ecf7e9746f3be7c14f7b13092908de73e964c322101c85ddd454"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelManagement/CoreAIVisionAssets.swift",
+      "sha256": "f2bdc5ba870b255e476c5dd1ec11f93b1df939d1ba3b77f0e00cd30a5d266b5c"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelManagement/InstallModelsView.swift",
+      "sha256": "de0398516568d4f34a3d5934640f5f648ccedda236a42c255bc36abba215bee3"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelManagement/ModelArchive.swift",
+      "sha256": "3e8c61b6352fea9acb1a558a11305f981390a74ce01c3026c4f47459dc6ed099"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelManagement/ModelAssets.swift",
+      "sha256": "7dfcb5ccd73eec6c358e896e4c4bf383c080d78fad45c04a6defb350ae99a208"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelManagement/ModelInstaller.swift",
+      "sha256": "054fda3b81c41dcb811d5c5b0f4b0ecfac0a6305035cbe9db88bed95ba376d6c"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelManagement/ModelManagementView.swift",
+      "sha256": "8fb16fe5e4bb833d935d17ee1736951e583e29043da5395916fab68a148b4452"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelManagement/ModelManager.swift",
+      "sha256": "189b199abea6f6c83fafaf9dc0ace438b883f55db7799734ec8f68832bf90992"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelProviders/CoreAIAssetInspector.swift",
+      "sha256": "6d0f0a753f975be952294c3260a95d7744749aad0b8efa2192e18e1da123f5d5"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelProviders/CoreAIPhotoUnderstandingService.swift",
+      "sha256": "7276ae7133d8efb190da74c24d7f3f1e1e2a3496a20e8557a01a581ebe4fbbc3"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelProviders/ImageSafetyService.swift",
+      "sha256": "0f521c3e25e2444d4ae926ac0fa3caf5f17539ca7e11ca9ec76de1e623ec8efa"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/ModelProviders/PhotoProviders.swift",
+      "sha256": "b6fba94bc86ecb03c9211decd63bdecd3e205086daa32c6d0936626d734e20b5"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/Sana/SanaImageGenerator.swift",
+      "sha256": "461a639b6e2a3992483e3d1d7588fc29c56ebf5e59bf6890c4e6cb9912069d6d"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/StableDiffusion/FluxImageGenerator.swift",
+      "sha256": "8f2ade56e10b743aa36e4e4610dee29f5ada6c1f3df0a44bd9574e26b3ca1b62"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/StableDiffusion/ImageGenerator.swift",
+      "sha256": "8aa41c2740d268d5894025f1b905317c8162c2372c9f97673de987551c592dd8"
+    },
+    {
+      "path": "SemanticCompression-v2/ML/StableDiffusion/SceneRecipePrompt.swift",
+      "sha256": "05524183e252d7df02255c7d204fd71ac6cc4b210c3ad48b20fdef42c6599638"
+    },
+    {
+      "path": "SemanticCompression-v2/PrivacyInfo.xcprivacy",
+      "sha256": "af8434170beb90eadc514354ed92f46c6aef74c2f9ec7e862ea35b117d1c3d17"
+    },
+    {
+      "path": "SemanticCompression-v2/Resources/CoreAIRuntimeNotices.txt",
+      "sha256": "130161bbef58cf935c69e06cc3f9d1d9aacb2cb0d0fef5ed20719dacb6c1ea8c"
+    },
+    {
+      "path": "SemanticCompression-v2/Resources/ImageSafetyNotices.txt",
+      "sha256": "9adcec31dba98541c0e55081a6005638abef5af59be87b6fca407e5cb6d3a832"
+    },
+    {
+      "path": "SemanticCompression-v2/Resources/ModelLicenseNotices.txt",
+      "sha256": "e5bda9fd9b3b4f8da71f5b9a2e055db0277bcfa263f2d8b92d90ed426c8ef0e5"
+    },
+    {
+      "path": "SemanticCompression-v2/Resources/flux2-catalog-manifest.json",
+      "sha256": "9495423c73c37f1c16d8da1e9b5c955de07847d3068f57f05a071342ac81a75d"
+    },
+    {
+      "path": "SemanticCompression-v2/Resources/prompt_safety_policy.json",
+      "sha256": "8d1390057bf3ea69efd8c4912c6657e2a5ea090b46533a980a514e67fbedb21a"
+    },
+    {
+      "path": "SemanticCompression-v2/Resources/sd15-catalog-manifest.json",
+      "sha256": "387cd8a5ad588259d81e64335937acd74f25e1ceee3b37b78b02a86a26904f45"
+    },
+    {
+      "path": "SemanticCompression-v2/Resources/sd15-merges.txt",
+      "sha256": "f526393189112391ce6f9795d4695f704121ce452c3aad1f5335cc41337eba85"
+    },
+    {
+      "path": "SemanticCompression-v2/Resources/sd15-vocab.json",
+      "sha256": "5047b556ce86ccaf6aa22b3ffccfc52d391ea4accdab9c2f2407da5b742d4363"
+    },
+    {
+      "path": "SemanticCompression-v2/SemanticCompression-v2.entitlements",
+      "sha256": "194400f31db6abd7c0fa181de74685f7615cdaaba23cbc319258614e820e819e"
+    },
+    {
+      "path": "SemanticCompression-v2/UI/Components/ActivityView.swift",
+      "sha256": "27be307dc31ffbf435f1e6ab378cb2353ba2eeca33f834f548b1002bcc62f10f"
+    },
+    {
+      "path": "SemanticCompression-v2/UI/Components/CachedAvatarView.swift",
+      "sha256": "9187ed064bf5adbe99839599053e1e0b589c0212258f3579c650017da7b69c49"
+    },
+    {
+      "path": "SemanticCompression-v2/UI/Components/RainbowAILoader.swift",
+      "sha256": "acd50c7a0662b1f868bc1dae793d67dc1455bef9fe5bf7fbeb7087edce562f10"
+    },
+    {
+      "path": "SemanticCompression-v2/UI/Launch/AppLaunchView.swift",
+      "sha256": "2f5567a6ba6f3f90bd19862664e937f51da0111e8d98c80290339b976b4dbc52"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-alloc.h",
+      "sha256": "3793a2175be355619cc426982706b7fa94ad801b66d2aeef4b95e68c434ba0ef"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-backend.h",
+      "sha256": "3774c77515070f40f7dfb0aefdcb36f940537730e5891431dfeea338723923d5"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-blas.h",
+      "sha256": "e76cb8594dc9866d99e7d63191b9fff6ab8b50244b4a28ce3af0f962964a6b5b"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-cann.h",
+      "sha256": "2cdb134f27fe5c4ec19d52f1eb58f5355aa42b8f54bf385f0e487501c5df7362"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-cpp.h",
+      "sha256": "bc15ba002c68685df23faae42df0d2b3d58032011f88b649021ab92485862c72"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-cpu.h",
+      "sha256": "1aafe97e576ea38c0da57517fb2492955d0b69c1a799842481fc069d6d9d28ef"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-cuda.h",
+      "sha256": "8f22e8e43e460db426bb94e14e10dc91e64789e8d216c5ae62a0d02a2eb07d7f"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-hexagon.h",
+      "sha256": "b2c12bac390f14707b16bdd27c8c75ce4f075ed509c729ee28fd4f03b17e7375"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-metal.h",
+      "sha256": "322f36cd30f3e9e7aad7b5b9bc63078012fd0b7706ac4e24f5721b604f3d8980"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-opencl.h",
+      "sha256": "8e443e1aa9c8bc6e0cf116c4cc3f42f4858938fa15e65b06bc07b26686e1233a"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-opt.h",
+      "sha256": "2919321813be96e0f5d6ba36e7ed634a518de0fbe834902ad8f5a402f906e302"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-rpc.h",
+      "sha256": "4832436aeec2a9c3f6d2ca12d90f567de5d24df76803e1e167d3f188c23efa3d"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-sycl.h",
+      "sha256": "d59d5275423a7ce173c8e6f69933a501e53a635410de3f8d61bf23a59dac81fd"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-virtgpu.h",
+      "sha256": "ed231e7db3f0f58b84073f5ee67f9ec9d63046d1a7ed091c36a6cfe9f685a463"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-vulkan.h",
+      "sha256": "7eae5dad2cc7bb4d3eca828539f441816d5fd59fdc7b224d49aa229fc7b7248c"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-webgpu.h",
+      "sha256": "a91d855313a9e85e75ba597ff869a267247dea936a2c0faef03aeb7f1ea6e79c"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-zdnn.h",
+      "sha256": "ee1d79c95ade45ba195a6b71f59a05c18617de4a596d2b2b03ecf38975a9a448"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml-zendnn.h",
+      "sha256": "2cb034b842438281616ce647232d922fb224450323f0d422d2af567c334aa8ff"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/ggml.h",
+      "sha256": "a036182d5c5d49f581bd9418432bb6bf492dd697495129597bc14b503b569303"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/gguf.h",
+      "sha256": "d2eec8b938aa04ccec9bc4ce8a6a6dcf70d942c37d2bb3113e426d9307d51385"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/llama.h",
+      "sha256": "7a7bb3211abaebb92f9d90b196818f30a2573327bfcfa1d235fbd50d227be1e6"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/mtmd-helper.h",
+      "sha256": "5867ff366731ba316fb927c3a520ebd7984fc8af6b2bad864638e71fd2e11e24"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/include/mtmd.h",
+      "sha256": "27101a45c1136b688c15bf864d9feac219bb8e53690cdd27378e2ad6978e123f"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/iphoneos/libllama.a",
+      "sha256": "18ee3a5a250302ec01ca3c0b300eb2c2bc8ecabc1b2d46292a6ab7c1162f63fb"
+    },
+    {
+      "path": "SemanticCompression-v2/Vendor/llama/iphonesimulator/libllama.a",
+      "sha256": "0acd77732cc762b6c36dbd02f50d73c2080f7c76dc69eb9126aac64b1f581181"
+    },
+    {
+      "path": "SemanticCompression-v2/en.lproj/InfoPlist.strings",
+      "sha256": "4cbabb4744ecf1da03da5bd6270670deae7eb1898907e9bf0ce6f0601fec62ab"
+    },
+    {
+      "path": "SemanticCompression-v2/en.lproj/Localizable.strings",
+      "sha256": "b4e8ae4b751d0632bbe557b194e0e3de1430e0d3fd70ec3d7646737cb6726873"
+    },
+    {
+      "path": "SemanticCompression-v2/es.lproj/InfoPlist.strings",
+      "sha256": "eec60f18b5709c28a5ecd96dab2f1fafc04f3990ffbe5a44c55fef44950b7fe9"
+    },
+    {
+      "path": "SemanticCompression-v2/es.lproj/Localizable.strings",
+      "sha256": "afd11f9d0725fea4be728d062b62db5961652cb0bd0d6f1eadbe03e89aabf335"
+    },
+    {
+      "path": "SemanticCompression-v2/ja.lproj/InfoPlist.strings",
+      "sha256": "ba7d49154cd84e0763d0e5cc078dd4a8dafd9185a48beba538d0db0b6b3b854b"
+    },
+    {
+      "path": "SemanticCompression-v2/ja.lproj/Localizable.strings",
+      "sha256": "56e2259a8bfcb016c1e9d1ed1abf39f893d3033d805af4f160f86577c96db1ea"
+    },
+    {
+      "path": "SemanticCompression-v2/ko.lproj/InfoPlist.strings",
+      "sha256": "77a5b46523ef321c28f252a31b9609523dc86821a1372849dd8d7156daabb2de"
+    },
+    {
+      "path": "SemanticCompression-v2/ko.lproj/Localizable.strings",
+      "sha256": "433765547b3c2c5a50e74ac86b48eaeec9b509a01ad064488963f5d57fb64a12"
+    },
+    {
+      "path": "SemanticCompression-v2/pt-BR.lproj/InfoPlist.strings",
+      "sha256": "f0ac63c778fcae268e0bd8897dae1723d692067ec53dd2b798edaaece334ad74"
+    },
+    {
+      "path": "SemanticCompression-v2/pt-BR.lproj/Localizable.strings",
+      "sha256": "6634f902d7f3282feb2a56a075d3f2f56c632a9153ea22783e4f0616e6d16c5e"
+    },
+    {
+      "path": "SemanticCompression-v2/zh-Hans.lproj/InfoPlist.strings",
+      "sha256": "bc282dc94daacda2f9a31d786a50145687e364bae02fd1a85c1b6928bcb62f8f"
+    },
+    {
+      "path": "SemanticCompression-v2/zh-Hans.lproj/Localizable.strings",
+      "sha256": "b73db088e5bdde21750abf425fc112fb66b641da713ba923ff4305184bf472fb"
+    },
+    {
+      "path": "SemanticCompression-v2/zh-Hant.lproj/InfoPlist.strings",
+      "sha256": "7e0a20ce35c070665eb43638a8cde6e8a490d766fc4cd8097129fc40614ee4f3"
+    },
+    {
+      "path": "SemanticCompression-v2/zh-Hant.lproj/Localizable.strings",
+      "sha256": "85ea613773e5da16f61a40733f74121af51b0e40eff11e90f8d8c34641dbd1ea"
+    },
+    {
+      "path": "Tests/Localization/AppLanguageTests.swift",
+      "sha256": "eda09123e22d62817a07cb6cf4445a3b83333983bcd43b1ba7432caf1744acec"
+    },
+    {
+      "path": "Tests/Localization/test_catalog_validation.py",
+      "sha256": "23fbd8437138d35ede9a84be33fb433cf0239649c3df29879550594eeb372a75"
+    },
+    {
+      "path": "Tests/RecipeContract/CheckedMediaTests.swift",
+      "sha256": "6ad513b58dc3341280d393976a3dc3f23517d6a3b0be6d6f4055c32947f66d8d"
+    },
+    {
+      "path": "Tests/RecipeContract/ContentSafetyPolicyTests.swift",
+      "sha256": "1bf60d747e5ea4d5af48bc4a4631d1b0ff8ffb7a225ca748d03f6eb050fb933c"
+    },
+    {
+      "path": "Tests/RecipeContract/DiffusionModelShapeTests.swift",
+      "sha256": "2fc0803f29faa2b6a608dfe85069e55ec2f5bbfb25797d16c94d94602d7d872d"
+    },
+    {
+      "path": "Tests/RecipeContract/FluxRecipeTests.swift",
+      "sha256": "b7dce33e44bef93cccad964532e3f0963ccfafe8a360975dbe50c5b8bf938d15"
+    },
+    {
+      "path": "Tests/RecipeContract/GenerationRecipeTests.swift",
+      "sha256": "b0a32e34c0c94ea4d4ff1141b463070aaf9cf8f826718da973e8c99b610ca047"
+    },
+    {
+      "path": "Tests/RecipeContract/ImageSafetyDecisionTests.swift",
+      "sha256": "f5b91eb5f4f393990db3cdcda86dc677b2b170826e8b370a202a312b2293d338"
+    },
+    {
+      "path": "Tests/RecipeContract/ModelAssetPathTests.swift",
+      "sha256": "e648bb4fb042647242c336f791da6c494801062a2831bfc54c6e1ef4859cee2d"
+    },
+    {
+      "path": "Tests/RecipeContract/ModelDownloadPlanTests.swift",
+      "sha256": "098aa868762615d0b36d991fc72659617564a9d999116286a94661a7889d24f5"
+    },
+    {
+      "path": "Tests/RecipeContract/ModelProviderTests.swift",
+      "sha256": "cd031dfe372c54001c4b354642d00efdd332644b3c34524efe20da7b59ea5b0e"
+    },
+    {
+      "path": "Tests/RecipeContract/PhotoPostPreparationTests.swift",
+      "sha256": "9f463160fdb0e7fd6d23fb3c8e556885aad2a96be2eac52d11393bf803f236a0"
+    },
+    {
+      "path": "Tests/RecipeContract/ScenePromptBuilderTests.swift",
+      "sha256": "3d6ffb276a251010ccca3e7f0e066b0adb36ed26877079723a1ff2aae7d1fe5f"
+    },
+    {
+      "path": "Tests/RecipeContract/UnderstandingFallbackTests.swift",
+      "sha256": "7cebebaf85ab9c7cb98d319bd7e6d0f2ae01bf54a5f7edbe8d049b4bba235871"
+    },
+    {
+      "path": "Tests/RecipeContract/ViewerSeedTests.swift",
+      "sha256": "d364c4bfc9822596e5b9367641ee8e892c020788f2d5f24f6cafbd3451aa2338"
+    },
+    {
+      "path": "Tests/RecipeContract/VisionScenePayloadTests.swift",
+      "sha256": "4b6d61bc90fd2654ce8468e971aad90ea9a490ee12f687ce7cbfce16d2c57ae0"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/LICENSE",
+      "sha256": "0ce5470a3d6a7c2a2d28b3effa68a6298a56e092da1c166bd0eba977f6e075ab"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/Package.swift",
+      "sha256": "17d310845ee6adce7af1fb6241ac11ee01dff57d024e837188b9b6d11fee880d"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/README.md",
+      "sha256": "567f9e601e70dcc346e151afa13843d58cb47216e23a156deccd7a634123d811"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Bundle/DiffusionBundle.swift",
+      "sha256": "5dfeace004e58b4bc0b34ca8555b68d7f3a9cba82f548f8ae35d0cccc96421c6"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Bundle/DiffusionConfig.swift",
+      "sha256": "b97b927da168d9def59bbf4acd659ca47d7364a1bec3fcae632ecf3cf315dc7d"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Bundle/DiffusionDefaults.swift",
+      "sha256": "3c8d1f7ed5425f9ef232fe81f773051d0761404593d80494a584c6f99df4f32c"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Components/Components.swift",
+      "sha256": "a686e8026a28b9517be8f34cfaa1652a2380b8d7c33cde5e0864b5f6a0d73c08"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Components/CoreAIComponentError.swift",
+      "sha256": "555585a4783cc1c5a10dfe47cff7075a03608d9a0799826fc86bf3b5ce85f55d"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Components/CoreAIDenoiser.swift",
+      "sha256": "58d08d140297feb25769137723244be237777a082268cc5f3bab90326149d60e"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Components/CoreAIDiffusionModelFunction.swift",
+      "sha256": "153183e202a5eadcd5919ab4107b9c7fc042cd0b3c7be759a5fab387ccd1c333"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Components/CoreAILatentCodec.swift",
+      "sha256": "fdeabe67239d200760dfb5b6aff4772a50e7489a018a794a2c4bc91c343c8472"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Components/CoreAITextEncoder.swift",
+      "sha256": "e7b16769878e6a542e60a4a447b3b83de50f703659048710cfe7ab22bc29f363"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/DiffusionUtilities.swift",
+      "sha256": "7c34e5e73a55be46c515b8f5a7faaeb16d576f26de1947c76b4c37805d12641f"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Pipelines/DiffusionAssetResolution.swift",
+      "sha256": "9ae2b2f10a762ab2de614d40560dd985cf93d3342b280a2a3de66d1f8c2565e7"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Pipelines/DiffusionComponentKey.swift",
+      "sha256": "7853b3a9fafbfd4eb280ae2399d7986fd2fc4b70dc95a26e342044aacc8b09b8"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Pipelines/FlowTransformerPipeline+Flux2.swift",
+      "sha256": "00355554a09bc70f36bd47f25a5ff6e263042196da12cf4401f3b1cac5b2a561"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Pipelines/FlowTransformerPipeline+Resources.swift",
+      "sha256": "42a3c52dd2e5a366bbde2e75601cbe8888648d45c25705251b5bf7e1358eb4b2"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Pipelines/FlowTransformerPipeline+SanaSprint.swift",
+      "sha256": "0e2b2bef2cde860f1420d4a8b1affbcfcba73d73c488ae280bc8178b62660297"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Pipelines/FlowTransformerPipeline.swift",
+      "sha256": "28159f9b449bd22fda12a67cafcc1901fc1f828730ae5041c66db706dd8746a3"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Pipelines/FluxSpeedTextCache.swift",
+      "sha256": "041a8987df6cc9a62c9a492ad50a09a4179175b7486e640dea02f911bc95addd"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Pipelines/Pipeline.swift",
+      "sha256": "c2ea1c4eca52e6e56798415f261f73ccb0383f859e0af6cd01537a9b823aa543"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Pipelines/PipelineConfiguration.swift",
+      "sha256": "8a9a3c3d8a4fea069499fcc10ef8153f712be461216594e90786edc18bb1c699"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Preview/LatentPreview.swift",
+      "sha256": "c8ff9b16b4776a79614f7b2e492df5ad43879b0b176312839b5d5afa9a22663d"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Preview/LatentPreviewTuner.swift",
+      "sha256": "93e18370a04de8724b8416972da3acbf8d73ef8f57e269bb8fc032b29337cead"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/RNG/NoiseGeneration.swift",
+      "sha256": "4edfd8d397b7c3281d3a66a20d9a7b4bdb5e4afdeb1083c72e0ff185b26cd271"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/RNG/NumPyRandomSource.swift",
+      "sha256": "6136766a37479390d2a37ef651b2bfbe2e98e0669fd35cf4e50c4ccbb81737de"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/RNG/NvRandomSource.swift",
+      "sha256": "f5e2d8554eb6be3b0cf1733c6d194c1b9db6639d5118786d9ba703a1e85ff7a3"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/RNG/RandomSource.swift",
+      "sha256": "89ccb4db0fbbc7c52baf82a3f590d3176cacca29079728143f6f720711eeeb58"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/RNG/TorchRandomSource.swift",
+      "sha256": "9d9c056f3f5ac2699e17fd6cf3f9df3c4cb2bb881445cba96b93fb0006cbb655"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Schedulers/DiscreteFlowScheduler.swift",
+      "sha256": "8f369e17bd289e28863d2935bd16d5a7f98008879e0199a0e6f38cd067ca3d93"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Schedulers/Scheduler.swift",
+      "sha256": "0f90c2bd0dab2a98f667bcef64eaaa6cca1cbcdd2150d1fcce6f90452c83b63a"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Schedulers/SchedulerMath.swift",
+      "sha256": "0a28747b0ccac73a1f543b17fe405bc8c3d3595a882fe70e7f96fa082dcd691e"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Tokenizers/BPETokenizer+Reading.swift",
+      "sha256": "7987334d865f559a9a1a7038de1bb847c7b52fbb91d8d47534bacb1ad9b66278"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/CoreAIDiffusionPipeline/Tokenizers/BPETokenizer.swift",
+      "sha256": "4f51139b0328d849bfefedf5bc2077be5208d355edf915ffb85c49af23095724"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Bundle/BundleKind.swift",
+      "sha256": "15607066bb0802a0e238ea8ba76f1f67f61d57df5383aced02f67c0e9f758724"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Bundle/FunctionMap.swift",
+      "sha256": "7cb84d0a1b98f88c2b9897119b2d6631645bc6ab63e6a09e32777aba45b7d1f6"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Bundle/ModelBundle.swift",
+      "sha256": "21e6e989b90f6cc8d08842ec17cd74515a4c8b5f6292cd9bbf044de22cf9173d"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/FluxProbeEvents.swift",
+      "sha256": "35e442e89a14977d8e6a125f518cf9f9290e77b870a6659b2da60cd5b5590bf9"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Image/CGImageUtils.swift",
+      "sha256": "3d7b8019ad41364737cc5f2bad89756d9e8849f89d9f6e7e316f3b79aa63153e"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Image/ImagePreprocessor.swift",
+      "sha256": "cae97383ea02862479bed7a737e4439741aec29b5124dae38d2cac4518e18ad9"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Image/OverlayPalette.swift",
+      "sha256": "8ad00fa83821367469ed3590107aa4c9308d977c8eaf7499d2abc87d12822791"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Logger/Logger.swift",
+      "sha256": "95b28680f0d14e44df0c44983708739ba2f172767891c16f3c06c62e4cd284e0"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/BackpressuredStream.swift",
+      "sha256": "6b4c7478396f10e4d36bd3c9b429070ba07c9ed8667528c38980b37f8d234e8c"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/BilinearResampler.swift",
+      "sha256": "d7d252772aba3d6eaa57dd3580e8a6278052e2f390ebcb9f58a22a0aff661c99"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/Duration+Time.swift",
+      "sha256": "96b82c88ca8129fd43351fa8f99186bb2f5ef729574a19c7974869678e14f585"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/FileSize.swift",
+      "sha256": "0c3227676b5086346bc9aa26ae9b53bcc1f31dab5e4fb86a81fb1ccca96c5bf3"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/MaskBitset.swift",
+      "sha256": "f4e0bc20d5189673053ac022330a90b3c5885f36aecbc2261150ddec2cad712e"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/ModelIONameResolver.swift",
+      "sha256": "aaac83530d908c06d9d702aabe16e6a3f6f6ef0f74ac69dae15dd8c7f49c6f46"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/ModelStructure.swift",
+      "sha256": "9983242249e85dd315e6c421a21796cdc248ba6cab800922985b1a5f30bb0c39"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/NDArray+Helpers.swift",
+      "sha256": "948f701807377f6bcf369340354f828323065d761f2860d764ce715f8ac695fb"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/NpyArray.swift",
+      "sha256": "e0fc7daaaa25b40a1e3d7709a988a5f69c3c8d456d4f3f6cc41d132c471ea0da"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/ResourceManaging.swift",
+      "sha256": "06b686ce8699242f306074c2f94bf15c04bee06eb2247ac65d379a6c4ffe0a66"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Runtime/VectorMath.swift",
+      "sha256": "5df1ba2b1c9aefae341ee0ad12194ce9357a03c3001e174388e4ecf66b9ec81d"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Text/CLIPTokenizer.swift",
+      "sha256": "0c58d2185d953f1a24a31e3da0e6ddb863b70bb1c5a0c2241ccaf37b6b60b67b"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Video/FrameSamplingStrategy.swift",
+      "sha256": "8f3702ca9b2e4b01de45f09868fae43175ab4a27d52b54edfeb8f204f2cc49f9"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Video/SequentialVideoReader.swift",
+      "sha256": "102e28036c89070817cee42e7ca6539ef50e66ddfdaec29fa2d2df760ab002a2"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Video/StreamingVideoWriter.swift",
+      "sha256": "05f5d49945ef6feeabea36c2c82a46be7a337d239ace528030ca21cde6d1021a"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Video/VideoFrameExtractor.swift",
+      "sha256": "21316e53af6f2f83aab9bd3149140386b06bbba7c2ed09984f1ac68bf63dfed2"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Video/VideoInput.swift",
+      "sha256": "19adef3bc87e8b3d2e6ad8bd94c712c18038b461dcedf1f0a566c30c10cd6e01"
+    },
+    {
+      "path": "Vendor/MimCoreAIFlux/swift/Sources/FluxProbeShared/Video/VideoWriter.swift",
+      "sha256": "213f09fe771d3d8d6fe41a992c2c0c3e388a3d86d887992f9633fc54f17889d0"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/LICENSE-CoreAIKit.txt",
+      "sha256": "06caf8e861d3bda8bbc59a7e4826fdda6b7c17d864feb8baea898ab2f3450098"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/LICENSE-CoreAIModels.txt",
+      "sha256": "0ce5470a3d6a7c2a2d28b3effa68a6298a56e092da1c166bd0eba977f6e075ab"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/NOTICE-CoreAIKit.txt",
+      "sha256": "dc08fed324fb48163cf0c756f7ce9442eb5b139540f8bdf07ba3b89883e4c4f2"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Package.swift",
+      "sha256": "d97792595ee39749da3951b69b9bb43d7dc968fbf063cb6d3eca17e192e761a9"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/README.md",
+      "sha256": "85265e966fa938da874420e335539a867305e23815eba99b312ea71ba6158f28"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CXGrammar/include/dlpack/dlpack.h",
+      "sha256": "701e24d408eed779b36abef036f20f3f515e7a42f56d2f21a98a7882939bc4e7"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CXGrammar/include/module.modulemap",
+      "sha256": "978d4ba6d6512e32c2c46a1fffebddd56fa25835a19dfe83a4184b93ec665e92"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CXGrammar/include/xgrammar_c_bridge.h",
+      "sha256": "de9efd76b8a2c451c9e5d0483345bea702ba47b6c6648444b11cfaec72cf4b5e"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CXGrammar/xgrammar_c_bridge.cpp",
+      "sha256": "c06015535a2d619fb098d1349f5a3408366a2d52ab762f34a6085400023e7d2c"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Assets/ModelPaths.swift",
+      "sha256": "4e4f873a799fd6896c9757070503376d3496eba863ae3fb34a7bb7c7f2fa0d0e"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Bundle/LanguageBundle.swift",
+      "sha256": "e2c82eeeb80e45eda73d3f68f3b9a0811a00cce7a8c672b043ac53ca01032c0e"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Bundle/LanguageConfig.swift",
+      "sha256": "333b885a95416fe1f01c242ccbdf3901981bedf88348dee2bf1d74e27f55f9ab"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Bundle/ModelBundle+Language.swift",
+      "sha256": "548d448b42c2ecbff464c0f83da15f111f9237fe12e2659b188318e589a44172"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/DecodingStrategies/ConstrainedDecodingStrategy.swift",
+      "sha256": "f03baee63cb85a19bf948979a89c6ab275a082b460fbc9cdc4b6985f0936ea67"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/DecodingStrategies/ConstrainedGenerator.swift",
+      "sha256": "5e3e7d967fbfbc7314a419b05b8db2e8a7f38ecdeb55e65525a7535502546405"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/DecodingStrategies/ContinuationEvaluation.swift",
+      "sha256": "d91b7658ef184f4910618e4f25db9bfd710146916bfe025db6eb3c8951327e85"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/DecodingStrategies/DecodingStrategy.swift",
+      "sha256": "b14c577a7d5974e80c4d6269895e7fe0cc9e2e804084312c2369817add3d9915"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/DecodingStrategies/PipelinedConstrainedDecodingStrategy.swift",
+      "sha256": "decb6a00097174f378b0ba05f63b7159851ab016465a7ce38b1fa02ae2c66a81"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/DecodingStrategies/VanillaDecodingStrategy.swift",
+      "sha256": "7f924c7b4cc0d0fa6d5469d0db97c2206d0b031c83f2901fe134db7dfbe22b8e"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/GuidedGeneration/ConstrainedGenerationSession.swift",
+      "sha256": "fda683db9f54293d917011722c107cb483235a6d6744b8f63b7b7bf630c9ac64"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/GuidedGeneration/ConstrainedSessionHandle.swift",
+      "sha256": "677682f5acd5d7155ab1183248db7433142c1475dc92085fbe4eebcff4f2e95c"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/GuidedGeneration/TokenizerInfo.swift",
+      "sha256": "9fcf663b264d4cf5c395ea8ed2db28076234ff9c5bd179e6dfbcd7836d160925"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/GuidedGeneration/XGrammarWrapper.swift",
+      "sha256": "6cff960fc69bc188afba5c4657fe070a0bae4f36a1f3d241d0695b63481f9b1d"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Handlers/InputHandler+Pipelined.swift",
+      "sha256": "fe2445f5569a50fefa3329ccf862538d5a2375896e7ba7d7d16a23df25c66c7c"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Handlers/InputHandler+Token.swift",
+      "sha256": "80c80872ff483117f9127caa25c309276363e3ca92e8bc3358ea9b215f1a6d1a"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Handlers/InputHandler.swift",
+      "sha256": "b54d2b61a8f1880f50a6de5f46c35d536108111e9c40d20e2693b702977d20aa"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Handlers/StateHandler+Encode.swift",
+      "sha256": "3e0b8fc15496c12589ef938a35dcb4e17dbff716ddf593af168ef38e41977bdf"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Handlers/StateHandler+MTLBuffer.swift",
+      "sha256": "c50944f0be9b78ad2c4506abbe6a54e97b57278fd00f05a5f2732ef5a2063008"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Handlers/StateHandler+NDArray.swift",
+      "sha256": "51bc1398e1c7f7b99cd11fdf00247816c1051f7a73161b9bbbe9e64b5c609a3b"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Handlers/StateHandler+Run.swift",
+      "sha256": "ffda10b3a7936d7006d9c58857d2385a2d6f2e24b5b49b4e6158d3a669647630"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Handlers/StateHandler.swift",
+      "sha256": "603f9916053be028b4671945c8fd183bb768489313b9eed5eccb70551f05a2c5"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Handlers/StateHandlerFactory.swift",
+      "sha256": "9c46c7999a6151e3225c5b3a2d94158a9aec67cf10a28c99fba4348c8d8c41d8"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/ConstrainedGenerationCapable.swift",
+      "sha256": "53e701ced72389f502f51e047e80bf6c467fd07cc0a94fd9ab34d34ebe43b220"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/CoreAIPipelinedEngine.swift",
+      "sha256": "03b2601c19bed6cfdc123bce11e466a759542eccd6cbf4f6ada1b5a982716878"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/CoreAISequentialEngine.swift",
+      "sha256": "00910dcfe01ba9ba96be4cf0666f086718464a322d55edc2e5457d0788943465"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/CoreAISequentialVLMEngine.swift",
+      "sha256": "8a3eaf30a9f4144d97b8f9724014e27cde9c6d7e934add58ea400d5997515995"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/CoreAIStaticShapeEngine.swift",
+      "sha256": "96cd2a9c6c61e122b68edcc76feb2fbf332e7e80ca6186e4d89f226f2588500e"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/EngineFactory.swift",
+      "sha256": "c3b4c88a5be888c17f91a8eca6422e1453f30f566e937a911b6faa147296d37f"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/GenerationToken.swift",
+      "sha256": "77e166ad88ea08126dbff70e886746836a81055941ac3a69da1ae6db250ea363"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/InferenceEngine.swift",
+      "sha256": "8a7a8e1fc5bbc479618e02a889d04671a23de0bdc10dd7817d9d220479eca696"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/InferenceOutputSequence.swift",
+      "sha256": "1027e68a7124818e36a1cfff6168371e8d0196c6a8e43226b3f22ed7131e6d2e"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/InferenceTokenSequence.swift",
+      "sha256": "5c294eaabd6f99acd288b7fbe892d9dee0f2ceadadf3731921c80ba2911b5051"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/InputEmbeddings.swift",
+      "sha256": "adf04a712927e3622b91bdcaeddf406e93f43af43db0d2b5ee4d45a76811da58"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/KVCache+CoreAI.swift",
+      "sha256": "8a3baee9b9f6da964db80536c435e3e6b37c4f48718510188f4c82ebb03f9425"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/KVCacheShared.swift",
+      "sha256": "15961f3ac3f05c63dc9326c55f18881e948e9bc5fed0b0463a2e2c5e851ae8d8"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/ModelConfig.swift",
+      "sha256": "54f579e1603c20c98032bf3e8ed6e3cfd419b3af049ea98eec99e7ba60a3362d"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/TensorStorage+CoreAI.swift",
+      "sha256": "5378ad7fa9f4c79b875e89e90d600066ee3541d70ca5e45239e4222783b584d6"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/InferenceEngines/TokenHistory.swift",
+      "sha256": "bf93b3d6faed9db63a260f1c505dd56a1f512712e8dee523a7c1be0aff6c1098"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/LanguageModel/CoreAILanguageModel.swift",
+      "sha256": "03576d864448cf314529bd5520a9b00d5744998f4d04a524ebf8fd91d7304dc7"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/LanguageModel/CoreAIRunner.swift",
+      "sha256": "64c1bd249a3b29c69799d73a0079bd42e4d50dab92024bacda7981ab059776b8"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/LanguageModel/ModelResources.swift",
+      "sha256": "5b98b982214e7abf25e6043cdd94d9c85047ef79ea3307d97ec358cfee550621"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/LanguageModel/ThinkTagParser.swift",
+      "sha256": "03417b01bd2c6d607dc861ac8cf22e647cf5a0bb74a4175393ac475143322d52"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Output/LogitsWriter.swift",
+      "sha256": "b4d6b2aff95a4d535be7aae385e50aa9929b21fac3bafc2261d5dfbd68788eef"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Profiling/InstrumentsProfiler.swift",
+      "sha256": "5ed4176b435ea84526a31b6514d8e7a955f0d0730295595fe986dd0663debe95"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Profiling/PerformanceMetrics.swift",
+      "sha256": "b323b7f471aa4b6a8c75e9a27a4226d31034be7be70de9342e5eacf21097724b"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Samplers/CompositeSampler.swift",
+      "sha256": "3054699a2992242af7fb7ba79558d856a468fb06e51bfa66039d9baf04fb2d5b"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Samplers/MPSGraphSamplers.swift",
+      "sha256": "a45f9894e37f1da04a090b42bc1dcf8890ec7e54c27209f1ccbf838e04570354"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Samplers/RepetitionPenaltyGPUState.swift",
+      "sha256": "b9febdb8c7a5a207c4901d9fba1ed7d42d0d0526a1c18a6ed161bc2dd271fd6d"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Samplers/RepetitionPenaltyProcessor.swift",
+      "sha256": "3731f1890153c1bf43d7d602a5117279e84109a8d5a67a482525e0853dcfed65"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Samplers/SamplingConfiguration.swift",
+      "sha256": "1e0c6db1e8b9586683149d1ca3cc16f294efeebc07f033219526c420f2969c38"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/Session/TokenizerLoader.swift",
+      "sha256": "5aa94eea603bc3eb9375c6814c909712d0612a27bc866f76c00aba9538d0a1c5"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/StreamingMarkerMatcher.swift",
+      "sha256": "a94fecf35700c343b1c4e04f53d19e5f378a17bfc911f964204fd374725874ce"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/TextGeneration/LogProbabilities.swift",
+      "sha256": "83c3fa67018fea95e769d652949f55376c5a9b80120c2020895783674059f22d"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/TextGeneration/PromptProcessing.swift",
+      "sha256": "992b9c30f4cfff4268a97bb73f441c31c83c62937033e6a821256922a56b8165"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/TextGeneration/TextGenerator.swift",
+      "sha256": "078b3d5b8ab1ca579f8af0e06b73a9109e0cb0a055bed769599c26291a13d8af"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/ToolCallParser.swift",
+      "sha256": "c946a93097f8513cbfab222c2ad60c211199553615d16f356286296290e01cec"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAILanguageModels/VLM/CoreAIVisionLanguageModel.swift",
+      "sha256": "7cc7ca6d59287e6a91ceed744432e2cc17156979286663322c65fd2b63b7bed6"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Bundle/BundleKind.swift",
+      "sha256": "b6870e89a0ecccd07a36cbb58106e5c72df0cf3cc37feffecad55941a2df9332"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Bundle/FunctionMap.swift",
+      "sha256": "e7bfebbbc340f01eb12d164f7475531b54a72f45aeb726d69617ecb9e256f4be"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Bundle/ModelBundle.swift",
+      "sha256": "48288d56a56f78e6d9eb11d4642fc8a12a33738fd5351fec42da17978482aea7"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Image/CGImageUtils.swift",
+      "sha256": "01d2b35d9cc4afaf5892d2c4e00c26a8b0b5646f9406d784191f289160b92de8"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Image/ImagePreprocessor.swift",
+      "sha256": "e09e77e5362d0128f44e20a8524be9185f851e57064040ebaed7387902906c30"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Logger/Logger.swift",
+      "sha256": "291b04781658b8e03c7bff61a32fe26f99cbad83a71365ba8048f328d65de663"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Runtime/Duration+Time.swift",
+      "sha256": "1191bad7822ac5eda8b610594b8630da799d6781893dcebe68bbe0686ee4a266"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Runtime/FileSize.swift",
+      "sha256": "08c6d272176dcaa7cefd14c878f262f4ca6ca7d3d5e10d84e65d726794d66c10"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Runtime/ModelIONameResolver.swift",
+      "sha256": "e5c04c7cadc463ae0b0e7da2473ce48bef31432bf19f3f25d8c5d98925547b54"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Runtime/ModelStructure.swift",
+      "sha256": "11c049cb1c6c0372e5988594ae5542e987b7146730b7d2f4a2100993812b982d"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Runtime/NDArray+Helpers.swift",
+      "sha256": "b09e325a87ca313f2db17cc3ce47b884ef8e021886ef7aba1b0311c3cabdc9cb"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Runtime/ResourceManaging.swift",
+      "sha256": "42345155e3e354b62ca2b537e607460958a6867d23caa54dca45927a886516d5"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Video/FrameSamplingStrategy.swift",
+      "sha256": "f4a7c87043aa0e1b5bf16cce6d18d2bb072245cd90629793777d79cd20be36c1"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Video/VideoFrameExtractor.swift",
+      "sha256": "0455b359c7475917e26ed7bb66fb099bd6a32e2a156a96bf45db9cc77d2e67bd"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/CoreAIShared/Video/VideoInput.swift",
+      "sha256": "c4a6379d22821865e6ce23299bf799ca62a91a9840d3437b67845f7abd41ca15"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/MimCoreAIVision/GraphBundle.swift",
+      "sha256": "409ec0e3c9f3b83cbc03dc80ec57d7647c15cf2b81a605efb266eb8bb6053267"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/MimCoreAIVision/GraphModel.swift",
+      "sha256": "fbb1b496ba96178d1784a2400c0fe2428419b8a9fe7fdc92cffb7460c4507823"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/MimCoreAIVision/TensorValue.swift",
+      "sha256": "2d30df77c9c2e57c4e9cd81207a239389fb5de4d3c90b80224306dd11922d49e"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/MimCoreAIVision/VLArchitecture.swift",
+      "sha256": "b065a0107ad443268f992b92d6afd41f3440ab80ca6c6d11832d5fd6b7304325"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/MimCoreAIVision/VLImagePreprocessor.swift",
+      "sha256": "e4bb0892e1857e8a3a35047bd6c283de6f731404edb9cda630543d659dad0037"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/MimCoreAIVision/VLRuntime.swift",
+      "sha256": "cf1ad82b8c62939e91cca70935b50266f5e567fdccc928ec03eaddc2803de587"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/MimCoreAIVision/VisionError.swift",
+      "sha256": "7002835db4f28fa5135bc9e67d3eb4be5212e65566be3412b2cee20c58b8c4dd"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/Sources/MimCoreAIVision/VisionSceneModel.swift",
+      "sha256": "4f1e2e599a2e1ec9c320e94f42473f890295b36053b33faa7c3a1f0af5f27463"
+    },
+    {
+      "path": "Vendor/MimCoreAIRuntime/UPSTREAM.json",
+      "sha256": "02ba46dc21fe28da25860d3eaae88eccb84b2b6e2f4705b08e944956eb75d179"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Package.swift",
+      "sha256": "f6f9b5c97c4386e050cf4de9e47f03f1b907219d29592b75e618d28260116d8c"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/CGImage+vImage.swift",
+      "sha256": "1a705171079dc8f71909804f38c2f47d3240f5d5a5b4c4b771f48ec26b4fc18d"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/ControlNet.swift",
+      "sha256": "0c671cc7f98ceee1c3e02c2adcf31b1527aaf61a1eaa058b4c48dabe01ef298b"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/DPMSolverMultistepScheduler.swift",
+      "sha256": "935b57f0b632a9e166b7c46f8dfa18b5b24f1d3e70c261e87ffde9b89a24cdc3"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/Decoder.swift",
+      "sha256": "334b048d6f8cbe30a498543f22a0d2571b7e944407e796c3de3bead58ed348e3"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/Encoder.swift",
+      "sha256": "50f34834d4122dcdbec8f87f5c8ec8df38df9dd760e458359622e435b3eeca01"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/LCMScheduler.swift",
+      "sha256": "9604fb7753e7b32d44ac03a0423d6aa4dc1c0b411161f4b1301c2ff630f4bbdb"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/ManagedMLModel.swift",
+      "sha256": "39b9a98ed524e2e1690c27b3324d98f13a214e128e0707698446dd100c0ca83e"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/MultilingualTextEncoder.swift",
+      "sha256": "57a7c304f58db1ba5d8f12703919df5ba927e047d3136baa366419b9a1cc761b"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/NumPyRandomSource.swift",
+      "sha256": "72d94364c28b66ddfc2b82e61591286eeddc9b505004ac009aff8f4e99b678d6"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/NvRandomSource.swift",
+      "sha256": "509ee5424533408f0a3bb2af6fcfcec248d44e042bbdd84a345c35ea00efdc3a"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/RandomSource.swift",
+      "sha256": "ddbc5f36a51986473d7b90183ddaae130f9e67de8896977f4d9cfee85d52c1d8"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/ResourceManaging.swift",
+      "sha256": "d534f14e4d7a9660a2efacf3220f74fdb9698b08247c9c57ed902d733793dccb"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/SafetyChecker.swift",
+      "sha256": "bc087a3c34f04c47f2947c4396a191ebef9331dd522efaff7ea751fbbbf3d705"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/SampleTimer.swift",
+      "sha256": "7f92135b35657cb7966d56b91a113db0352bf75247f2375380319ac42e56e3ae"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/Scheduler.swift",
+      "sha256": "8a0fe6568bc89aa04def364dcddaef479875b8cb95628a94a1420dddf7e01b70"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/StableDiffusionPipeline+Resources.swift",
+      "sha256": "fcd3d5e5429d47d6efbe1c1e52f2ee326b16ccb83f871b1d7e712d73348d765e"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/StableDiffusionPipeline.Configuration.swift",
+      "sha256": "73025aee4da6488ab89f8b1c82db53c5b8ba371f4238b3b07ce3f39f3cd8c3a8"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/StableDiffusionPipeline.swift",
+      "sha256": "32fac1862feb68f3d699beff3d239a8b40bc0667773c8615101c9f00a79e5cf9"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/StableDiffusionXL+Resources.swift",
+      "sha256": "c547460a6e3c09852e65570e3d9579623a2f93b3a374627a88321b98b44cde39"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/StableDiffusionXLPipeline.swift",
+      "sha256": "550d0e2de017e297eb71e3c6228ca8d91045d28e68701bbd77c5ae9da6667cd1"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/TextEncoder.swift",
+      "sha256": "2bf89afc39ebd3b6a6e1b1f8d6adde08fc3da07d6f28e84b1a58ebfb91c24eec"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/TextEncoderXL.swift",
+      "sha256": "7af760be14516e4f3f68d1cf9bf80f05893e05d9f435c2514431e92b538baa78"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/TorchRandomSource.swift",
+      "sha256": "e45eddd61857793176c1f0accfd41537a6bac012d6ee1d3abce2db1a7e0f3b51"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/pipeline/Unet.swift",
+      "sha256": "2100feaf2fa1760497beb637d12d20457386d9ff5a5d23af3b06debb5fbc16ff"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/tokenizer/BPETokenizer+Reading.swift",
+      "sha256": "0a27e1ade18f20ab0d61c439deb0c383210e5994e6d792c588a5dbf1aededf96"
+    },
+    {
+      "path": "Vendor/StableDiffusionLocal/Sources/StableDiffusion/tokenizer/BPETokenizer.swift",
+      "sha256": "12fc3a8d55c3ac428b2b64535f6ddd02cfb2de4914180652ebe7f044161ecb88"
+    },
+    {
+      "path": "docs/image-safety-assets.json",
+      "sha256": "19b9fb9fcb045384428276576d6d28f7bbbee70313114ab75afb9a13fbf4ec21"
+    },
+    {
+      "path": "licenses/Apple-StableDiffusion-LICENSE.txt",
+      "sha256": "4f7eae00de7a3b4ea1d6b3d26f64c113b999dda4e7d3269f3278caac66575fc3"
+    },
+    {
+      "path": "licenses/FLUX2-LICENSE.txt",
+      "sha256": "ca02bc51900ab07789d1b70283329e7137f5af98f5161c23a1c81fc38a4af1fe"
+    },
+    {
+      "path": "licenses/FLUX2-MIM-MODIFICATIONS.txt",
+      "sha256": "f42cfd4a67d293307c79d5aa84e9316988fed65eac8859ea3b040a319e52caeb"
+    },
+    {
+      "path": "licenses/LFM-MIM-NOTICE.txt",
+      "sha256": "b37d12ac017ecce28a36c90a408f9b45e4a151884b10432c921c824722d60a5a"
+    },
+    {
+      "path": "licenses/LFM-Open-License-v1.0.txt",
+      "sha256": "4d28ca14dedc0b3d0fcc2b3339f0e79931faa33874f3d24f522183a8fc70068c"
+    },
+    {
+      "path": "licenses/LFM-upstream-NOTICE.txt",
+      "sha256": "ae03cabc60d27790a35d29bec6e5ac68ea2a1bd7320aa3d93df8e6e89b8c8b3d"
+    },
+    {
+      "path": "licenses/Qwen3-4B-LICENSE.txt",
+      "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e"
+    },
+    {
+      "path": "licenses/SigLIP2-Apache-LICENSE.txt",
+      "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1"
+    },
+    {
+      "path": "licenses/SwiftFormer-LICENSE.txt",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "licenses/ZIPFoundation-LICENSE.txt",
+      "sha256": "93a5b6f4c4fcfbca71aaf17f5758d249cf205d5d1c237becc37f14e43af09f6b"
+    },
+    {
+      "path": "licenses/notice-provenance.json",
+      "sha256": "f9cf0712300316b89e6aefa657ecda766ca545c0538b5c6abc75cbe1817e68fd"
+    },
+    {
+      "path": "licenses/retrieval-provenance.json",
+      "sha256": "9aceb13d2246ee5623aef7240e908433b41aca825e642e8548f0ed2c7eb8ffbf"
+    },
+    {
+      "path": "licenses/swift-collections-LICENSE.txt.txt",
+      "sha256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55"
+    },
+    {
+      "path": "licenses/swift-jinja-LICENSE.txt",
+      "sha256": "648b81e6c6f9975c3b6cf6d630229b6c8d6f1ddaef55f5770f576adda19f3495"
+    },
+    {
+      "path": "licenses/swift-transformers-LICENSE.txt",
+      "sha256": "648b81e6c6f9975c3b6cf6d630229b6c8d6f1ddaef55f5770f576adda19f3495"
+    },
+    {
+      "path": "licenses/xgrammar-LICENSE.txt",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "licenses/xgrammar-NOTICE.txt",
+      "sha256": "769c6907073c65801bfcfe3ce1c0e80bf0ae4e124e2769d4f026c038ad583c0f"
+    },
+    {
+      "path": "scripts/check_localization_coverage.py",
+      "sha256": "d9bf83c4485be29c0c18619c8211747b09d1fb6a26714cdfce2e0c53599bce78"
+    },
+    {
+      "path": "scripts/check_xcstrings_sync.py",
+      "sha256": "826eea9a81e6a3ffd7459254acf056deac7e896a101cb8a04f61077249e892ff"
+    },
+    {
+      "path": "scripts/export_strings_from_xcstrings.py",
+      "sha256": "eb82bf2a7789bf35a6e6e2ed8962bcfb58122d53d0591a658925afdb18042dec"
+    },
+    {
+      "path": "scripts/generate_xcstrings.py",
+      "sha256": "601da406f762753f48aa2e535422c1f2edd0c0da39e1aa2d95f55d4a70802d5f"
+    },
+    {
+      "path": "scripts/prepare_model_notices.py",
+      "sha256": "88e1a3cab01999b210e42ecd79f3772c6cf9ea53ea79fa91cdfe4ddeea017474"
+    },
+    {
+      "path": "scripts/repair_xcstrings_encoding.py",
+      "sha256": "c4adc7e5c3c4b3605ff6b8deac2db0d58f0f704ca69abb21b2c31de3a1e3cbf9"
+    },
+    {
+      "path": "scripts/restore_safety_model.py",
+      "sha256": "f37db64767025ff17cfc3d2c8776ea5c9bd32610ebd61488db1d88c104bab73f"
+    },
+    {
+      "path": "scripts/sync_localizations.py",
+      "sha256": "350e5d9bdbc4e82c1fdf1f0ed2a03ebc16c69f0780fc04b8be6f8c8183291c7c"
+    }
+  ],
+  "excluded": [
+    "backend",
+    "server",
+    "operational state",
+    "credentials",
+    "model weights",
+    "device live-test fixtures"
+  ]
+}

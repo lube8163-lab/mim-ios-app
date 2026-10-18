@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "Mim";
+"CFBundleName" = "Mim";
+"NSPhotoLibraryUsageDescription" = "선택한 사진을 기기 내에서 게시물로 처리하고 선택한 프로필 사진을 업로드하는 데 사용합니다.";

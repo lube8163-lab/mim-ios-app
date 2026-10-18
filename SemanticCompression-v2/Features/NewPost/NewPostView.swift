@@ -1,748 +1,462 @@
 import SwiftUI
 import PhotosUI
+import Combine
+import CryptoKit
+import Darwin
+
+@MainActor
+final class PhotoComposer: ObservableObject {
+    enum Phase { case idle, reading, understanding, preparing, reconstructing, ready, uploading, failed, cancelling, cancelled }
+    @Published var image: UIImage?
+    @Published var preview: UIImage?
+    @Published var scene: PhotoSceneDescription?
+    private var extractedScene: PhotoSceneDescription?
+    @Published var prompt = ""
+    @Published var userText = ""
+    @Published var phase: Phase = .idle
+    @Published var message: String?
+    @Published var recipe: GenerationRecipe?
+    @Published var seed = UInt32.random(in: 0...UInt32.max)
+    @Published var sourceSHA256: String?
+    @Published var understandingSeconds: Double?
+    @Published var processedSize: CGSize?
+    @Published private(set) var understandingEvidence: UnderstandingStageEvidence?
+    @Published private(set) var generationEvidence: GenerationStageEvidence?
+    private var caseID = UUID().uuidString
+    private var operation: Task<Void, Never>?
+    private var operationID = UUID()
+    var busy: Bool { [.reading, .understanding, .preparing, .reconstructing, .uploading, .cancelling].contains(phase) }
+    var canPost: Bool { phase != .reading && phase != .uploading && phase != .cancelling && (image != nil || !userText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+    var phaseLabel: String {
+        switch phase {
+        case .reading: return "写真を読み込み中"
+        case .understanding: return "写真を理解中"
+        case .preparing: return "再現の準備中"
+        case .reconstructing: return "写真を再現中"
+        case .uploading: return "投稿中"
+        case .ready: return "再現を確認できます"
+        case .failed: return "完了できませんでした"
+        case .cancelled: return "中止しました"
+        case .cancelling: return "処理を中止中"
+        case .idle: return ""
+        }
+    }
+    func cancel() {
+        guard phase != .uploading else { return }
+        if let operation, busy { phase = .cancelling; operation.cancel() }
+        else { operation = nil; phase = .cancelled }
+    }
+    func invalidatePreview() { recipe = nil; preview = nil; generationEvidence = nil; if !busy { phase = .idle } }
+    func invalidateUnderstanding() {
+        guard !busy else { return }
+        scene = nil; extractedScene = nil; prompt = ""; understandingEvidence = nil
+        understandingSeconds = nil; processedSize = nil; invalidatePreview()
+    }
+    func load(_ item: PhotosPickerItem) {
+        cancel()
+        image = nil; scene = nil; prompt = ""; invalidatePreview(); message = nil
+        extractedScene = nil; sourceSHA256 = nil; understandingSeconds = nil; processedSize = nil
+        understandingEvidence = nil; generationEvidence = nil; caseID = UUID().uuidString
+        let id = UUID(); operationID = id; phase = .reading
+        operation = Task {
+            defer { finishOperation(id) }
+            do {
+                guard let data = try await item.loadTransferable(type: Data.self), let loaded = UIImage(data: data) else {
+                    throw RecipeError.invalid("写真を読み込めませんでした。")
+                }
+                try Task.checkCancellation()
+                guard operationID == id else { return }
+                image = loaded
+                sourceSHA256 = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+                phase = .idle
+            } catch {
+                guard operationID == id else { return }
+                if Task.isCancelled { phase = .cancelled }
+                else { phase = .failed; message = error.localizedDescription }
+            }
+        }
+    }
+    func prepare() {
+        guard let image, !busy else { return }
+        message = nil
+        recipe = nil; preview = nil
+        let id = UUID(); operationID = id
+        phase = scene == nil ? .understanding : .preparing
+        operation = Task {
+            defer { finishOperation(id) }
+            do {
+                generationEvidence = pendingGeneration()
+                try ModelManager.shared.generationProviderAvailability.requireReady()
+                if scene == nil {
+                    phase = .understanding
+                    startUnderstandingEvidence()
+                    let extracted = try await SemanticExtractionTask.shared.describe(image, provider: ModelManager.shared.selectedUnderstandingProvider)
+                    try Task.checkCancellation()
+                    guard operationID == id else { return }
+                    acceptUnderstanding(extracted)
+                }
+                phase = .preparing
+                let manifest = try await ModelManager.shared.manifest(for: ModelManager.shared.selectedSDModelID)
+                try Task.checkCancellation()
+                let policy = try PromptPolicy.bundled()
+                if let scene, prompt == scene.generationPrompt {
+                    prompt = try SceneRecipePrompt.build(scene, manifest: manifest,
+                        resources: ModelManager.shared.directory(for: manifest))
+                }
+                try policy.validate(prompt: prompt)
+                let value = GenerationRecipe.photo(prompt: prompt.trimmingCharacters(in: .whitespacesAndNewlines),
+                    manifest: manifest, safetyPolicyIdentity: try policy.identity)
+                try value.validate()
+                phase = .reconstructing
+                generationEvidence = try generationRecord(recipe: value)
+                let generated = try await PhotoProviderRegistry.generation(ModelManager.shared.selectedGenerationProvider).render(value, seed: seed)
+                try Task.checkCancellation()
+                guard operationID == id else { return }
+                recipe = value; preview = generated.image; phase = .ready
+                generationEvidence?.status = .completed
+                generationEvidence?.measurements = generated.measurements
+                generationEvidence?.result = .init(imageSHA256: generated.image.pngData().map {
+                    SHA256.hash(data: $0).map { String(format: "%02x", $0) }.joined()
+                })
+            } catch {
+                guard operationID == id else { return }
+                markUnfinishedEvidence(cancelled: error is CancellationError || Task.isCancelled)
+                if error is CancellationError || Task.isCancelled { phase = .cancelled }
+                else { phase = .failed; message = error.localizedDescription }
+            }
+        }
+    }
+    func describeOnly() {
+        guard let image, !busy else { return }
+        recipe = nil; preview = nil; message = nil
+        scene = nil; extractedScene = nil; understandingSeconds = nil; processedSize = nil
+        understandingEvidence = nil; generationEvidence = nil
+        let id = UUID(); operationID = id; phase = .understanding
+        operation = Task {
+            defer { finishOperation(id) }
+            do {
+                startUnderstandingEvidence()
+                let extracted = try await SemanticExtractionTask.shared.describe(image, provider: ModelManager.shared.selectedUnderstandingProvider)
+                try Task.checkCancellation()
+                guard operationID == id else { return }
+                acceptUnderstanding(extracted)
+                phase = .idle
+            } catch {
+                guard operationID == id else { return }
+                markUnfinishedEvidence(cancelled: error is CancellationError || Task.isCancelled)
+                phase = error is CancellationError || Task.isCancelled ? .cancelled : .failed
+                if phase == .failed { message = error.localizedDescription }
+            }
+        }
+    }
+    func removePhoto() {
+        cancel(); operationID = UUID(); operation = nil
+        image = nil; scene = nil; prompt = ""; recipe = nil; preview = nil; message = nil
+        extractedScene = nil; sourceSHA256 = nil; understandingSeconds = nil; processedSize = nil; phase = .idle
+        understandingEvidence = nil; generationEvidence = nil
+        seed = UInt32.random(in: .min ... .max)
+    }
+    func prepareNewVariation() {
+        guard !busy else { return }
+        let previous = seed
+        seed = UInt32.random(in: .min ... .max)
+        if seed == previous { seed &+= 1 }
+        prepare()
+    }
+    private func finishOperation(_ id: UUID) {
+        guard operationID == id else { return }
+        operation = nil
+        if phase == .cancelling { phase = .cancelled }
+    }
+    func exportComparison() throws -> URL {
+        guard !busy, let sourceSHA256 else {
+            throw RecipeError.invalid("写真の読み込みが必要です。")
+        }
+        let value = PhotoComparisonRecord(version: 2, sourceID: caseID,
+                                          understandingBackend: actualUnderstandingBackend,
+                                          sourceSHA256: sourceSHA256, osVersion: ProcessInfo.processInfo.operatingSystemVersionString,
+                                          deviceModel: Self.machineIdentifier(), processedWidth: processedSize.map { Int($0.width) },
+                                          processedHeight: processedSize.map { Int($0.height) }, understandingElapsedSeconds: understandingSeconds,
+                                          scene: extractedScene, recipe: recipe, editedPrompt: prompt,
+                                          understandingRecord: currentUnderstandingRecord(),
+                                          generationRecord: generationEvidence ?? pendingGeneration())
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("mim-comparison-\(UUID().uuidString).json")
+        try canonicalData(value).write(to: url, options: .atomic)
+        return url
+    }
+    private var environment: StageEnvironment {
+        #if targetEnvironment(simulator)
+        let target: StageEnvironment.Target = .simulator
+        #else
+        let target: StageEnvironment.Target = .physicalDevice
+        #endif
+        return .init(deviceModel: Self.machineIdentifier(), osVersion: ProcessInfo.processInfo.operatingSystemVersionString,
+                     executionTarget: target)
+    }
+    private func startUnderstandingEvidence() {
+        let provider = PhotoProviderRegistry.understanding(ModelManager.shared.selectedUnderstandingProvider)
+        understandingEvidence = .init(stage: .understanding, caseID: caseID, status: .notRun,
+            sourceSHA256: sourceSHA256 ?? "", identity: provider.identity, environment: environment, measurements: .init(),
+            input: .init(processedWidth: nil, processedHeight: nil, preprocessingVersion: "notRun", processedSHA256: nil,
+                         instructionVersion: "photo-scene-v2"),
+            result: .init(prompt: nil, caption: nil, observations: nil, uncertainties: nil, editedPrompt: nil),
+            recordedAt: Date().ISO8601Format())
+        if provider.availability.canRun { understandingEvidence?.status = .failed }
+    }
+    private func acceptUnderstanding(_ output: PhotoUnderstandingOutput) {
+        let extracted = output.scene
+        scene = extracted; extractedScene = extracted; prompt = extracted.generationPrompt
+        understandingSeconds = output.measurements.elapsedSeconds; processedSize = output.processedSize
+        understandingEvidence = .init(stage: .understanding, caseID: caseID, status: .completed,
+            sourceSHA256: sourceSHA256 ?? "", identity: output.identity, environment: environment, measurements: output.measurements,
+            input: .init(processedWidth: Int(output.processedSize.width), processedHeight: Int(output.processedSize.height),
+                         preprocessingVersion: "uiimage-orientation-max1536-v1", processedSHA256: nil, instructionVersion: "photo-scene-v2"),
+            result: .init(prompt: extracted.generationPrompt, caption: extracted.description,
+                          observations: extracted.subjects + [extracted.counts, extracted.arrangement, extracted.relationships,
+                              extracted.colors, extracted.lighting, extracted.background, extracted.medium],
+                          uncertainties: nil, editedPrompt: nil), recordedAt: Date().ISO8601Format())
+        understandingEvidence?.fallbackReason = output.fallbackReason
+        understandingEvidence?.requestedUnderstandingProvider = ModelManager.shared.selectedUnderstandingProvider
+    }
+    var actualUnderstandingBackend: String {
+        understandingEvidence?.identity.runtime == "CoreAI" ? UnderstandingProviderID.coreAIVLM.rawValue : UnderstandingProviderID.foundationModels.rawValue
+    }
+    private func currentUnderstandingRecord() -> UnderstandingStageEvidence? {
+        var record = understandingEvidence
+        record?.result.editedPrompt = prompt == extractedScene?.generationPrompt ? nil : prompt
+        return record
+    }
+    private func pendingGeneration() -> GenerationStageEvidence {
+        let manager = ModelManager.shared
+        let identity: StageModelIdentity = manager.selectedGenerationProvider == .coreAI ? .unconfiguredCoreAI :
+            .init(modelID: manager.selectedSDModelID, modelRevision: manager.selectedSDModel?.revision,
+                  runtime: "CoreML", runtimeVersion: nil, assetManifestSHA256: nil)
+        return .init(stage: .generation, caseID: caseID, status: .notRun, sourceSHA256: sourceSHA256 ?? "",
+            identity: identity, environment: environment, measurements: .init(),
+            input: .init(prompt: prompt, negativePrompt: "", promptSource: promptSource, understandingRecordSHA256: nil),
+            result: .init(imageSHA256: nil), recordedAt: Date().ISO8601Format())
+    }
+    private var promptSource: GenerationEvidenceInput.PromptSource {
+        guard let extractedScene else { return .manual }
+        return prompt.trimmingCharacters(in: .whitespacesAndNewlines) == extractedScene.generationPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+            ? .rawUnderstanding : .editedUnderstanding
+    }
+    private func generationRecord(recipe: GenerationRecipe) throws -> GenerationStageEvidence {
+        let record = currentUnderstandingRecord()
+        return .init(stage: .generation, caseID: caseID, status: .failed, sourceSHA256: sourceSHA256 ?? "",
+            identity: try .generation(recipe.model), environment: environment, measurements: .init(),
+            input: .init(prompt: recipe.prompt, negativePrompt: recipe.negativePrompt, promptSource: promptSource,
+                         understandingRecordSHA256: try record.map { try canonicalDigest($0) }),
+            result: .init(imageSHA256: nil), settings: .init(seed: seed, width: recipe.width, height: recipe.height,
+                scheduler: recipe.scheduler, steps: recipe.steps, guidance: recipe.guidance, pipelineVersion: recipe.pipelineVersion),
+            recordedAt: Date().ISO8601Format())
+    }
+    private func markUnfinishedEvidence(cancelled: Bool) {
+        if understandingEvidence?.status == .failed && cancelled { understandingEvidence?.status = .cancelled }
+        if generationEvidence?.status == .failed && cancelled { generationEvidence?.status = .cancelled }
+    }
+    private static func machineIdentifier() -> String {
+        var info = utsname()
+        uname(&info)
+        return withUnsafeBytes(of: &info.machine) {
+            String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self)
+        }
+    }
+}
+
+typealias PhotoComparisonRecord = MimComparisonRecord<PhotoSceneDescription>
 
 struct NewPostView: View {
-
     @Environment(\.dismiss) private var dismiss
     @Binding var posts: [Post]
-    @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.preferred.rawValue
-    @AppStorage(AppPreferences.selectedPrivacyModeKey)
-    private var selectedPrivacyModeRaw = PrivacyMode.l2.storageValue
-    @AppStorage(AppPreferences.proModeEnabledKey)
-    private var isProModeEnabled = false
-
-    @EnvironmentObject var taggerHolder: TaggerHolder
+    var onClose: (() -> Void)? = nil
     @EnvironmentObject var modelManager: ModelManager
-    var isImagePostingTemporarilyDisabled = false
-    var onSemanticProcessingWillStart: (() async -> Void)? = nil
-    var onSemanticProcessingDidFinish: (() async -> Void)? = nil
+    @StateObject private var composer = PhotoComposer()
+    @State private var item: PhotosPickerItem?
+    @State private var previewSelection = 0
+    @State private var showSettings = false
+    @State private var exportURL: URL?
+    @State private var uploadTask: Task<Void, Never>?
+    @State private var uncertainUpload = false
 
-    // UI state
-    @State private var selectedItem: PhotosPickerItem?
-    @State private var selectedImage: UIImage?
-    @State private var userText: String = ""
-    @State private var selectedMode: PrivacyMode = .l2
-
-    @State private var isPosting = false
-    @State private var errorMessage: String?
-    @State private var extractedTags: [String] = []
-    @State private var showSemanticCompletionMessage = false
-    @State private var showL2PrimeWarning = false
-    @State private var showModeSheet = false
-    @State private var hasAcknowledgedCurrentL4Selection = true
-    @State private var warningTriggeredFromPostAction = false
-    @State private var previousModeBeforeL4Warning: PrivacyMode? = nil
-    @State private var lastNonL4Mode: PrivacyMode = .l2
-    @State private var postingPhase: PostingPhase?
-
-    private let uploader = PostUploader()
-    private let maxPostTextLength = 300
-    private let prohibitedKeywords = [
-        "kill", "murder", "suicide", "rape", "nude", "porn", "child porn",
-        "殺す", "死ね", "自殺", "レイプ", "児童ポルノ", "違法薬物"
-    ]
-
-    private var isLCMSelected: Bool {
-        modelManager.resolvedImageGenerationBackend == .stableDiffusion &&
-        modelManager.selectedSDModelID == ModelManager.sd15LCMModelID
+    private var comparisonMode: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--mim-model-comparison")
+        #else
+        false
+        #endif
     }
-
     var body: some View {
-        NavigationView {
-            ZStack {
-                newPostBackground
-
-                VStack(spacing: 0) {
-
-                    // ===== 上：スクロール領域（画像プレビューなど） =====
-                    ScrollView {
-                        VStack(spacing: 14) {
-
-                            if let img = selectedImage {
-                                imagePreview(img)
-                            }
-
-                            if selectedImage != nil {
-                                imageUnderstandingStatusCard
-                            }
-
+        let changePhotoTitle = mt("写真を変更")
+        let addPhotoTitle = mt("写真を追加")
+        return NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .top, spacing: 12) {
+                        CachedAvatarView(urlString: UserManager.shared.currentUser.avatarUrl) {
+                            Circle().fill(MimStyle.soft)
+                                .overlay(Image(systemName: "person.fill").foregroundStyle(.secondary))
+                        }.clipShape(Circle())
+                            .frame(width: 36, height: 36)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(ContentSafetyPolicy.displayText(UserManager.shared.currentUser.displayName)).font(.subheadline.weight(.semibold))
+                            TextField(mt("いま、何してる？"), text: $composer.userText, axis: .vertical)
+                                .font(.body).lineLimit(3...12)
+                                .accessibilityIdentifier("post-text-field")
+                                .onChange(of: composer.userText) { _, text in
+                                    if text.count > 300 { composer.userText = String(text.prefix(300)) }
+                                }
+                                .disabled(composer.phase == .uploading)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 14)
-                        .padding(.bottom, 12)
                     }
-
-                    Divider()
-
-                    // ===== 下：常に操作できるComposer（TextEditorはここ） =====
-                    composerArea
-                }
+                    VStack(alignment: .leading, spacing: 12) {
+                        if let original = composer.image {
+                            Image(uiImage: original).resizable().scaledToFit()
+                                .frame(maxWidth: .infinity)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .accessibilityLabel(mt("選択した写真"))
+                            HStack {
+                                PhotosPicker(selection: $item, matching: .images, preferredItemEncoding: .current) {
+                                    Text(changePhotoTitle).frame(minHeight: 44)
+                                }
+                                Spacer()
+                                Button(role: .destructive) { item = nil; composer.removePhoto() } label: {
+                                    Text(mt("削除")).frame(minHeight: 44)
+                                }
+                            }.font(.subheadline).disabled(composer.phase == .uploading)
+                            Text(mt("写真は投稿後に処理されます。"))
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else {
+                            PhotosPicker(selection: $item, matching: .images, preferredItemEncoding: .current) {
+                                Label(addPhotoTitle, systemImage: "photo")
+                                    .font(.body).frame(minHeight: 44)
+                            }.disabled(composer.busy)
+                        }
+                        if composer.phase == .reading { ProgressView(mt("写真を読み込み中")) }
+                        if comparisonMode, composer.image != nil {
+                            DisclosureGroup("モデル比較") {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    if let scene = composer.scene {
+                                        Text(scene.description).font(.callout)
+                                        TextField(mt("再現に使う説明"), text: $composer.prompt, axis: .vertical).lineLimit(3...8)
+                                    }
+                                    if let image = composer.preview { Image(uiImage: image).resizable().scaledToFit() }
+                                    if composer.busy {
+                                        ProgressView(mt(composer.phaseLabel))
+                                        Button(mt("中止")) { composer.cancel() }
+                                    } else {
+                                        Button(mt("写真の説明を作成")) { composer.describeOnly() }
+                                        Button(mt("再現を確認")) { composer.prepare() }
+                                    }
+                                    if let exportURL { ShareLink(item: exportURL) { Text(mt("比較データ")) } }
+                                }.padding(.top, 12)
+                            }
+                        }
+                        if let message = composer.message {
+                            Text(mt(message)).font(.callout).foregroundStyle(.red)
+                                .accessibilityIdentifier("composer-error")
+                        }
+                    }.padding(.leading, 48)
+                }.padding(16)
             }
-            .navigationTitle(l("new_post.title"))
+            .background(MimStyle.paper)
+            .navigationTitle(mt("投稿"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(l("new_post.close")) { dismiss() }
-                        .disabled(isPosting)
-                }
-
+                    Button { composer.cancel(); close() } label: {
+                        Text(mt("キャンセル")).font(.subheadline)
+                            .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                    }.buttonStyle(.plain).frame(minHeight: 44)
+                        .disabled(composer.phase == .uploading)
+                }.sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isPosting ? l("new_post.posting") : l("new_post.post")) {
-                        requestPost()
-                    }
-                    .disabled(
-                        isPosting ||
-                        (selectedImage == nil &&
-                         userText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ||
-                        (selectedImage != nil && isImagePostingTemporarilyDisabled)
-                    )
-                }
+                    Button { submit() } label: {
+                        Text(mt("投稿")).font(.subheadline.weight(.semibold))
+                            .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                            .foregroundStyle(composer.canPost && !uncertainUpload ? .white : Color.secondary)
+                            .padding(.horizontal, 20).frame(minHeight: 44)
+                            .background(composer.canPost && !uncertainUpload ? MimStyle.accent : MimStyle.soft, in: Capsule())
+                    }.buttonStyle(.plain).disabled(!composer.canPost || uncertainUpload)
+                        .accessibilityIdentifier("submit-post-button")
+                }.sharedBackgroundVisibility(.hidden)
             }
-        }
-        .overlay(alignment: .bottom) {
-            if showSemanticCompletionMessage {
-                Text(
-                    l("new_post.semantic_completion")
-                )
-                .font(.footnote)
-                .foregroundColor(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color.black.opacity(0.78))
-                .clipShape(Capsule())
-                .padding(.bottom, 20)
-                .transition(.opacity)
-            }
-        }
-        .overlay {
-            if let postingPhase, isPosting, selectedImage != nil {
-                postingProgressOverlay(phase: postingPhase)
-                    .transition(.opacity.combined(with: .scale))
-            }
-        }
-        .alert(
-            l("new_post.l4_warning.title"),
-            isPresented: $showL2PrimeWarning
-        ) {
-            Button(l("new_post.continue"), role: .destructive) {
-                hasAcknowledgedCurrentL4Selection = true
-                previousModeBeforeL4Warning = nil
-                if warningTriggeredFromPostAction {
-                    warningTriggeredFromPostAction = false
-                    Task { await handlePost() }
-                }
-            }
-            Button(l("common.cancel"), role: .cancel) {
-                if let prev = previousModeBeforeL4Warning {
-                    selectedMode = prev
-                    hasAcknowledgedCurrentL4Selection = true
-                } else if selectedMode == .l2Prime {
-                    selectedMode = lastNonL4Mode
-                    hasAcknowledgedCurrentL4Selection = true
-                }
-                previousModeBeforeL4Warning = nil
-                warningTriggeredFromPostAction = false
-            }
-        }
-    }
-}
-
-// MARK: - Composer Area
-
-extension NewPostView {
-    private enum PostingPhase {
-        case generatingPrompt
-        case uploading
-    }
-
-    private var postingTagStreamSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                RainbowAILoader()
-                Text(postingPhaseTitle(postingPhase ?? .uploading))
-                    .font(.subheadline.weight(.semibold))
-            }
-
-            Text(l("new_post.whats_being_sent"))
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Array(extractedTags.enumerated()), id: \.offset) { _, tag in
-                        Text(tag)
-                            .font(.caption)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.accentColor.opacity(0.14))
-                            .clipShape(Capsule())
-                            .transition(.opacity)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.white.opacity(0.55), lineWidth: 0.8)
-        )
-        .shadow(color: Color.black.opacity(0.05), radius: 16, y: 8)
-    }
-
-    private func postingProgressOverlay(phase: PostingPhase) -> some View {
-        VStack(spacing: 10) {
-            RainbowAILoader()
-
-            Text(postingPhaseTitle(phase))
-                .font(.headline.weight(.semibold))
-                .multilineTextAlignment(.center)
-
-            Text(postingPhaseSubtitle(phase))
-                .font(.footnote)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 18)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.24), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.18), radius: 18, y: 10)
-        .padding(28)
-    }
-
-    private var composerArea: some View {
-        VStack(alignment: .leading, spacing: 12) {
-
-            HStack(alignment: .top, spacing: 12) {
-
-                userAvatar
-
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text(UserManager.shared.currentUser.displayName)
-                            .font(.subheadline.weight(.semibold))
-                        Spacer()
-                        if selectedImage != nil {
-                            Label(l("new_post.image_attached"), systemImage: "photo")
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
-                    ZStack(alignment: .topLeading) {
-                        if userText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            Text(l("new_post.placeholder"))
-                                .foregroundColor(.secondary)
-                                .padding(.top, 10)
-                                .padding(.leading, 6)
-                        }
-
-                        TextEditor(text: $userText)
-                            .frame(minHeight: 88, maxHeight: 128)
-                            .padding(4)
-                            .scrollContentBackground(.hidden)
-                            .onChange(of: userText) { newValue in
-                                if newValue.count > maxPostTextLength {
-                                    userText = String(newValue.prefix(maxPostTextLength))
-                                }
-                            }
-                    }
-                }
-            }
-
-            HStack {
-                PhotosPicker(selection: $selectedItem, matching: .images) {
-                    Label(l("new_post.image"), systemImage: "photo")
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.accentColor.opacity(0.12), in: Capsule())
-                }
-
-                Spacer()
-
-                if selectedImage != nil {
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Button {
-                            guard !isLCMSelected else { return }
-                            showModeSheet = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: selectedMode.iconName)
-                                Text(selectedMode.title(languageCode: selectedLanguage))
-                                    .font(.caption)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.gray.opacity(0.14))
-                            .clipShape(Capsule())
-                        }
-                        .disabled(isLCMSelected)
-
-                        if isLCMSelected {
-                            Text(
-                                l("new_post.lcm_note")
-                            )
-                            .font(.caption2)
-                            .foregroundColor(.orange)
-                            .multilineTextAlignment(.trailing)
-                        }
-                    }
-                }
-            }
-
-            if let err = errorMessage {
-                Text(err)
-                    .foregroundColor(.red)
-                    .font(.caption)
-            }
-
-            HStack {
-                if selectedImage != nil {
-                    if isImagePostingTemporarilyDisabled {
-                        Label(
-                            l("new_post.image_post_model_preparing_short"),
-                            systemImage: "hourglass"
-                        )
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                    } else {
-                        Label(
-                            l("new_post.semantic_compression_enabled"),
-                            systemImage: "sparkles"
-                        )
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    }
-                }
-
-                Spacer()
-
-                Text("\(userText.count)/\(maxPostTextLength)")
-                    .font(.caption2)
-                    .foregroundColor(userText.count >= maxPostTextLength ? .orange : .secondary)
-            }
-
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 14)
-        .padding(.bottom, 16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.white.opacity(0.55), lineWidth: 0.8)
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 20, y: 8)
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 10)
-        .onChange(of: selectedItem) { _ in loadImage() }
-        .sheet(isPresented: $showModeSheet) {
-            modeSelectionSheet
+            .interactiveDismissDisabled(composer.phase == .uploading)
         }
         .onAppear {
-            let mode = PrivacyMode.fromStorageValue(selectedPrivacyModeRaw)
-            selectedMode = PrivacyModeAccessPolicy.canUse(mode: mode) ? mode : .l2
-            lastNonL4Mode = (selectedMode == .l2Prime) ? .l2 : selectedMode
-            hasAcknowledgedCurrentL4Selection = (selectedMode != .l2Prime)
-        }
-        .onChange(of: selectedPrivacyModeRaw) { newValue in
-            let mode = PrivacyMode.fromStorageValue(newValue)
-            selectedMode = PrivacyModeAccessPolicy.canUse(mode: mode) ? mode : .l2
-            if selectedMode != .l2Prime { lastNonL4Mode = selectedMode }
-            hasAcknowledgedCurrentL4Selection = (selectedMode != .l2Prime)
-        }
-    }
-
-    private var modeSelectionSheet: some View {
-        NavigationStack {
-            List {
-                ForEach(PrivacyMode.allCases) { mode in
-                    Button {
-                        guard PrivacyModeAccessPolicy.canUse(mode: mode) else { return }
-                        let switchedToL4 = (selectedMode != .l2Prime && mode == .l2Prime)
-                        let previous = selectedMode
-                        selectedMode = mode
-                        if mode != .l2Prime { lastNonL4Mode = mode }
-                        hasAcknowledgedCurrentL4Selection = (mode != .l2Prime)
-                        showModeSheet = false
-                        if switchedToL4 {
-                            previousModeBeforeL4Warning = previous
-                            warningTriggeredFromPostAction = false
-                            showL2PrimeWarning = true
-                        } else {
-                            previousModeBeforeL4Warning = nil
-                        }
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: mode.iconName)
-                                .frame(width: 18)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(mode.title(languageCode: selectedLanguage))
-                                    .font(.body)
-                                Text(modeDescription(mode))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            if selectedMode == mode {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.accentColor)
-                            }
-                        }
-                    }
-                    .disabled(!PrivacyModeAccessPolicy.canUse(mode: mode))
-                }
-            }
-            .navigationTitle(l("new_post.post_mode"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(l("new_post.close")) { showModeSheet = false }
-                }
-            }
-        }
-    }
-
-    private func modeDescription(_ mode: PrivacyMode) -> String {
-        switch mode {
-        case .l1:
-            return l("new_post.mode.l1")
-        case .l2:
-            return l("new_post.mode.l2")
-        case .l3:
-            return l("new_post.mode.l3")
-        case .l2Prime:
-            return l("new_post.mode.l2prime")
-        }
-    }
-
-    private var userAvatar: some View {
-        let name = UserManager.shared.currentUser.displayName
-        let initial = String(name.prefix(1)).uppercased()
-
-        return ZStack {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [.blue, .purple],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 36, height: 36)
-
-            Text(initial)
-                .foregroundColor(.white)
-                .font(.headline)
-        }
-    }
-}
-
-// MARK: - Image Preview
-
-extension NewPostView {
-
-    private func imagePreview(_ img: UIImage) -> some View {
-        ZStack(alignment: .topTrailing) {
-            Image(uiImage: img)
-                .resizable()
-                .scaledToFill()
-                .frame(height: 250)
-                .frame(maxWidth: .infinity)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .stroke(Color.white.opacity(0.55), lineWidth: 0.8)
-                )
-                .shadow(color: Color.black.opacity(0.08), radius: 20, y: 10)
-
-            Button {
-                selectedItem = nil
-                selectedImage = nil
-                extractedTags = []
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 22))
-                    .foregroundColor(.white)
-                    .shadow(radius: 4)
-                    .padding(18)
-            }
-            .accessibilityLabel(l("new_post.remove_image"))
-        }
-    }
-
-    private var imageUnderstandingStatusCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label(
-                l("new_post.extracting_semantics"),
-                systemImage: "sparkles.rectangle.stack"
-            )
-            .font(.subheadline.weight(.semibold))
-
-            Text(l("new_post.current_backend", modelManager.resolvedImageUnderstandingBackendTitle))
-            .font(.caption)
-            .foregroundColor(.secondary)
-
-            if modelManager.resolvedImageUnderstandingBackend == .vision {
-                Text(l("new_post.apple_vision_fallback"))
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            }
-
-            if isImagePostingTemporarilyDisabled {
-                Text(l("new_post.image_post_model_preparing_detail"))
-                    .font(.caption2)
-                    .foregroundColor(.orange)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.white.opacity(0.55), lineWidth: 0.8)
-        )
-    }
-
-    private var newPostBackground: some View {
-        Color(.systemBackground)
-            .ignoresSafeArea()
-    }
-}
-
-// MARK: - Logic
-
-extension NewPostView {
-
-    private func requestPost() {
-        if selectedImage != nil && isImagePostingTemporarilyDisabled {
-            errorMessage = l("new_post.error.image_post_model_preparing")
-            return
-        }
-        if selectedImage != nil && selectedMode == .l2Prime && !hasAcknowledgedCurrentL4Selection {
-            warningTriggeredFromPostAction = true
-            showL2PrimeWarning = true
-            return
-        }
-        Task { await handlePost() }
-    }
-
-    func loadImage() {
-        Task {
-            if let data = try? await selectedItem?.loadTransferable(type: Data.self),
-               let ui = UIImage(data: data) {
-                await MainActor.run {
-                    selectedImage = ui
-                    extractedTags = []
-                }
-            }
-        }
-    }
-
-    func handlePost(forceTextOnly: Bool = false) async {
-
-        guard !isPosting else { return }
-        let imageForPost = forceTextOnly ? nil : selectedImage
-        if imageForPost != nil && isImagePostingTemporarilyDisabled {
-            await MainActor.run {
-                errorMessage = l("new_post.error.image_post_model_preparing")
-            }
-            return
-        }
-        await MainActor.run {
-            isPosting = true
-            errorMessage = nil
-            extractedTags = []
-            showSemanticCompletionMessage = false
-            postingPhase = imageForPost != nil ? .generatingPrompt : .uploading
-        }
-        defer {
-            Task { @MainActor in
-                isPosting = false
-                postingPhase = nil
-            }
-        }
-
-        let id = UUID().uuidString
-        let localUser = UserManager.shared.currentUser
-
-        let trimmed = userText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !PrivacyModeAccessPolicy.canUse(mode: selectedMode) {
-            await MainActor.run {
-                errorMessage = l("new_post.error.mode_unavailable")
-            }
-            return
-        }
-        if containsProhibitedText(trimmed) {
-            await MainActor.run {
-                errorMessage = l("new_post.error.prohibited_text")
-            }
-            return
-        }
-
-        let modeForPost: PrivacyMode = (imageForPost == nil) ? .l1 : selectedMode
-        let payload = imageForPost.flatMap { PostPayload.make(from: $0, mode: modeForPost) }
-
-        if imageForPost != nil && modeForPost != .l1 && payload == nil {
-            await MainActor.run {
-                errorMessage = l("new_post.error.payload_failed")
-            }
-            return
-        }
-
-        // ① 即時表示用ローカルポスト
-        let tempPost = Post(
-            id: id,
-            userId: localUser.id,
-            displayName: localUser.displayName,
-            avatarUrl: localUser.avatarUrl,
-            caption: nil,
-            semanticPrompt: nil,
-            regionTags: nil,
-            lowResGuide: nil,
-            mode: modeForPost.rawValue,
-            payload: payload,
-            tags: [],
-            userText: trimmed.isEmpty ? nil : trimmed,
-            hasImage: imageForPost != nil,
-            status: .pending,
-            createdAt: Date(),
-            localImage: imageForPost
-        )
-
-        if let imageForPost, isProModeEnabled {
-            ImageCacheManager.shared.save(
-                imageForPost,
-                for: tempPost.id,
-                namespace: .originalImages
-            )
-        }
-
-        await MainActor.run {
-            posts.insert(tempPost, at: 0)
-        }
-
-        if imageForPost != nil {
-            await onSemanticProcessingWillStart?()
-            defer {
-                Task {
-                    await onSemanticProcessingDidFinish?()
-                }
-            }
-        }
-
-        // ② Semantic Extraction（画像があるときだけ）
-        if imageForPost != nil {
-            await SemanticExtractionTask.shared.process(
-                post: tempPost,
-                taggers: taggerHolder
-            ) { tags in
-                for tag in tags where !extractedTags.contains(tag) {
-                    Task { @MainActor in
-                        withAnimation(.easeIn(duration: 0.3)) {
-                            extractedTags.append(tag)
-                        }
-                    }
-                }
-            }
-        } else {
             #if DEBUG
-            print("ℹ️ Skip semantic extraction (no image)")
+            if ProcessInfo.processInfo.arguments.contains("--mim-ui-review"),
+               ProcessInfo.processInfo.arguments.contains("--mim-ui-review-photo") {
+                composer.image = UIReviewFixtures.photo()
+            }
             #endif
         }
+        .onChange(of: item) { _, next in if let next { composer.load(next) } }
+        .onChange(of: composer.prompt) { _, _ in if !composer.busy { composer.invalidatePreview() } }
+        .onChange(of: modelManager.selectedUnderstandingProvider) { _, _ in composer.invalidateUnderstanding() }
+        .onChange(of: modelManager.selectedGenerationProvider) { _, _ in composer.invalidatePreview() }
+        .onChange(of: modelManager.selectedSDModelID) { _, _ in composer.cancel(); composer.invalidatePreview() }
+        .onChange(of: composer.recipe) { _, _ in refreshComparisonExport() }
+        .onChange(of: composer.scene) { _, _ in refreshComparisonExport() }
+        .onChange(of: composer.phase) { _, _ in refreshComparisonExport() }
+        .onDisappear { composer.cancel() }
+    }
 
-        // ③ Upload
-        do {
-            await MainActor.run {
-                postingPhase = .uploading
-            }
-            let uploaded = try await uploader.upload(post: tempPost)
+    private func refreshComparisonExport() {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--mim-model-comparison") {
+            exportURL = try? composer.exportComparison()
+        }
+        #endif
+    }
 
-            await MainActor.run {
-                tempPost.id = uploaded.id
-            }
-
-            if let imageForPost, isProModeEnabled {
-                ImageCacheManager.shared.save(
-                    imageForPost,
-                    for: uploaded.id,
-                    namespace: .originalImages
-                )
-            }
-
-            if tempPost.hasImage {
-                do {
-                    try await SemanticExtractionTask.shared.syncGeneratedMetadata(
-                        post: tempPost,
-                        remotePostID: uploaded.id
-                    )
-                } catch {
-                    #if DEBUG
-                    print("⚠️ Metadata sync failed:", error)
-                    #endif
+    private func sceneLabel(_ key: String) -> String {
+        ["subjects": "主題", "counts": "個数", "arrangement": "配置", "relationships": "関係", "colors": "色",
+         "lighting": "光", "background": "背景", "medium": "画風"][key] ?? key
+    }
+    private func sceneValue(_ key: String) -> String {
+        guard let scene = composer.scene else { return "" }
+        switch key {
+        case "subjects": return scene.subjects.joined(separator: ", ")
+        case "counts": return scene.counts
+        case "arrangement": return scene.arrangement
+        case "relationships": return scene.relationships
+        case "colors": return scene.colors
+        case "lighting": return scene.lighting
+        case "background": return scene.background
+        default: return scene.medium
+        }
+    }
+    private func submit() {
+        guard composer.canPost else { return }
+        composer.cancel()
+        composer.phase = .uploading; composer.message = nil
+        let image = composer.image
+        let text = composer.userText.trimmingCharacters(in: .whitespacesAndNewlines)
+        uploadTask = Task {
+            do {
+                try ContentSafetyPolicy.bundled().validate(text)
+                let post: Post
+                if let image {
+                    // Persist the work before dismissing; analysis belongs to the app's queue.
+                    post = try await BackgroundPhotoPosts.shared.submit(image: image, text: text)
+                } else {
+                    let user = UserManager.shared.currentUser
+                    let value = Post(id: UUID().uuidString, userId: user.id, displayName: user.displayName,
+                        avatarUrl: user.avatarUrl, userText: text, hasImage: false, status: .completed)
+                    let result = try await PostUploader().upload(post: value)
+                    value.id = result.id
+                    post = await PostStore.shared.resolve(value)
                 }
-            }
-            if tempPost.hasImage {
-                await MainActor.run {
-                    withAnimation(.easeIn(duration: 0.2)) {
-                        showSemanticCompletionMessage = true
-                    }
-                }
-                try? await Task.sleep(nanoseconds: 1_800_000_000)
-            }
-            await MainActor.run {
-                showSemanticCompletionMessage = false
-                dismiss()
-            }
-        } catch {
-            #if DEBUG
-            print("⚠️ Upload failed:", error)
-            #endif
-            if imageForPost != nil && isProModeEnabled {
-                ImageCacheManager.shared.remove(for: tempPost.id, namespace: .originalImages)
-            }
-            await MainActor.run {
-                posts.removeAll { $0.id == tempPost.id }
-                showSemanticCompletionMessage = false
-                errorMessage = l("new_post.error.upload_failed")
+                if !posts.contains(where: { $0.id == post.id }) { posts.insert(post, at: 0) }
+                composer.phase = .ready
+                composer.removePhoto(); composer.userText = ""; item = nil
+                close()
+            } catch {
+                composer.phase = .failed; composer.message = error.localizedDescription
+                uncertainUpload = image == nil && ((error as? PostUploadError)?.postMayHaveBeenSaved ?? false)
             }
         }
     }
-
-    private func l(_ key: String, _ arguments: CVarArg...) -> String {
-        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
-    }
-
-    private func containsProhibitedText(_ text: String) -> Bool {
-        let normalized = text.lowercased()
-        return prohibitedKeywords.contains { normalized.contains($0.lowercased()) }
-    }
-
-    private func postingPhaseTitle(_ phase: PostingPhase) -> String {
-        switch phase {
-        case .generatingPrompt:
-            return l("new_post.phase.generating_prompt")
-        case .uploading:
-            return l("new_post.phase.uploading")
-        }
-    }
-
-    private func postingPhaseSubtitle(_ phase: PostingPhase) -> String {
-        switch phase {
-        case .generatingPrompt:
-            return l("new_post.phase.generating_prompt_detail")
-        case .uploading:
-            return l("new_post.phase.uploading_detail")
-        }
-    }
-
+    private func close() { if let onClose { onClose() } else { dismiss() } }
 }

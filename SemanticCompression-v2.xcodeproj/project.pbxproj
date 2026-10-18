@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D9208B1C2EB83AD20098AAC5 /* CoreMLPipelines in Frameworks */ = {isa = PBXBuildFile; productRef = D9208B1B2EB83AD20098AAC5 /* CoreMLPipelines */; };
+		C0D3F0012F71000100000001 /* CoreAIDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = C0D3F0032F71000100000003 /* CoreAIDiffusion */; };
+		C0D3B0012F71000100000001 /* MimCoreAIVision in Frameworks */ = {isa = PBXBuildFile; productRef = C0D3B0032F71000100000003 /* MimCoreAIVision */; };
+		C0D3A0012F70000100000001 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = C0D3A0032F70000100000003 /* Tokenizers */; };
 		D97396992EF2FFCA00072195 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = D97396982EF2FFCA00072195 /* ZIPFoundation */; };
 		D9F5263D2ED73B1E00DEC7BF /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = D9F5263C2ED73B1E00DEC7BF /* StableDiffusion */; };
 /* End PBXBuildFile section */
@@ -21,6 +23,9 @@
 		D9D4532D2F2B9ED100A5E314 /* Exceptions for "SemanticCompression-v2" folder in "SemanticCompression-v2" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"Features/Onboarding/OnboardingFlowView 2.swift",
+				Vendor,
+				"Resources/Models/LPIPSAlex.mlpackage",
 				Info.plist,
 				Localizable.xcstrings,
 			);
@@ -44,7 +49,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9208B1C2EB83AD20098AAC5 /* CoreMLPipelines in Frameworks */,
+				C0D3F0012F71000100000001 /* CoreAIDiffusion in Frameworks */,
+				C0D3B0012F71000100000001 /* MimCoreAIVision in Frameworks */,
+				C0D3A0012F70000100000001 /* Tokenizers in Frameworks */,
 				D9F5263D2ED73B1E00DEC7BF /* StableDiffusion in Frameworks */,
 				D97396992EF2FFCA00072195 /* ZIPFoundation in Frameworks */,
 			);
@@ -98,7 +105,9 @@
 			);
 			name = "SemanticCompression-v2";
 			packageProductDependencies = (
-				D9208B1B2EB83AD20098AAC5 /* CoreMLPipelines */,
+				C0D3F0032F71000100000003 /* CoreAIDiffusion */,
+				C0D3B0032F71000100000003 /* MimCoreAIVision */,
+				C0D3A0032F70000100000003 /* Tokenizers */,
 				D9F5263C2ED73B1E00DEC7BF /* StableDiffusion */,
 				D97396982EF2FFCA00072195 /* ZIPFoundation */,
 			);
@@ -142,8 +151,10 @@
 			mainGroup = D9208AC22EB839A60098AAC5;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				D9208B1A2EB83AD20098AAC5 /* XCRemoteSwiftPackageReference "CoreMLPipelines" */,
-				D9F5263B2ED73B1E00DEC7BF /* XCRemoteSwiftPackageReference "ml-stable-diffusion" */,
+				C0D3F0022F71000100000002 /* XCLocalSwiftPackageReference "Vendor/MimCoreAIFlux" */,
+				C0D3B0022F71000100000002 /* XCLocalSwiftPackageReference "Vendor/MimCoreAIRuntime" */,
+				C0D3A0022F70000100000002 /* XCRemoteSwiftPackageReference "swift-transformers" */,
+				D9F5263B2ED73B1E00DEC7BF /* XCLocalSwiftPackageReference "Vendor/StableDiffusionLocal" */,
 				D97396972EF2FFCA00072195 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -231,7 +242,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0.1;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -290,7 +301,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0.1;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -307,54 +318,31 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 32;
+				CURRENT_PROJECT_VERSION = 39;
 				DEVELOPMENT_TEAM = YY58VZMU56;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/include",
-				);
 				INFOPLIST_FILE = "SemanticCompression-v2/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Mim;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "投稿する画像を選択し、端末内のAIで解析・生成を行うために写真へのアクセスが必要です。画像はユーザーの操作なく外部に送信されません。";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose photos for on-device post analysis or to upload a profile photo. Original photos used in posts stay on your device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/iphoneos",
-					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/iphonesimulator",
-					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphoneos",
-					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphonesimulator",
-				);
-				MARKETING_VERSION = 1.6.8;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/$(PLATFORM_NAME)/libllama.a",
-					"-lc++",
-					"-framework",
-					Accelerate,
-					"-framework",
-					Metal,
-					"-framework",
-					Foundation,
-				);
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tasuku.mim;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "SemanticCompression-v2/SemanticCompression-v2-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -368,54 +356,31 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 32;
+				CURRENT_PROJECT_VERSION = 39;
 				DEVELOPMENT_TEAM = YY58VZMU56;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/include",
-				);
 				INFOPLIST_FILE = "SemanticCompression-v2/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Mim;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "投稿する画像を選択し、端末内のAIで解析・生成を行うために写真へのアクセスが必要です。画像はユーザーの操作なく外部に送信されません。";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose photos for on-device post analysis or to upload a profile photo. Original photos used in posts stay on your device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/iphoneos",
-					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/iphonesimulator",
-					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphoneos",
-					"$(PROJECT_DIR)/SemanticCompression-v2/Vendor/llama/iphonesimulator",
-				);
-				MARKETING_VERSION = 1.6.8;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"$(SRCROOT)/SemanticCompression-v2/Vendor/llama/$(PLATFORM_NAME)/libllama.a",
-					"-lc++",
-					"-framework",
-					Accelerate,
-					"-framework",
-					Metal,
-					"-framework",
-					Foundation,
-				);
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tasuku.mim;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "SemanticCompression-v2/SemanticCompression-v2-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -445,13 +410,25 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		C0D3F0022F71000100000002 = {isa = XCLocalSwiftPackageReference; relativePath = Vendor/MimCoreAIFlux; };
+		C0D3B0022F71000100000002 /* XCLocalSwiftPackageReference "Vendor/MimCoreAIRuntime" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Vendor/MimCoreAIRuntime;
+		};
+		D9F5263B2ED73B1E00DEC7BF /* XCLocalSwiftPackageReference "Vendor/StableDiffusionLocal" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Vendor/StableDiffusionLocal;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
-		D9208B1A2EB83AD20098AAC5 /* XCRemoteSwiftPackageReference "CoreMLPipelines" */ = {
+		C0D3A0022F70000100000002 /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/finnvoor/CoreMLPipelines.git";
+			repositoryURL = "https://github.com/huggingface/swift-transformers.git";
 			requirement = {
-				branch = main;
-				kind = branch;
+				revision = 91286f231bffb9d01998c7e99a8cc760b9e41546;
+				kind = revision;
 			};
 		};
 		D97396972EF2FFCA00072195 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
@@ -462,21 +439,19 @@
 				minimumVersion = 0.9.20;
 			};
 		};
-		D9F5263B2ED73B1E00DEC7BF /* XCRemoteSwiftPackageReference "ml-stable-diffusion" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/ml-stable-diffusion";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		D9208B1B2EB83AD20098AAC5 /* CoreMLPipelines */ = {
+		C0D3F0032F71000100000003 = {isa = XCSwiftPackageProductDependency; package = C0D3F0022F71000100000002; productName = CoreAIDiffusion; };
+		C0D3B0032F71000100000003 /* MimCoreAIVision */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D9208B1A2EB83AD20098AAC5 /* XCRemoteSwiftPackageReference "CoreMLPipelines" */;
-			productName = CoreMLPipelines;
+			package = C0D3B0022F71000100000002 /* XCLocalSwiftPackageReference "Vendor/MimCoreAIRuntime" */;
+			productName = MimCoreAIVision;
+		};
+		C0D3A0032F70000100000003 /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0D3A0022F70000100000002 /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
 		};
 		D97396982EF2FFCA00072195 /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -485,7 +460,7 @@
 		};
 		D9F5263C2ED73B1E00DEC7BF /* StableDiffusion */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D9F5263B2ED73B1E00DEC7BF /* XCRemoteSwiftPackageReference "ml-stable-diffusion" */;
+			package = D9F5263B2ED73B1E00DEC7BF /* XCLocalSwiftPackageReference "Vendor/StableDiffusionLocal" */;
 			productName = StableDiffusion;
 		};
 /* End XCSwiftPackageProductDependency section */

@@ -77,6 +77,9 @@ struct PostDetailView: View {
             guard deletedPostId == post.id else { return }
             dismiss()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .postReported)) { notification in
+            if notification.userInfo?["postId"] as? String == post.id { dismiss() }
+        }
         .sheet(isPresented: $showLoginSheet) {
             OTPLoginView(allowsSkip: true)
         }
@@ -240,7 +243,7 @@ struct PostDetailView: View {
             replyTarget = nil
             post.commentCount = comments.count
         } catch {
-            errorMessage = l("post_detail.error.send_comment")
+            errorMessage = error is ContentSafetyError ? mt(error.localizedDescription) : l("post_detail.error.send_comment")
         }
     }
 
@@ -296,12 +299,7 @@ private struct CommentRowView: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Button(action: onOpenProfile) {
-                AsyncImage(url: URL(string: comment.avatarUrl ?? "")) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } else {
+                CachedAvatarView(urlString: comment.avatarUrl ?? "") {
                         Circle()
                             .fill(Color.gray.opacity(0.18))
                             .overlay(
@@ -309,7 +307,6 @@ private struct CommentRowView: View {
                                     .font(.caption.weight(.bold))
                                     .foregroundColor(.secondary)
                             )
-                    }
                 }
                 .frame(width: 34, height: 34)
                 .clipShape(Circle())
@@ -319,7 +316,7 @@ private struct CommentRowView: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Button(action: onOpenProfile) {
-                        Text(comment.displayName ?? L10n.tr("post_detail.user_fallback", languageCode: languageCode))
+                        Text(ContentSafetyPolicy.displayText(comment.displayName, fallback: L10n.tr("post_detail.user_fallback", languageCode: languageCode)))
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(.primary)
                     }

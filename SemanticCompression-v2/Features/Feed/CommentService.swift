@@ -29,7 +29,8 @@ enum CommentService {
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([PostComment].self, from: data)
+        let policy = try ContentSafetyPolicy.bundled()
+        return try decoder.decode([PostComment].self, from: data).filter { policy.permits($0.text) }
     }
 
     static func postComment(
@@ -37,6 +38,7 @@ enum CommentService {
         text: String,
         parentCommentId: String? = nil
     ) async throws -> PostComment {
+        try ContentSafetyPolicy.bundled().validate(text)
         guard let url = URL(string: FeedAPI.base + "/comment") else {
             throw URLError(.badURL)
         }
@@ -65,6 +67,8 @@ enum CommentService {
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(PostComment.self, from: data)
+        let created = try decoder.decode(PostComment.self, from: data)
+        try ContentSafetyPolicy.bundled().validate(created.text)
+        return created
     }
 }

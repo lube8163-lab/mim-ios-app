@@ -1,0 +1,30 @@
+[
+  {
+    "file": "Qwen3-4B-LICENSE.txt",
+    "url": "https://huggingface.co/Qwen/Qwen3-4B/resolve/main/LICENSE",
+    "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+    "bytes": 11343,
+    "retrievedAtUTC": "2026-10-12T04:38:40.204805+00:00"
+  },
+  {
+    "file": "Apple-StableDiffusion-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/apple-aiml-research/ml-stable-diffusion/e12202c1f6405b83918b58a5d097cd61e3e1f702/LICENSE.md",
+    "sha256": "4f7eae00de7a3b4ea1d6b3d26f64c113b999dda4e7d3269f3278caac66575fc3",
+    "bytes": 1067,
+    "retrievedAtUTC": "2026-10-12T04:38:40.483179+00:00"
+  },
+  {
+    "file": "SigLIP2-Apache-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/google-research/big_vision/main/LICENSE",
+    "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+    "bytes": 11356,
+    "retrievedAtUTC": "2026-10-12T04:38:40.383286+00:00"
+  },
+  {
+    "file": "SwiftFormer-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/Amshaker/SwiftFormer/main/LICENSE",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "bytes": 11357,
+    "retrievedAtUTC": "2026-10-12T04:38:40.361927+00:00"
+  }
+]

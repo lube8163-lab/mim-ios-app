@@ -1,2 +1,3 @@
 "CFBundleDisplayName" = "Mim";
 "CFBundleName" = "Mim";
+"NSPhotoLibraryUsageDescription" = "Mim使用所选照片在设备端处理帖子，并上传你选择的个人资料照片。";

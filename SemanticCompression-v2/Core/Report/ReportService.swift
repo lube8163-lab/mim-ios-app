@@ -28,9 +28,13 @@ enum ReportService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse,
               (200...299).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        struct Receipt: Decodable { let ok: Bool }
+        guard let receipt = try? JSONDecoder().decode(Receipt.self, from: data), receipt.ok else {
             throw URLError(.badServerResponse)
         }
     }

@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 enum L10n {
     static func tr(
@@ -28,7 +27,7 @@ enum L10n {
     }
 
     private static func bundle(for languageCode: String) -> Bundle {
-        let preferredCode = normalizedLanguageCode(for: languageCode)
+        let preferredCode = AppLanguage.resolve(languageCode).rawValue
         if let path = Bundle.main.path(forResource: preferredCode, ofType: "lproj"),
            let bundle = Bundle(path: path) {
             return bundle
@@ -44,27 +43,4 @@ enum L10n {
         return .main
     }
 
-    private static func normalizedLanguageCode(for languageCode: String) -> String {
-        if languageCode.hasPrefix(AppLanguage.japanese.rawValue) {
-            return AppLanguage.japanese.rawValue
-        }
-        if languageCode.hasPrefix(AppLanguage.spanish.rawValue) {
-            return AppLanguage.spanish.rawValue
-        }
-        if languageCode.hasPrefix(AppLanguage.portugueseBrazil.rawValue)
-            || languageCode.hasPrefix("pt-BR")
-            || languageCode.hasPrefix("pt") {
-            return AppLanguage.portugueseBrazil.rawValue
-        }
-        if languageCode.hasPrefix(AppLanguage.korean.rawValue) {
-            return AppLanguage.korean.rawValue
-        }
-        if languageCode.hasPrefix(AppLanguage.chineseSimplified.rawValue) {
-            return AppLanguage.chineseSimplified.rawValue
-        }
-        if languageCode.hasPrefix(AppLanguage.chineseTraditional.rawValue) {
-            return AppLanguage.chineseTraditional.rawValue
-        }
-        return AppLanguage.english.rawValue
-    }
 }

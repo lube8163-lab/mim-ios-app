@@ -1,85 +1,41 @@
-//
-//  AppInfoView.swift
-//  SemanticCompression-v2
-//
-//  Created by Tasuku Kato on 2025/12/16.
-//
-
 import SwiftUI
 
 struct AppInfoView: View {
     @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.preferred.rawValue
+    private var language = AppLanguage.preferred.rawValue
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-
-                Text("Semantic Compression")
-                    .font(.title2)
-                    .bold()
-
-                infoSection(
-                    titleKey: "app_info.overview.title",
-                    bodyKey: "app_info.overview.body"
-                )
-
-                infoSection(
-                    titleKey: "app_info.image_understanding.title",
-                    bodyKey: "app_info.image_understanding.body"
-                )
-
-                infoSection(
-                    titleKey: "app_info.image_generation.title",
-                    bodyKey: "app_info.image_generation.body"
-                )
-
-                infoSection(
-                    titleKey: "app_info.ai_backend_labels.title",
-                    bodyKey: "app_info.ai_backend_labels.body"
-                )
-
-                infoSection(
-                    titleKey: "app_info.post_modes.title",
-                    bodyKey: "app_info.post_modes.body"
-                )
-
-                infoSection(
-                    titleKey: "app_info.pro_mode.title",
-                    bodyKey: "app_info.pro_mode.body"
-                )
-
-                Text(l("app_info.disclaimer"))
-
-                Text(l("app_info.links"))
-                    .font(.headline)
-
-                Link(
-                    l("app_info.github_repository"),
-                    destination: URL(string: "https://github.com/lube8163-lab/mim-ios/tree/main")!
-                )
+        let _ = language
+        List {
+            Section {
+                Text("Mim").font(.title2.weight(.semibold))
+                Text(mt("写真を言葉で届け、見る人の端末で再生成するSNSです。"))
+                LabeledContent(mt("バージョン"), value: version)
             }
-
-            .padding()
+            Section(mt("写真とプライバシー")) {
+                Text(mt("投稿に添付した元の写真は、サーバーに送りません。写真は端末内のAIで処理します。"))
+                Text(mt("写真の説明と再生成に必要な情報は、投稿としてサーバーに保存されます。"))
+                Text(mt("プロフィール画像はサーバーに保存され、ほかのユーザーに表示されます。"))
+            }
+            Section(mt("利用条件")) {
+                Text(mt("画像の再現にはiOS 27.0.1以降・RAM 8 GB以上の対応端末が必要です。"))
+                Text(mt("LFMを優先して使い、利用できないときはApple Foundation Modelsで処理します。"))
+                Text(mt("AppleのAIを使う場合は、Apple Intelligenceを有効にしてください。"))
+                Text(mt("モデルがなくても、文章の投稿や写真の説明を読むことから始められます。"))
+                Text(mt("画像は見る人ごとに変わります。\n元の写真と見た目が変わることがあります。"))
+            }
+            Section {
+                Link(mt("ソースコード"), destination: URL(string: "https://github.com/lube8163-lab/mim-ios-app")!)
+            }
         }
-        .navigationTitle(l("app_info.navigation_title"))
+        .navigationTitle(mt("アプリについて"))
+        .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.hidden).background(MimStyle.paper)
     }
-
-    private func l(_ key: String, _ arguments: CVarArg...) -> String {
-        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
-    }
-
-    @ViewBuilder
-    private func infoSection(
-        titleKey: String,
-        bodyKey: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(l(titleKey))
-                .font(.headline)
-            Text(l(bodyKey))
-                .lineSpacing(6)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+    private var version: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        return "\(version) (\(build))"
     }
 }
+

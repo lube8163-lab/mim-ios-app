@@ -15,8 +15,7 @@ struct PostCardView: View {
     var onPostDeleted: ((String) -> Void)? = nil
     @AppStorage(AppPreferences.selectedLanguageKey)
     private var selectedLanguage = AppLanguage.preferred.rawValue
-    @AppStorage(AppPreferences.proModeEnabledKey)
-    private var isProModeEnabled = false
+    @AppStorage(AppPreferences.showsGenerationPromptKey) private var showsGenerationPrompt = false
 
     @State private var showShare = false
 
@@ -146,22 +145,22 @@ struct PostCardView: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: 12) {
             headerSection
-            detailOpenSection
-            actionSection
-            semanticFidelitySection
+            detailOpenSection.padding(.leading, 48)
+            if showsGenerationPrompt, let prompt = post.recipe?.prompt ?? post.semanticPrompt, !prompt.isEmpty {
+                DisclosureGroup(mt("生成用プロンプト")) {
+                    Text(prompt).font(.footnote).foregroundStyle(.secondary).textSelection(.enabled)
+                        .padding(.top, 8)
+                }.font(.footnote).foregroundStyle(.secondary).padding(.leading, 48)
+            }
+            actionSection.padding(.leading, 48)
         }
-        .padding(16)
-        .background(cardFillColor, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .stroke(cardStrokeColor, lineWidth: 0.8)
-        )
+        .padding(.horizontal, 16)
         .overlay {
             if showCaptionDetail {
                 captionDetailOverlay
             }
         }
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.14 : 0.05), radius: 10, y: 4)
+
     }
 
     @ViewBuilder
@@ -192,13 +191,14 @@ struct PostCardView: View {
                     postId: reportedPostId,
                     reason: reason.payload(languageCode: selectedLanguage)
                 )
+                onPostReported?(reportedPostId)
+                NotificationCenter.default.post(name: .postReported, object: nil, userInfo: ["postId": reportedPostId])
+                showReportThanks = true
             } catch {
                 showReportError = true
                 return
             }
         }
-        onPostReported?(reportedPostId)
-        showReportThanks = true
     }
 
     private func deletePost() {
@@ -210,7 +210,10 @@ struct PostCardView: View {
         let deletedPostId = post.id
         Task {
             do {
-                try await PostActionService.deletePost(postId: deletedPostId)
+                let deletedPending = try await BackgroundPhotoPosts.shared.deletePendingPost(deletedPostId)
+                if !deletedPending {
+                    try await PostActionService.deletePost(postId: deletedPostId)
+                }
                 await PostStore.shared.remove(postId: deletedPostId)
                 await MainActor.run {
                     NotificationCenter.default.post(
@@ -237,22 +240,18 @@ extension PostCardView {
                 openAuthorProfileIfPossible()
             } label: {
                 HStack(spacing: 12) {
-                    AsyncImage(url: URL(string: post.avatarUrl ?? "")) { phase in
-                        if let img = phase.image {
-                            img.resizable().scaledToFill()
-                        } else {
+                    CachedAvatarView(urlString: post.avatarUrl ?? "") {
                             avatarPlaceholder
-                        }
                     }
-                    .frame(width: 42, height: 42)
+                    .frame(width: 36, height: 36)
                     .clipShape(Circle())
-                    .overlay(Circle().stroke(avatarStrokeColor, lineWidth: 1))
 
-                    VStack(alignment: .leading) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(post.displayName ?? l("post_card.user_fallback"))
                             .font(.subheadline.weight(.semibold))
-                        Text(post.createdAt.formatted())
-                            .font(.caption2)
+                            .lineLimit(1)
+                        Text(post.createdAt.formatted(.relative(presentation: .named, unitsStyle: .abbreviated)))
+                            .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -285,23 +284,16 @@ extension PostCardView {
                 }
             } label: {
                 Image(systemName: "ellipsis")
-                    .rotationEffect(.degrees(90))
-                    .padding(10)
-                    .background(chromeFillColor, in: Circle())
+                    .frame(width: 44, height: 44)
             }
+            .tint(.secondary)
+            .accessibilityLabel(mt("投稿のメニュー"))
         }
     }
 
     private var avatarPlaceholder: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color.gray.opacity(colorScheme == .dark ? 0.28 : 0.18),
-                    Color.gray.opacity(colorScheme == .dark ? 0.14 : 0.08)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            Color(.secondarySystemBackground)
 
             Text(avatarInitial)
                 .font(.subheadline.weight(.semibold))
@@ -342,91 +334,9 @@ extension PostCardView {
             && !BlockManager.shared.isBlocked(postUserId)
     }
 
-    @ViewBuilder
-    private var semanticFidelitySection: some View {
-        if isCurrentUsersPost, let evaluation = post.regenerationEvaluation {
-            VStack(alignment: .leading, spacing: 4) {
-                if let score = evaluation.semanticScore {
-                    let formattedSemanticPercent = String(format: "%.1f", score * 100)
-                    HStack(spacing: 6) {
-                        Image(systemName: "waveform.path.ecg")
-                            .font(.caption2)
-                        Text(l("post_card.metric.semantic_fidelity", formattedSemanticPercent))
-                        .font(.caption2.weight(.semibold))
-                    }
-                }
-
-                if let distance = evaluation.lpipsDistance {
-                    let normalizedSimilarity = max(0, min(1, 1 - distance))
-                    let formattedLPIPSPercent = String(format: "%.1f", normalizedSimilarity * 100)
-                    HStack(spacing: 6) {
-                        Image(systemName: "ruler")
-                            .font(.caption2)
-                        Text(l("post_card.metric.lpips_match", formattedLPIPSPercent))
-                        .font(.caption2.weight(.semibold))
-                    }
-                }
-
-                if isProModeEnabled {
-                    if let promptLine = diagnosticLine(
-                        labelJA: "Prompt",
-                        labelKO: "프롬프트",
-                        labelEN: "Prompt",
-                        duration: evaluation.promptGenerationDuration,
-                        memoryMB: evaluation.promptGenerationMemoryMB
-                    ) {
-                        Text(promptLine)
-                            .font(.caption2)
-                    }
-
-                    if let imageLine = diagnosticLine(
-                        labelJA: "生成",
-                        labelKO: "생성",
-                        labelEN: "Image",
-                        duration: evaluation.imageGenerationDuration,
-                        memoryMB: evaluation.imageGenerationMemoryMB
-                    ) {
-                        Text(imageLine)
-                            .font(.caption2)
-                    }
-                }
-            }
-            .foregroundColor(.secondary)
-        }
-    }
-
     private var isCurrentUsersPost: Bool {
         guard let postUserId = post.userId else { return false }
         return postUserId == UserManager.shared.currentUser.id
-    }
-
-    private func diagnosticLine(
-        labelJA: String,
-        labelKO: String,
-        labelEN: String,
-        duration: TimeInterval?,
-        memoryMB: Double?
-    ) -> String? {
-        guard duration != nil || memoryMB != nil else { return nil }
-
-        let durationText = duration.map { String(format: "%.1fs", $0) } ?? "-"
-        let memoryText = memoryMB.map { formatMemory($0) } ?? "-"
-        let label: String
-        if selectedLanguage.hasPrefix(AppLanguage.japanese.rawValue) {
-            label = labelJA
-        } else if selectedLanguage.hasPrefix(AppLanguage.korean.rawValue) {
-            label = labelKO
-        } else {
-            label = labelEN
-        }
-        return "\(label) \(durationText) / \(memoryText)"
-    }
-
-    private func formatMemory(_ valueMB: Double) -> String {
-        if valueMB >= 1024 {
-            return String(format: "%.2f GB", valueMB / 1024)
-        }
-        return String(format: "%.0f MB", valueMB)
     }
 
     private func blockAuthorIfNeeded() {
@@ -462,7 +372,7 @@ extension PostCardView {
         Group {
             if let txt = post.userText, !txt.isEmpty {
                 Text(txt)
-                    .font(.body.weight(.medium))
+                    .font(.body)
                     .foregroundColor(.primary)
                     .padding(.top, 2)
             }
@@ -474,168 +384,41 @@ extension PostCardView {
 extension PostCardView {
     @ViewBuilder
     private var imageSection: some View {
-        if let img = post.localImage {
-            ZStack(alignment: .topLeading) {
-                Image(uiImage: img)
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    .transition(.opacity)
-                imageBadges
-            }
-        }
-        else if let preview = post.previewImage {
-            ZStack(alignment: .topLeading) {
-                Image(uiImage: preview)
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                if isModelInstalled {
-                    VStack(spacing: 6) {
-                        RainbowAILoader()
-                            .shadow(color: .purple.opacity(0.6), radius: 8)
-                        Text(l("post_card.generating"))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 28)
-                    .padding(.leading, 72)
-                    .padding(.trailing, 16)
-                }
-                imageBadges
-            }
-        }
-        else if !isModelInstalled {
-            ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.gray.opacity(0.1))
-                    .frame(maxHeight: 260)
-                    .overlay(
-                        Text(l("post_card.image_generation_unavailable"))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    )
-                if post.hasImage {
-                    imageBadges
-                }
-            }
-        }
-        else if post.effectivePrompt != nil {
-            ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.gray.opacity(0.1))
-                    .frame(minHeight: post.imageGenerationFailed ? 170 : nil, maxHeight: 260)
-                    .overlay(
-                        Group {
-                            if post.imageGenerationFailed {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.orange)
-                                    if let reason = post.imageGenerationFailureReason {
-                                        Text(reason)
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundColor(.secondary)
-                                            .multilineTextAlignment(.center)
-                                            .lineLimit(3)
-                                    }
-                                    if post.imageGenerationFailureReason == nil {
-                                        Text(l("post_card.try_again"))
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                            .multilineTextAlignment(.center)
-                                    }
-                                }
-                                .padding(.top, 26)
-                                .padding(.leading, 76)
-                                .padding(.trailing, 20)
-                                .padding(.bottom, 18)
-                            } else {
-                                VStack(spacing: 12) {
-                                    RainbowAILoader()
-                                        .shadow(color: .purple.opacity(0.6), radius: 8)
-                                    Text(l("post_card.generating"))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.top, 28)
-                                .padding(.leading, 72)
-                                .padding(.trailing, 16)
+        if post.hasImage {
+            if let image = post.localImage {
+                Image(uiImage: image).resizable().scaledToFit().frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: MimStyle.mediaRadius))
+                    .accessibilityLabel(post.caption ?? mt("投稿の画像"))
+            } else {
+                VStack(spacing: 12) {
+                    if post.recipe == nil && (post.status == .pending || post.status == .processing) {
+                        ProgressView(mt(post.localPreparationMessage ?? "写真を処理中"))
+                    } else if post.recipe == nil && post.status == .failed {
+                        Text(mt(post.localPreparationMessage ?? "写真を処理できませんでした。"))
+                            .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        if isCurrentUsersPost {
+                            Button(mt("再試行")) { BackgroundPhotoPosts.shared.retry(post.id) }
+                        }
+                    } else if post.imageIsGenerating {
+                        ProgressView(mt("写真を再現中"))
+                    } else if let reason = post.reconstructionUnavailableReason ?? post.imageGenerationFailureReason {
+                        Image(systemName: "photo.badge.exclamationmark").font(.title2)
+                        Text(mt(reason)).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        if post.recipe != nil && post.recipeReadError == nil {
+                            Button(mt("再試行")) {
+                                NotificationCenter.default.post(name: .regenerateSinglePostRequested, object: post)
                             }
                         }
-                    )
-                if post.hasImage {
-                    imageBadges
-                }
+                    } else if !isModelInstalled {
+                        Image(systemName: "photo").font(.title2)
+                        Text(mt("再現モデルの準備が必要です")).font(.callout).foregroundStyle(.secondary)
+                    } else {
+                        Text(mt("再現の準備を待っています")).font(.callout).foregroundStyle(.secondary)
+                    }
+                }.frame(maxWidth: .infinity, minHeight: 200).padding(16)
+                    .background(MimStyle.soft, in: RoundedRectangle(cornerRadius: MimStyle.mediaRadius))
             }
         }
-    }
-
-    private var imageBadges: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            modeBadge
-            if let generationStatusLabel {
-                HStack(spacing: 4) {
-                    Image(systemName: generationStatusIconName)
-                        .font(.caption2)
-                    Text(generationStatusLabel)
-                        .font(.caption2.weight(.semibold))
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.black.opacity(0.58))
-                .clipShape(Capsule())
-            }
-        }
-        .padding(8)
-    }
-
-    private var modeBadge: some View {
-        HStack(spacing: 4) {
-            Image(systemName: post.privacyMode.iconName)
-                .font(.caption2)
-            Text(post.privacyMode.title(languageCode: selectedLanguage))
-                .font(.caption2)
-                .fontWeight(.semibold)
-        }
-        .foregroundColor(.white)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Color.black.opacity(0.58))
-        .clipShape(Capsule())
-    }
-
-    private var generationStatusLabel: String? {
-        if post.imageGenerationFailed {
-            return l("post_card.status.failed")
-        }
-        if post.status == .failed {
-            return l("post_card.status.failed")
-        }
-        if post.localImage != nil {
-            return nil
-        }
-        if post.effectivePrompt != nil {
-            return l("post_card.status.queued")
-        }
-        if post.hasImage && (post.status == .pending || post.status == .processing) {
-            return l("post_card.status.preparing")
-        }
-        return nil
-    }
-
-    private var generationStatusIconName: String {
-        if post.imageGenerationFailed {
-            return "exclamationmark.triangle.fill"
-        }
-        if post.status == .failed {
-            return "exclamationmark.triangle.fill"
-        }
-        if post.effectivePrompt != nil {
-            return "clock.arrow.circlepath"
-        }
-        return "sparkles"
     }
 }
 
@@ -643,18 +426,12 @@ extension PostCardView {
 extension PostCardView {
     @ViewBuilder
     private var captionSection: some View {
-        if let cap = post.caption {
+        if !isModelInstalled, post.localImage == nil, let cap = post.caption, !cap.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
-                Text("-\(cap)")
+                Text(cap)
                     .font(.footnote)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
-
-                if let backend = post.imageUnderstandingBackendLabel, post.hasImage {
-                    Text(l("post_card.image_understanding", backend))
-                        .font(.caption2.weight(.semibold))
-                        .foregroundColor(.secondary)
-                }
 
                 if shouldShowCaptionPreviewExpansion(for: cap) {
                     Button(l("post_card.read_more")) {
@@ -673,21 +450,19 @@ extension PostCardView {
 extension PostCardView {
     private var actionSection: some View {
         HStack(spacing: 24) {
-            HStack(spacing: 6) {
-                Button {
-                    LikeManager.shared.toggleLike(for: post)
-                } label: {
+            Button {
+                LikeManager.shared.toggleLike(for: post)
+            } label: {
+                HStack(spacing: 6) {
                     Image(systemName: (post.isLikedByCurrentUser ?? false) ? "heart.fill" : "heart")
-                        .foregroundColor((post.isLikedByCurrentUser ?? false) ? .red : .primary)
+                    Text("\(post.likeCount ?? 0)")
                 }
-
-                Text("\(post.likeCount ?? 0)")
-                    .font(.subheadline)
                     .foregroundColor((post.isLikedByCurrentUser ?? false) ? .red : .secondary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(chromeFillColor, in: Capsule())
+            .accessibilityLabel(mt("いいね"))
+            .accessibilityValue("\(post.likeCount ?? 0)")
 
             if showsCommentButton {
                 Button {
@@ -698,22 +473,20 @@ extension PostCardView {
                         Text("\(post.commentCount ?? 0)")
                     }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(chromeFillColor, in: Capsule())
+                .frame(minWidth: 44, minHeight: 44)
             }
 
             Button { showShare = true } label: {
                 Image(systemName: "square.and.arrow.up")
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(chromeFillColor, in: Capsule())
+            .frame(minWidth: 44, minHeight: 44)
+            .accessibilityLabel(mt("共有"))
 
             Spacer()
         }
         .font(.subheadline)
-        .padding(.top, 4)
+        .foregroundStyle(.secondary)
+        .buttonStyle(.plain)
     }
 }
 
@@ -757,26 +530,21 @@ extension PostCardView {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
 
-                        if let backend = post.imageUnderstandingBackendLabel, post.hasImage {
-                            Text(l("post_card.image_understanding_detail", backend))
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
-                        }
                     }
                 }
                 .frame(maxHeight: 220)
             }
             .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(.ultraThinMaterial)
             )
             .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.black.opacity(colorScheme == .dark ? 0.28 : 0.10))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(cardStrokeColor, lineWidth: 0.8)
             )
             .padding(.horizontal, 12)
@@ -786,13 +554,7 @@ extension PostCardView {
     }
 
     private var captionDetailTitle: String {
-        if selectedLanguage.hasPrefix(AppLanguage.japanese.rawValue) {
-            return "全文"
-        }
-        if selectedLanguage.hasPrefix(AppLanguage.korean.rawValue) {
-            return "전체 보기"
-        }
-        return "Full text"
+        mt("全文")
     }
 
     private func shouldShowCaptionPreviewExpansion(for caption: String) -> Bool {

@@ -1,2 +1,3 @@
 "CFBundleDisplayName" = "Mim";
 "CFBundleName" = "Mim";
+"NSPhotoLibraryUsageDescription" = "選択した写真を端末内で投稿用に処理し、選択したプロフィール画像をアップロードするために使用します。";

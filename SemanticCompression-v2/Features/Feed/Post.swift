@@ -1,340 +1,135 @@
-//
-//  Post.swift
-//  SemanticCompression-v2
-//
-
 import Foundation
 import UIKit
 import Combine
-import Darwin
 
-// MARK: - Status
-enum PostStatus: String, Codable {
-    case normal, pending, processing, completed, failed
-}
+enum PostStatus: String, Codable { case normal, pending, processing, completed, failed }
+struct RegionTag: Codable { let region: String; let tags: [String] }
 
-enum RegenerationEvaluationMetric: String, Codable {
-    case siglipCosine = "siglip_cosine"
-    case lpips = "lpips"
-}
-
-struct RegenerationEvaluation: Codable {
-    var metric: RegenerationEvaluationMetric = .siglipCosine
-    var score: Double?
-    var semanticScore: Double?
-    var lpipsDistance: Double?
-    var promptGenerationDuration: TimeInterval?
-    var promptGenerationMemoryMB: Double?
-    var imageGenerationDuration: TimeInterval?
-    var imageGenerationMemoryMB: Double?
-
-    init(
-        metric: RegenerationEvaluationMetric = .siglipCosine,
-        score: Double? = nil,
-        semanticScore: Double? = nil,
-        lpipsDistance: Double? = nil,
-        promptGenerationDuration: TimeInterval? = nil,
-        promptGenerationMemoryMB: Double? = nil,
-        imageGenerationDuration: TimeInterval? = nil,
-        imageGenerationMemoryMB: Double? = nil
-    ) {
-        self.metric = metric
-        self.score = score
-        self.semanticScore = semanticScore ?? (metric == .siglipCosine ? score : nil)
-        self.lpipsDistance = lpipsDistance ?? (metric == .lpips ? score : nil)
-        self.promptGenerationDuration = promptGenerationDuration
-        self.promptGenerationMemoryMB = promptGenerationMemoryMB
-        self.imageGenerationDuration = imageGenerationDuration
-        self.imageGenerationMemoryMB = imageGenerationMemoryMB
-    }
-
+// Legacy guides are decoded for feed compatibility only, never generated or uploaded.
+struct LowResGuide: Decodable { let jpegBase64: String? }
+struct PostPayload: Decodable {
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let metric = try container.decodeIfPresent(RegenerationEvaluationMetric.self, forKey: .metric) ?? .siglipCosine
-        let legacyScore = try container.decodeIfPresent(Double.self, forKey: .score)
-
-        self.metric = metric
-        self.score = legacyScore
-        self.semanticScore = try container.decodeIfPresent(Double.self, forKey: .semanticScore)
-            ?? (metric == .siglipCosine ? legacyScore : nil)
-        self.lpipsDistance = try container.decodeIfPresent(Double.self, forKey: .lpipsDistance)
-            ?? (metric == .lpips ? legacyScore : nil)
-        self.promptGenerationDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .promptGenerationDuration)
-        self.promptGenerationMemoryMB = try container.decodeIfPresent(Double.self, forKey: .promptGenerationMemoryMB)
-        self.imageGenerationDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .imageGenerationDuration)
-        self.imageGenerationMemoryMB = try container.decodeIfPresent(Double.self, forKey: .imageGenerationMemoryMB)
+        _ = try decoder.singleValueContainer().decode([String: LegacyJSONValue].self)
     }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(metric, forKey: .metric)
-        try container.encodeIfPresent(semanticScore, forKey: .score)
-        try container.encodeIfPresent(semanticScore, forKey: .semanticScore)
-        try container.encodeIfPresent(lpipsDistance, forKey: .lpipsDistance)
-        try container.encodeIfPresent(promptGenerationDuration, forKey: .promptGenerationDuration)
-        try container.encodeIfPresent(promptGenerationMemoryMB, forKey: .promptGenerationMemoryMB)
-        try container.encodeIfPresent(imageGenerationDuration, forKey: .imageGenerationDuration)
-        try container.encodeIfPresent(imageGenerationMemoryMB, forKey: .imageGenerationMemoryMB)
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case metric
-        case score
-        case semanticScore
-        case lpipsDistance
-        case promptGenerationDuration
-        case promptGenerationMemoryMB
-        case imageGenerationDuration
-        case imageGenerationMemoryMB
-    }
-
-    var isEmpty: Bool {
-        semanticScore == nil &&
-        lpipsDistance == nil &&
-        promptGenerationDuration == nil &&
-        promptGenerationMemoryMB == nil &&
-        imageGenerationDuration == nil &&
-        imageGenerationMemoryMB == nil
+}
+private indirect enum LegacyJSONValue: Decodable {
+    case string(String), number(Double), bool(Bool), array([LegacyJSONValue]), object([String: LegacyJSONValue]), null
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if c.decodeNil() { self = .null }
+        else if let v = try? c.decode(String.self) { self = .string(v) }
+        else if let v = try? c.decode(Bool.self) { self = .bool(v) }
+        else if let v = try? c.decode(Double.self) { self = .number(v) }
+        else if let v = try? c.decode([LegacyJSONValue].self) { self = .array(v) }
+        else { self = .object(try c.decode([String: LegacyJSONValue].self)) }
     }
 }
 
-// MARK: - Region tag
-struct RegionTag: Codable {
-    let region: String
-    let tags: [String]
-}
-
-// MARK: - Main Post model
 final class Post: Identifiable, ObservableObject, Codable {
-
     var id: String
-
-    // 投稿者
     let userId: String?
     let displayName: String?
     let avatarUrl: String?
-
-    // Semantic
     @Published var caption: String?
     @Published var semanticPrompt: String?
     @Published var imageUnderstandingBackend: String?
     @Published var regionTags: [RegionTag]?
+    @Published var recipe: GenerationRecipe?
+    @Published var recipeReadError: String?
     let lowResGuide: LowResGuide?
     let mode: Int
     let payload: PostPayload?
     @Published var tags: [String]
-
-    // User content
     let userText: String?
     @Published var hasImage: Bool
-
     let createdAt: Date
     @Published var status: PostStatus
-
-    // Social
     @Published var likeCount: Int?
     @Published var isLikedByCurrentUser: Bool?
     @Published var commentCount: Int?
-
-    // Local image
     @Published var localImage: UIImage?
     @Published var previewImage: UIImage?
-    @Published var imageGenerationFailed: Bool
+    @Published var imageGenerationFailed = false
     @Published var imageGenerationFailureReason: String?
-    @Published var regenerationEvaluation: RegenerationEvaluation?
+    @Published var imageIsGenerating = false
+    @Published var localPreparationMessage: String?
+    var localImageRecipeKey: String?
 
-    enum CodingKeys: String, CodingKey {
-        case id, userId, displayName, avatarUrl
-        case caption, semanticPrompt, imageUnderstandingBackend, regionTags
-        case userText, hasImage, createdAt
-        case status, likeCount, isLikedByCurrentUser, commentCount
-        case lowResGuide
-        case mode, payload, tags
+    var effectivePrompt: String? { recipe?.prompt }
+    var reconstructionUnavailableReason: String? {
+        if let recipeReadError { return recipeReadError }
+        if hasImage && recipe == nil {
+            if status == .pending || status == .processing { return "写真を処理中" }
+            if status == .failed { return "写真を処理できませんでした。" }
+            return "この投稿の写真を再現できません。"
+        }
+        return nil
     }
 
-    // MARK: - Decode
+    enum CodingKeys: String, CodingKey {
+        case id, userId, displayName, avatarUrl, caption, semanticPrompt, imageUnderstandingBackend, regionTags
+        case userText, hasImage, createdAt, status, likeCount, isLikedByCurrentUser, commentCount
+        case lowResGuide, mode, payload, tags, recipe
+    }
     required init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-
         id = try c.decode(String.self, forKey: .id)
         userId = try c.decodeIfPresent(String.self, forKey: .userId)
-        displayName = try c.decodeIfPresent(String.self, forKey: .displayName)
+        displayName = try c.decodeIfPresent(String.self, forKey: .displayName).map { ContentSafetyPolicy.displayText($0) }
         avatarUrl = try c.decodeIfPresent(String.self, forKey: .avatarUrl)
-
-        caption = try c.decodeIfPresent(String.self, forKey: .caption)
+        caption = try c.decodeIfPresent(String.self, forKey: .caption).map { ContentSafetyPolicy.displayText($0) }
         semanticPrompt = try c.decodeIfPresent(String.self, forKey: .semanticPrompt)
         imageUnderstandingBackend = try c.decodeIfPresent(String.self, forKey: .imageUnderstandingBackend)
         regionTags = try c.decodeIfPresent([RegionTag].self, forKey: .regionTags)
-        lowResGuide = try c.decodeIfPresent(LowResGuide.self, forKey: .lowResGuide)
-        userText = try c.decodeIfPresent(String.self, forKey: .userText)
-
+        if c.contains(.recipe), !(try c.decodeNil(forKey: .recipe)) {
+            do {
+                let decoded = try c.decode(GenerationRecipe.self, forKey: .recipe)
+                recipe = decoded
+                try decoded.validate()
+            } catch { recipeReadError = "この投稿の再現形式には対応していません。" }
+        }
+        lowResGuide = try? c.decode(LowResGuide.self, forKey: .lowResGuide)
+        payload = try? c.decode(PostPayload.self, forKey: .payload)
+        mode = (try? c.decode(Int.self, forKey: .mode)) ?? 1
+        tags = ((try? c.decode([String].self, forKey: .tags)) ?? []).filter { (try? ContentSafetyPolicy.bundled().validate($0)) != nil }
+        userText = try c.decodeIfPresent(String.self, forKey: .userText).map { ContentSafetyPolicy.displayText($0) }
+        hasImage = (try? c.decode(Bool.self, forKey: .hasImage)) ?? ((try? c.decode(Int.self, forKey: .hasImage)) ?? 0 != 0)
         likeCount = try c.decodeIfPresent(Int.self, forKey: .likeCount)
+        isLikedByCurrentUser = (try? c.decode(Bool.self, forKey: .isLikedByCurrentUser)) ?? ((try? c.decode(Int.self, forKey: .isLikedByCurrentUser)) ?? 0 != 0)
         commentCount = try c.decodeIfPresent(Int.self, forKey: .commentCount)
-
-        if let bool = try? c.decode(Bool.self, forKey: .isLikedByCurrentUser) {
-            isLikedByCurrentUser = bool
-        } else if let int = try? c.decode(Int.self, forKey: .isLikedByCurrentUser) {
-            isLikedByCurrentUser = (int != 0)
-        } else {
-            isLikedByCurrentUser = false
-        }
-
-        if let int = try? c.decode(Int.self, forKey: .hasImage) {
-            hasImage = (int != 0)
-        } else {
-            hasImage = (try? c.decode(Bool.self, forKey: .hasImage)) ?? false
-        }
-
         createdAt = ServerDate.decodeDate(from: c, forKey: .createdAt)
-
-        status = try c.decodeIfPresent(PostStatus.self, forKey: .status) ?? .normal
-        mode = (try? c.decode(Int.self, forKey: .mode)) ?? (lowResGuide == nil ? 1 : 22)
-        payload = (try? c.decode(PostPayload.self, forKey: .payload)) ?? lowResGuide.flatMap { PostPayload.fromLegacy($0) }
-        tags = (try? c.decode([String].self, forKey: .tags)) ?? []
-
-        localImage = nil
-        previewImage = nil
-        imageGenerationFailed = false
-        imageGenerationFailureReason = nil
-        regenerationEvaluation = nil
+        status = (try? c.decode(PostStatus.self, forKey: .status)) ?? .normal
     }
 
-    // MARK: - Create new
-    init(
-        id: String,
-        userId: String?,
-        displayName: String?,
-        avatarUrl: String?,
-        caption: String? = nil,
-        semanticPrompt: String? = nil,
-        imageUnderstandingBackend: String? = nil,
-        regionTags: [RegionTag]? = nil,
-        lowResGuide: LowResGuide? = nil,
-        mode: Int = PrivacyMode.l2.rawValue,
-        payload: PostPayload? = nil,
-        tags: [String] = [],
-        userText: String?,
-        hasImage: Bool,
-        status: PostStatus = .pending,
-        createdAt: Date = Date(),
-        localImage: UIImage? = nil
-    ) {
-        self.id = id
-        self.userId = userId
-        self.displayName = displayName
-        self.avatarUrl = avatarUrl
-        self.caption = caption
-        self.semanticPrompt = semanticPrompt
-        self.imageUnderstandingBackend = imageUnderstandingBackend
-        self.regionTags = regionTags
-        self.lowResGuide = lowResGuide
-        self.mode = mode
-        self.payload = payload
-        self.tags = tags
-        self.userText = userText
-        self.hasImage = hasImage
-        self.status = status
-        self.createdAt = createdAt
-        self.localImage = localImage
-        self.previewImage = nil
-        self.imageGenerationFailed = false
-        self.imageGenerationFailureReason = nil
-        self.regenerationEvaluation = nil
-        self.likeCount = 0
-        self.isLikedByCurrentUser = false
-        self.commentCount = 0
+    init(id: String, userId: String?, displayName: String?, avatarUrl: String?,
+         caption: String? = nil, semanticPrompt: String? = nil, imageUnderstandingBackend: String? = nil,
+         recipe: GenerationRecipe? = nil, tags: [String] = [], userText: String?, hasImage: Bool,
+         status: PostStatus = .pending, createdAt: Date = Date(), localImage: UIImage? = nil) {
+        self.id = id; self.userId = userId; self.displayName = displayName; self.avatarUrl = avatarUrl
+        self.caption = caption; self.semanticPrompt = semanticPrompt; self.imageUnderstandingBackend = imageUnderstandingBackend
+        self.recipe = recipe; self.tags = tags; self.userText = userText; self.hasImage = hasImage
+        self.createdAt = createdAt; self.status = status; self.localImage = localImage
+        self.lowResGuide = nil; self.mode = 1; self.payload = nil
+        self.likeCount = 0; self.isLikedByCurrentUser = false; self.commentCount = 0
+        self.localImageRecipeKey = try? recipe?.cacheKey
     }
-}
-
-extension Post {
-    var semanticFidelityScore: Double? {
-        get { regenerationEvaluation?.semanticScore }
-        set {
-            var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
-            evaluation.metric = .siglipCosine
-            evaluation.score = newValue
-            evaluation.semanticScore = newValue
-            regenerationEvaluation = evaluation.isEmpty ? nil : evaluation
-        }
-    }
-
-    var lpipsDistance: Double? {
-        get { regenerationEvaluation?.lpipsDistance }
-        set {
-            var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
-            evaluation.lpipsDistance = newValue
-            regenerationEvaluation = evaluation.isEmpty ? nil : evaluation
-        }
-    }
-
-    func updatePromptGenerationDiagnostics(duration: TimeInterval?, memoryMB: Double?) {
-        var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
-        evaluation.promptGenerationDuration = duration
-        evaluation.promptGenerationMemoryMB = memoryMB
-        regenerationEvaluation = evaluation.isEmpty ? nil : evaluation
-    }
-
-    func updateImageGenerationDiagnostics(duration: TimeInterval?, memoryMB: Double?) {
-        var evaluation = regenerationEvaluation ?? RegenerationEvaluation()
-        evaluation.imageGenerationDuration = duration
-        evaluation.imageGenerationMemoryMB = memoryMB
-        regenerationEvaluation = evaluation.isEmpty ? nil : evaluation
-    }
-
-    func clearRegenerationEvaluation() {
-        regenerationEvaluation = nil
-    }
-}
-
-func regenerationEvaluationCacheKey(
-    postID: String,
-    modelID: String,
-    metric: RegenerationEvaluationMetric = .siglipCosine
-) -> String {
-    "\(modelID)::\(postID)::\(metric.rawValue)"
-}
-
-func currentMemoryFootprintMB() -> Double? {
-    var info = task_vm_info_data_t()
-    var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size) / 4
-
-    let result = withUnsafeMutablePointer(to: &info) { ptr in
-        ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { intPtr in
-            task_info(
-                mach_task_self_,
-                task_flavor_t(TASK_VM_INFO),
-                intPtr,
-                &count
-            )
-        }
-    }
-
-    guard result == KERN_SUCCESS else { return nil }
-    return Double(info.phys_footprint) / (1024 * 1024)
-}
-
-// MARK: - Encode
-extension Post {
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
-
         try c.encode(id, forKey: .id)
-        try c.encode(userId ?? "", forKey: .userId)
-        try c.encode(displayName ?? "", forKey: .displayName)
-        try c.encode(avatarUrl ?? "", forKey: .avatarUrl)
-        try c.encode(caption, forKey: .caption)
-        try c.encode(semanticPrompt, forKey: .semanticPrompt)
-        try c.encode(imageUnderstandingBackend, forKey: .imageUnderstandingBackend)
-        try c.encode(regionTags, forKey: .regionTags)
-        try c.encode(userText, forKey: .userText)
+        try c.encodeIfPresent(userId, forKey: .userId)
+        try c.encodeIfPresent(displayName, forKey: .displayName)
+        try c.encodeIfPresent(avatarUrl, forKey: .avatarUrl)
+        try c.encodeIfPresent(caption, forKey: .caption)
+        try c.encodeIfPresent(semanticPrompt, forKey: .semanticPrompt)
+        try c.encodeIfPresent(recipe, forKey: .recipe)
+        try c.encodeIfPresent(userText, forKey: .userText)
         try c.encode(hasImage, forKey: .hasImage)
         try c.encode(createdAt, forKey: .createdAt)
         try c.encode(status, forKey: .status)
-        try c.encode(likeCount, forKey: .likeCount)
-        try c.encode(isLikedByCurrentUser, forKey: .isLikedByCurrentUser)
-        try c.encode(commentCount, forKey: .commentCount)
-        try c.encode(mode, forKey: .mode)
-        try c.encode(payload, forKey: .payload)
+        try c.encodeIfPresent(likeCount, forKey: .likeCount)
+        try c.encodeIfPresent(isLikedByCurrentUser, forKey: .isLikedByCurrentUser)
+        try c.encodeIfPresent(commentCount, forKey: .commentCount)
+        try c.encode(1, forKey: .mode)
         try c.encode(tags, forKey: .tags)
     }
 }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PublicProfileView: View {
     let userId: String
+    var showsCloseButton = true
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var authManager: AuthManager
@@ -15,6 +16,15 @@ struct PublicProfileView: View {
     @State private var isUpdatingFollow = false
     @State private var errorMessage: String?
     @State private var showLoginSheet = false
+    @State private var showEditor = false
+    private var isReview: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--mim-ui-review")
+        #else
+        false
+        #endif
+    }
+    private var isOwnProfile: Bool { isReview || userId == UserManager.shared.currentUser.id }
 
     var body: some View {
         ScrollView {
@@ -32,12 +42,14 @@ struct PublicProfileView: View {
             }
             .padding(.vertical, 16)
         }
-        .background(Color(.systemBackground).ignoresSafeArea())
+        .background(MimStyle.paper.ignoresSafeArea())
         .navigationTitle(l("profile.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button(l("profile.close")) { dismiss() }
+            if showsCloseButton {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(l("profile.close")) { dismiss() }
+                }
             }
         }
         .task {
@@ -49,39 +61,44 @@ struct PublicProfileView: View {
         .sheet(isPresented: $showLoginSheet) {
             OTPLoginView(allowsSkip: true)
         }
+        .sheet(isPresented: $showEditor, onDismiss: { Task { await loadAll() } }) {
+            NavigationStack { UserProfileView(showAppSettings: false) }
+        }
     }
 
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 14) {
-                AsyncImage(url: URL(string: profile?.avatarUrl ?? "")) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Circle().fill(Color.gray.opacity(0.16))
-                    }
+            HStack(alignment: .top, spacing: 14) {
+                CachedAvatarView(urlString: profile?.avatarUrl ?? "") {
+                        ZStack {
+                            Circle().fill(MimStyle.soft)
+                            Text(String(ContentSafetyPolicy.displayText(profile?.displayName).prefix(1)).uppercased())
+                                .font(.system(size: 30, weight: .medium)).foregroundStyle(.secondary)
+                        }
                 }
-                .frame(width: 72, height: 72)
+                .frame(width: 80, height: 80)
                 .clipShape(Circle())
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(profile?.displayName ?? l("profile.loading"))
-                        .font(.title3.weight(.bold))
+                Spacer()
+                if isOwnProfile {
+                    Button(mt("プロフィールを編集")) { showEditor = true }
+                        .font(.subheadline.weight(.semibold)).padding(.horizontal, 18).frame(minHeight: 44)
+                        .overlay(Capsule().stroke(MimStyle.line, lineWidth: 1)).buttonStyle(.plain)
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                    Text(ContentSafetyPolicy.displayText(profile?.displayName, fallback: l("profile.loading")))
+                        .font(.title2.weight(.semibold))
 
                     if let bio = profile?.bio?.trimmingCharacters(in: .whitespacesAndNewlines),
                        !bio.isEmpty {
-                        Text(bio)
+                        Text(ContentSafetyPolicy.displayText(bio))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                }
-
-                Spacer()
             }
 
             HStack(spacing: 18) {
-                statView(value: profile?.postCount ?? 0, label: l("profile.posts"))
                 statView(value: profile?.followerCount ?? 0, label: l("profile.followers"))
                 statView(value: profile?.followingCount ?? 0, label: l("profile.following"))
             }
@@ -101,11 +118,10 @@ struct PublicProfileView: View {
                             .frame(maxWidth: .infinity)
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(MimPrimaryButtonStyle())
             }
+            MimStyle.line.frame(height: 0.5)
         }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .padding(.horizontal, 16)
     }
 
@@ -134,20 +150,28 @@ struct PublicProfileView: View {
                             post: post,
                             isModelInstalled: modelManager.canGenerateImages,
                             priorityContextPostIDs: posts.map(\.id)
-                        )
+                        ).padding(.vertical, 8)
+                        Divider()
                     }
                 }
-                .padding(.horizontal, 16)
             }
         }
     }
 
     private var shouldShowFollowButton: Bool {
-        authManager.isAuthenticated && userId != UserManager.shared.currentUser.id
+        authManager.isAuthenticated && !isOwnProfile
     }
 
     @MainActor
     private func loadAll() async {
+        #if DEBUG
+        if isReview {
+            profile = .init(id: userId, displayName: "haru", avatarUrl: "", bio: "日々の景色と、ちょっとしたこと。",
+                            followerCount: 42, followingCount: 38, postCount: 3, isFollowing: false)
+            posts = UIReviewFixtures.posts()
+            return
+        }
+        #endif
         do {
             profile = try await FollowService.fetchPublicProfile(userId: userId)
             isLoadingPosts = true
@@ -192,14 +216,13 @@ struct PublicProfileView: View {
     }
 
     private func statView(value: Int, label: String) -> some View {
-        VStack(spacing: 4) {
+        HStack(spacing: 4) {
             Text("\(value)")
-                .font(.headline.weight(.bold))
+                .font(.subheadline.weight(.semibold))
             Text(label)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundColor(.secondary)
         }
-        .frame(maxWidth: .infinity)
     }
 
     private func l(_ key: String, _ arguments: CVarArg...) -> String {

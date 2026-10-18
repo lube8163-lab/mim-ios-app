@@ -1,2199 +1,696 @@
 import SwiftUI
 import Combine
-import CoreML
-import CryptoKit
+import UIKit
 
-final class PostList: ObservableObject {
-    @Published var items: [Post] = []
-}
+final class PostList: ObservableObject { @Published var items: [Post] = [] }
 
 struct ContentView: View {
+    enum Tab: String, CaseIterable { case home, following, posts, likes }
+    enum DrawerDestination: String, Hashable { case profile, notifications, models, settings }
+    private enum DetailDestination: Identifiable {
+        case post(Post)
+        case profile(String)
 
-    // MARK: - Boot State
-
-    enum AppBootState {
-        case launching
-        case preparingModel
-        case ready
+        var id: String {
+            switch self {
+            case .post(let post): "post:" + post.id
+            case .profile(let userID): "profile:" + userID
+            }
+        }
     }
-
-    enum HomeTab {
-        case timeline
-        case following
-        case myPosts
-        case liked
+    private struct FeedScrollMetrics: Equatable {
+        let offset: CGFloat
+        let canScroll: Bool
     }
-
-    @State private var appBootState: AppBootState = .launching
-
-    // MARK: - Core State
-
-    @StateObject private var postList = PostList()
-    @StateObject private var followingPostList = PostList()
-    @StateObject private var myPostList = PostList()
-    @StateObject private var likedPostList = PostList()
-    @StateObject private var blockManager = BlockManager.shared
-    @StateObject private var userManager = UserManager.shared
     @EnvironmentObject private var authManager: AuthManager
-    @EnvironmentObject var modelManager: ModelManager
+    @EnvironmentObject private var modelManager: ModelManager
+    @EnvironmentObject private var pushManager: PushNotificationManager
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(AppPreferences.selectedLanguageKey)
-    private var selectedLanguage = AppLanguage.preferred.rawValue
-    @AppStorage(AppPreferences.forceSDTextToImageKey)
-    private var forceSDTextToImage = false
-
-    @State private var showNewPost = false
-    @State private var showInstallModels = false
-    @State private var selectedTab: HomeTab = .timeline
-
-    @State private var genLogKey = "content.genlog.ready"
-    @State private var isLoadingFeed = false
-    @State private var isLoadingFollowingFeed = false
-    @State private var isLoadingMyPosts = false
-    @State private var isLoadingLikedPosts = false
-
-    @State private var generator: ImageGenerator?
-    @State private var isGeneratorReady = false
-    @State private var isGeneratorLoading = false
-    @State private var isStableDiffusionPreparingForImagePosts = false
-    @State private var showStableDiffusionReadyNotice = false
-    @State private var hasShownStableDiffusionReadyNotice = false
-    @State private var loadedGenerationCacheKey: String?
-
-    // Pagination
-    @State private var currentPage = 0
-    @State private var currentFollowingPage = 0
-    @State private var currentMyPage = 0
-    @State private var currentLikedPage = 0
-    private let pageSize = 10
-    @State private var hasLoadedFollowingFeed = false
-    @State private var hasLoadedMyPosts = false
-    @State private var hasLoadedLikedPosts = false
-
-    // Image generation queue
-    @State private var generationQueue: [Post] = []
-    @State private var isGenerating = false
+    @StateObject private var posts = PostList()
+    @StateObject private var following = PostList()
+    @StateObject private var mine = PostList()
+    @StateObject private var liked = PostList()
+    @StateObject private var blockManager = BlockManager.shared
+    @ObservedObject private var photoPosts = BackgroundPhotoPosts.shared
+    @State private var tab: Tab = .home
+    @State private var showComposer = false
+    @State private var showDrawer = false
+    @State private var returnToDrawer = false
+    @State private var tabBarHidden = false
+    @State private var userIsScrolling = false
+    @State private var lastScrollOffset: CGFloat = 0
+    @State private var directionalScrollDistance: CGFloat = 0
+    @State private var navigationPath: [DrawerDestination] = []
+    @State private var profileStats: PublicUserProfile?
+    @State private var logoutConfirmation = false
+    @ObservedObject private var userManager = UserManager.shared
+    @State private var loading = false
+    @State private var feedError: String?
+    @State private var pages: [String: Int] = [:]
+    @State private var exhausted: Set<String> = []
+    @State private var notifications = false
+    @State private var login = false
+    @State private var queue: [Post] = []
     @State private var generationTask: Task<Void, Never>?
-    @State private var isGenerationSuspendedForPosting = false
-    @State private var showReportToast = false
-    @State private var showBlockToast = false
-    @State private var showLoginSheet = false
-    @State private var showProfileDrawer = false
-    @State private var showNotifications = false
-    @State private var showRegenerateConfirm = false
-    @State private var semanticScoreTasks: Set<String> = []
+    @State private var pausedForComposer = false
+    // Cancelled task closures must observe the latest scene pause state.
+    @State private var pausedForScene = true
     @State private var unreadNotificationCount = 0
-    @State private var profileDrawerDragTranslation: CGFloat = 0
-    @State private var isChromeHidden = false
-    @State private var currentProfileStats: PublicUserProfile?
-    @State private var externallyPrioritizedPostIDs: [String] = []
-    @State private var showLogoutConfirm = false
-    @State private var deferStableDiffusionReloadUntilRestart = false
-
-    // MARK: - Body
+    @State private var hiddenPostIDs: Set<String> = []
+    @State private var selectedDetail: DetailDestination?
+    @State private var destinationError: String?
+    @State private var generatingPost: Post?
+    @State private var refinementStatus: String?
+    @AppStorage(AppPreferences.selectedLanguageKey) private var language = AppLanguage.preferred.rawValue
+    private var isOfflineReview: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--mim-ui-review")
+        #else
+        false
+        #endif
+    }
 
     var body: some View {
-        decoratedContent
-    }
-
-    private var rootContent: some View {
-        ZStack {
-            switch appBootState {
-            case .launching, .preparingModel:
-                AppLaunchView()
-
-            case .ready:
-                mainContent
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                NavigationStack(path: $navigationPath) {
+                    Group {
+                        if tab == .home || authManager.isAuthenticated || isOfflineReview {
+                            feedView(currentList)
+                        } else {
+                            ContentUnavailableView {
+                                Label(mt("ログイン"), systemImage: "person.crop.circle")
+                            } description: {
+                                Text(mt("ログインすると投稿といいねを確認できます。"))
+                            } actions: {
+                                Button(mt("ログイン")) { login = true }.buttonStyle(.borderedProminent)
+                            }
+                        }
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        if tab == .home {
+                            Button {
+                                if authManager.isAuthenticated || isOfflineReview { showComposer = true }
+                                else { login = true }
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.title2.weight(.medium))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 54, height: 54)
+                                    .background(MimStyle.accent, in: Circle())
+                                    .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(mt("投稿する"))
+                            .accessibilityIdentifier("new-post-button")
+                            .padding(20)
+                        }
+                    }
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        if !tabBarHidden {
+                            tabBar.transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+                    }
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button { openDrawer() } label: { avatar(size: 30) }
+                                .accessibilityLabel(mt("メニュー"))
+                                .accessibilityIdentifier("profile-menu-button")
+                        }.sharedBackgroundVisibility(.hidden)
+                        ToolbarItem(placement: .principal) {
+                            if tab == .home {
+                                Text("Mim").font(.system(.title2, design: .default).weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                    .accessibilityElement(children: .ignore).accessibilityLabel("Mim")
+                            } else { Text(tabTitle(tab)).font(.headline) }
+                        }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                if authManager.isAuthenticated || isOfflineReview { notifications = true }
+                                else { login = true }
+                            } label: {
+                                Image(systemName: unreadNotificationCount > 0 ? "bell.badge" : "bell")
+                            }.accessibilityLabel(mt("通知"))
+                                .tint(.primary)
+                        }.sharedBackgroundVisibility(.hidden)
+                    }
+                    .navigationDestination(for: DrawerDestination.self) { destination in
+                        switch destination {
+                        case .profile:
+                            if authManager.isAuthenticated || isOfflineReview {
+                                PublicProfileView(userId: isOfflineReview ? "ui-review-user" : userManager.currentUser.id,
+                                                  showsCloseButton: false)
+                            } else { UserProfileView(showsCloseButton: false, showAppSettings: false) }
+                        case .models: ModelManagementView()
+                        case .notifications:
+                            NotificationsView(showsCloseButton: false) { items in
+                                unreadNotificationCount = items.filter { !$0.isRead }.count
+                            }
+                        case .settings: SettingsView()
+                        }
+                    }
+                }
+                .accessibilityHidden(showDrawer)
+                if !showDrawer && navigationPath.isEmpty {
+                    Color.clear.frame(width: 28).contentShape(Rectangle())
+                        .highPriorityGesture(DragGesture(minimumDistance: 18).onEnded { value in
+                            if value.translation.width > 70,
+                               abs(value.translation.width) > abs(value.translation.height) * 1.5 { openDrawer() }
+                        })
+                        .accessibilityHidden(true)
+                }
+                if showDrawer {
+                    Color.black.opacity(0.3).ignoresSafeArea()
+                        .onTapGesture { closeDrawer() }
+                        .accessibilityLabel(mt("メニューを閉じる"))
+                    drawerMenu
+                        .frame(width: min(geometry.size.width * 0.82, 340))
+                        .transition(.move(edge: .leading))
+                        .zIndex(1)
+                }
             }
         }
-    }
-
-    private var lifecycleContent: some View {
-        rootContent
+        .tint(MimStyle.accent)
+        .overlay(alignment: .top) {
+            if let refinementStatus {
+                Text(refinementStatus).font(.caption).padding(8).background(MimStyle.soft, in: Capsule())
+                    .accessibilityIdentifier("refinement-status").allowsHitTesting(false)
+            }
+        }
         .task {
-            await bootSequence()
+            #if DEBUG
+            if isOfflineReview && ProcessInfo.processInfo.arguments.contains("--mim-flux-adoption-check") {
+                await FluxAdoptionCheck(update: { refinementStatus = $0 }).run()
+            }
+            if isOfflineReview && ProcessInfo.processInfo.arguments.contains("--mim-refinement-check") {
+                await DeviceRefinementCheck(update: { refinementStatus = $0 }).run()
+            }
+            #endif
         }
-        .onChange(of: modelManager.selectedSDModelID) { _ in
-            Task { await maybeReloadGeneratorForSelectedModel() }
+        .sheet(isPresented: $showComposer) {
+            NewPostView(posts: $posts.items, onClose: { showComposer = false })
         }
-        .onChange(of: modelManager.selectedImageGenerationBackendID) { _ in
-            Task { await maybeReloadGeneratorForSelectedModel() }
+        .sheet(isPresented: $notifications) {
+            NotificationsView { items in unreadNotificationCount = items.filter { !$0.isRead }.count }
         }
-        .onChange(of: modelManager.sdInstalled) { _ in
-            Task { await maybeReloadGeneratorForSelectedModel() }
-        }
-    }
-
-    private var eventContent: some View {
-        lifecycleContent
-        .onChange(of: showInstallModels) { shown in
-            guard !shown else { return }
-            Task { await maybeReloadGeneratorForSelectedModel() }
-        }
-        .onChange(of: scenePhase) { phase in
-            guard phase == .active else { return }
-            Task {
-                await maybeReloadGeneratorForSelectedModel()
-                await refreshUnreadNotificationsIfNeeded()
+        .sheet(isPresented: $login) { OTPLoginView(allowsSkip: true) }
+        .sheet(item: $selectedDetail) { destination in
+            NavigationStack {
+                switch destination {
+                case .post(let post):
+                    PostDetailView(post: post, isModelInstalled: modelManager.canGenerateImages)
+                case .profile(let userID):
+                    PublicProfileView(userId: userID)
+                }
             }
         }
-        .onChange(of: authManager.isAuthenticated) { _, authenticated in
-            Task { await handleAuthenticationChange(isAuthenticated: authenticated) }
+        .alert(mt("投稿を開けませんでした"), isPresented: Binding(
+            get: { destinationError != nil }, set: { if !$0 { destinationError = nil } }
+        )) { Button("OK", role: .cancel) {} } message: { Text(mt(destinationError ?? "")) }
+        .onOpenURL { url in
+            if let id = PostDestination.postID(from: url) { Task { await openPost(id) } }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .semanticCacheMaintenanceRequested)) { _ in
-            Task { await clearAllImageCachesAndRegenerate() }
+        .onChange(of: pushManager.pendingPostID) { _, id in
+            guard let id else { return }
+            pushManager.pendingPostID = nil
+            Task { await openPost(id) }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .regenerateImagesRequested)) { _ in
-            showRegenerateConfirm = true
+        .onChange(of: pushManager.pendingUserID) { _, id in
+            guard let id else { return }
+            pushManager.pendingUserID = nil
+            selectedDetail = .profile(id)
+        }
+        .task {
+            #if DEBUG
+            if isOfflineReview,
+               let index = ProcessInfo.processInfo.arguments.firstIndex(of: "--mim-ui-review-screen"),
+               ProcessInfo.processInfo.arguments.indices.contains(index + 1) {
+                switch ProcessInfo.processInfo.arguments[index + 1] {
+                case "compose": showComposer = true
+                case "settings": navigationPath = [.settings]
+                case "models": navigationPath = [.models]
+                case "profile": navigationPath = [.profile]
+                case "notifications": notifications = true
+                case "menu": openDrawer()
+                case "logout": openDrawer(); logoutConfirmation = true
+                default: tab = .home
+                }
+            }
+            #endif
+            if isOfflineReview { loadReviewPosts() }
+            await refreshUnreadNotifications()
+            if let id = pushManager.pendingPostID {
+                pushManager.pendingPostID = nil
+                await openPost(id)
+            }
+            if let id = pushManager.pendingUserID {
+                pushManager.pendingUserID = nil
+                selectedDetail = .profile(id)
+            }
+        }
+        .task(id: tab) { await refresh(); await pollPendingPosts() }
+        .onChange(of: tab) { _, _ in
+            directionalScrollDistance = 0
+            setTabBarHidden(false)
+        }
+        .onChange(of: navigationPath) { _, path in
+            guard path.isEmpty, returnToDrawer else { return }
+            returnToDrawer = false
+            openDrawer()
+        }
+        .onChange(of: showComposer) { _, presented in
+            pausedForComposer = presented
+            if presented { setTabBarHidden(false) }
+            if !presented { startGenerationQueue() }
+        }
+        .onChange(of: authManager.isAuthenticated) { _, _ in
+            photoPosts.accountChanged()
+            photoPosts.setActive(authManager.isAuthenticated && scenePhase == .active)
+            for list in [following, mine, liked] { list.items.removeAll() }
+            hiddenPostIDs.removeAll()
+            Task { await refresh(); await refreshUnreadNotifications() }
+        }
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            photoPosts.setActive(phase == .active)
+            pausedForScene = phase != .active
+            if phase == .active {
+                modelManager.reloadState(); startGenerationQueue()
+                Task { await refreshUnreadNotifications() }
+            }
+            else {
+                generationTask?.cancel()
+                Task { await RecipeImageRenderer.shared.discardFluxCache() }
+            }
+        }
+        .onChange(of: modelManager.sdInstalled) { _, _ in retryVisible() }
+        .onChange(of: modelManager.selectedSDModelID) { _, _ in retryVisible() }
+        .onChange(of: photoPosts.isProcessing) { _, processing in
+            if !processing { startGenerationQueue() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .backgroundPhotoPostUpdated)) { notification in
+            guard let post = notification.object as? Post else { return }
+            if !posts.items.contains(where: { $0.id == post.id }) { posts.items.insert(post, at: 0) }
+            if !mine.items.contains(where: { $0.id == post.id }) { mine.items.insert(post, at: 0) }
+            enqueue([post], priority: true)
+        }
+        .onChange(of: language) { _, _ in }
+        .onReceive(NotificationCenter.default.publisher(for: .pushNotificationDidChange)) { _ in
+            Task { await refreshUnreadNotifications() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .generationPriorityChanged)) { notification in
+            let incoming = notification.object as? [Post] ?? []
             let ids = notification.userInfo?["postIDs"] as? [String] ?? []
-            externallyPrioritizedPostIDs = ids
-            let prioritizedPosts = notification.object as? [Post] ?? []
-            prioritizeGenerationForCurrentContext(using: prioritizedPosts)
+            enqueue(incoming, priority: true)
+            let prioritized = queue.filter { ids.contains($0.id) }
+            queue.removeAll { ids.contains($0.id) }
+            queue.insert(contentsOf: prioritized, at: 0)
         }
         .onReceive(NotificationCenter.default.publisher(for: .regenerateSinglePostRequested)) { notification in
-            guard let postID = notification.userInfo?["postID"] as? String else { return }
-            let post = notification.object as? Post
-            Task { await regenerateImage(for: postID, post: post) }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .deferStableDiffusionReloadUntilRestart)) { _ in
-            deferStableDiffusionReloadUntilRestart = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .pushNotificationDidChange)) { _ in
-            Task { await refreshUnreadNotificationsIfNeeded(force: true) }
+            if let post = notification.object as? Post { retry(post, newVariation: true) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .postDeleted)) { notification in
-            guard let postId = notification.userInfo?["postId"] as? String else { return }
-            removeDeletedPostFromLists(postId)
+            let id = notification.userInfo?["postId"] as? String ?? notification.object as? String
+            if let id { removePost(id) }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .postReported)) { notification in
+            if let id = notification.userInfo?["postId"] as? String { removePost(id) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .semanticCacheMaintenanceRequested)) { _ in
+            ImageCacheManager.shared.clearAllCaches()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .regenerateImagesRequested)) { _ in
+            for post in currentList.items where post.hasImage { retry(post, newVariation: true) }
+        }
+        .onDisappear { generationTask?.cancel() }
     }
 
-    private var decoratedContent: some View {
-        eventContent
-        .onChange(of: selectedTab) { _ in
-            withAnimation(.easeInOut(duration: 0.18)) {
-                isChromeHidden = false
-            }
-            prioritizeGenerationForCurrentContext()
+    private var currentList: PostList {
+        switch tab {
+        case .home: return posts
+        case .following: return following
+        case .posts: return mine
+        case .likes: return liked
         }
-        .onChange(of: showProfileDrawer) { shown in
-            if shown {
-                Task { await refreshCurrentProfileStats() }
-            }
+    }
+    private var listKey: String { tab.rawValue }
+
+    private func tabTitle(_ value: Tab) -> String {
+        let key = value == .posts ? "my_posts" : value == .likes ? "liked" : value.rawValue
+        return L10n.tr("content.tab." + key, languageCode: language)
+    }
+    private func tabIcon(_ value: Tab) -> String {
+        switch value {
+        case .home: return "house"
+        case .following: return "person.2"
+        case .posts: return "person.text.rectangle"
+        case .likes: return "heart"
         }
-        .overlay(alignment: .top) {
-            VStack(spacing: 8) {
-                if showReportToast {
-                    Text(l("content.toast.report_hidden"))
-                        .toastStyle()
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-                if showBlockToast {
-                    Text(l("content.toast.block_hidden"))
-                        .toastStyle()
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            }
-            .padding(.top, 12)
-        }
-        .animation(.easeInOut(duration: 0.2), value: showReportToast)
-        .animation(.easeInOut(duration: 0.2), value: showBlockToast)
-        .overlay {
-            if appBootState == .ready {
-                profileDrawerOverlay
-            }
-        }
-        .overlay(alignment: .leading) {
-            if appBootState == .ready && !showProfileDrawer {
-                Color.clear
-                    .frame(width: 24)
+    }
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(Tab.allCases, id: \.self) { value in
+                Button { setTabBarHidden(false); tab = value } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: tabIcon(value)).font(.body.weight(.medium))
+                        Text(tabTitle(value)).font(.caption2)
+                            .lineLimit(1).minimumScaleFactor(0.5)
+                    }
+                    .foregroundStyle(tab == value ? MimStyle.accent : Color.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 52)
                     .contentShape(Rectangle())
-                    .gesture(profileDrawerEdgeGesture)
-            }
-        }
-        .alert(l("content.alert.regenerate.title"), isPresented: $showRegenerateConfirm) {
-            Button(l("content.alert.regenerate.confirm"), role: .destructive) {
-                Task { await regenerateImagesForSelectedModel() }
-            }
-            Button(l("common.cancel"), role: .cancel) {}
-        } message: {
-            Text(l("content.alert.regenerate.message"))
-        }
-        .alert(l("content.alert.logout.title"), isPresented: $showLogoutConfirm) {
-            Button(l("content.alert.logout.confirm"), role: .destructive) {
-                Task { await authManager.logout() }
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
-                    showProfileDrawer = false
                 }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(tab == value ? .isSelected : [])
+                .accessibilityIdentifier("feed-tab-" + value.rawValue)
             }
-            Button(l("common.cancel"), role: .cancel) {}
-        } message: {
-            Text(l("content.alert.logout.message"))
         }
+        .padding(.horizontal, 8)
+        .padding(.top, 4)
+        .background(MimStyle.paper.ignoresSafeArea(edges: .bottom))
+        .overlay(alignment: .top) { MimStyle.line.frame(height: 0.5) }
     }
 
-    // MARK: - Main Content
-
-    private var mainContent: some View {
-        ZStack(alignment: .bottom) {
-            timelineBackground
-            currentTabContent
-
-            if selectedTab == .timeline {
-                floatingNewPostButton
-            }
+    private func avatar(size: CGFloat) -> some View {
+        CachedAvatarView(urlString: userManager.currentUser.avatarUrl) {
+            Circle().fill(Color(.secondarySystemBackground))
+                .overlay(Image(systemName: "person.fill").foregroundStyle(.secondary))
         }
-        .animation(.easeInOut(duration: 0.18), value: isChromeHidden)
-        .overlay(alignment: .bottom) {
-            bottomOverlay
-        }
-        .sheet(isPresented: $showNewPost) {
-            NewPostView(
-                posts: $postList.items,
-                isImagePostingTemporarilyDisabled: isStableDiffusionPreparingForImagePosts,
-                onSemanticProcessingWillStart: {
-                    await suspendImageGenerationForPosting()
-                },
-                onSemanticProcessingDidFinish: {
-                    await resumeImageGenerationAfterPosting()
-                }
-            )
-        }
-        .sheet(isPresented: $showLoginSheet) {
-            OTPLoginView(allowsSkip: true)
-        }
-        .sheet(isPresented: $showNotifications) {
-            NotificationsView { items in
-                unreadNotificationCount = items.filter { !$0.isRead }.count
-            }
-        }
-        .sheet(isPresented: $showInstallModels) {
-            InstallModelsView(modelManager: modelManager)
-        }
-        .onAppear {
-            let hasSeen = UserDefaults.standard.bool(forKey: "hasSeenInstallPrompt")
-            if !modelManager.hasAnyDownloadedModel && !hasSeen {
-                showInstallModels = true
-                UserDefaults.standard.set(true, forKey: "hasSeenInstallPrompt")
-            }
-            Task { await refreshCurrentProfileStats() }
-        }
-        .onDisappear {
-            generationTask?.cancel()
-            generationTask = nil
-            Task { await generator?.unloadResources() }
-        }
+        .frame(width: size, height: size).clipShape(Circle())
     }
-}
-
-extension ContentView {
-
-    @ViewBuilder
-    private var currentTabContent: some View {
-        switch selectedTab {
-        case .timeline:
-            timelineTab
-        case .following:
-            followingTab
-        case .myPosts:
-            myPostsTab
-        case .liked:
-            likedTab
-        }
+    private func openDrawer() {
+        setTabBarHidden(false)
+        withAnimation(.easeOut(duration: 0.22)) { showDrawer = true }
     }
-
-    private var timelineTab: some View {
+    private func closeDrawer() { withAnimation(.easeOut(duration: 0.22)) { showDrawer = false } }
+    private var drawerMenu: some View {
         NavigationStack {
-            feedBody
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar(isChromeHidden ? .hidden : .visible, for: .navigationBar)
-                .toolbar {
-                    profileToolbarButton
-                    notificationsToolbarButton
-                    timelineLogo
-                }
-        }
-    }
-
-    private var followingTab: some View {
-        NavigationStack {
-            Group {
-                if authManager.isAuthenticated {
-                    postsListContent(
-                        posts: blockManager.filterBlocked(from: followingPostList.items),
-                        isLoading: isLoadingFollowingFeed,
-                        emptyText: l("content.following.empty"),
-                        onRefresh: loadFollowingFeed,
-                        onLoadNext: loadNextFollowingPage
-                    )
-                } else {
-                    loginRequiredView(
-                        title: l("content.following.login_title"),
-                        description: l("content.following.login_description")
-                    )
-                }
-            }
-            .navigationTitle(l("content.tab.following"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(isChromeHidden ? .hidden : .visible, for: .navigationBar)
-            .toolbar {
-                profileToolbarButton
-                notificationsToolbarButton
-            }
-        }
-        .task {
-            guard !hasLoadedFollowingFeed else { return }
-            await loadFollowingFeed()
-        }
-    }
-
-    private var myPostsTab: some View {
-        NavigationStack {
-            Group {
-                if authManager.isAuthenticated {
-                    postsListContent(
-                        posts: blockManager.filterBlocked(from: myPostList.items),
-                        isLoading: isLoadingMyPosts,
-                        emptyText: l("content.my_posts.empty"),
-                        onRefresh: loadMyPosts,
-                        onLoadNext: loadNextMyPage
-                    )
-                } else {
-                    loginRequiredView(
-                        title: l("content.my_posts.login_title"),
-                        description: l("content.my_posts.login_description")
-                    )
-                }
-            }
-            .navigationTitle(l("content.tab.my_posts"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(isChromeHidden ? .hidden : .visible, for: .navigationBar)
-            .toolbar {
-                profileToolbarButton
-                notificationsToolbarButton
-            }
-        }
-        .task {
-            guard !hasLoadedMyPosts else { return }
-            await loadMyPosts()
-        }
-    }
-
-    private var likedTab: some View {
-        NavigationStack {
-            Group {
-                if authManager.isAuthenticated {
-                    postsListContent(
-                        posts: blockManager.filterBlocked(from: likedPostList.items),
-                        isLoading: isLoadingLikedPosts,
-                        emptyText: l("content.liked.empty"),
-                        onRefresh: loadLikedPosts,
-                        onLoadNext: loadNextLikedPage
-                    )
-                } else {
-                    loginRequiredView(
-                        title: l("content.liked.login_title"),
-                        description: l("content.liked.login_description")
-                    )
-                }
-            }
-            .navigationTitle(l("content.tab.liked"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(isChromeHidden ? .hidden : .visible, for: .navigationBar)
-            .toolbar {
-                profileToolbarButton
-                notificationsToolbarButton
-            }
-        }
-        .task {
-            guard !hasLoadedLikedPosts else { return }
-            await loadLikedPosts()
-        }
-    }
-
-    @MainActor
-    func handleAuthenticationChange(isAuthenticated: Bool) async {
-        hasLoadedMyPosts = false
-        hasLoadedLikedPosts = false
-        hasLoadedFollowingFeed = false
-
-        if isAuthenticated {
-            await blockManager.refreshFromServerIfPossible()
-            await loadFollowingFeed()
-            await loadMyPosts()
-            await loadLikedPosts()
-            await refreshUnreadNotificationsIfNeeded(force: true)
-            await refreshCurrentProfileStats()
-        } else {
-            followingPostList.items = []
-            myPostList.items = []
-            likedPostList.items = []
-            currentFollowingPage = 0
-            currentMyPage = 0
-            currentLikedPage = 0
-            unreadNotificationCount = 0
-            currentProfileStats = nil
-        }
-    }
-
-    func bootSequence() async {
-        genLogKey = "content.genlog.ready"
-
-        // ユーザー登録
-        let user = userManager.currentUser
-        if !user.id.isEmpty {
-            await UserService.register(user)
-            await blockManager.refreshFromServerIfPossible()
-        }
-
-        let shouldLoadStableDiffusion = modelManager.resolvedImageGenerationBackend == .stableDiffusion
-        isStableDiffusionPreparingForImagePosts = shouldLoadStableDiffusion
-        appBootState = .ready
-        if !shouldLoadStableDiffusion {
-            isStableDiffusionPreparingForImagePosts = false
-            loadedGenerationCacheKey = modelManager.activeImageGenerationCacheKey
-        }
-        await loadInitialPage()
-        await refreshUnreadNotificationsIfNeeded(force: true)
-
-        if shouldLoadStableDiffusion {
-            Task { await maybeReloadGeneratorForSelectedModel() }
-        }
-    }
-}
-
-extension ContentView {
-
-    @ViewBuilder
-    private var feedBody: some View {
-        VStack(spacing: 0) {
-            if postList.items.isEmpty && isLoadingFeed {
-                ProgressView(l("content.feed.fetching"))
-                    .padding(.top, 40)
-
-            } else {
+            GeometryReader { drawerGeometry in
                 ScrollView {
-                    LazyVStack(spacing: 16) {
-                        if !authManager.isAuthenticated {
-                            guestLoginBanner
-                                .padding(.horizontal, 16)
-                                .padding(.top, 12)
-                        }
-                        ForEach(postList.items) { post in
-                            PostCardView(
-                                post: post,
-                                isModelInstalled: modelManager.canGenerateImages,
-                                onUserBlocked: removeBlockedUserFromLists,
-                                onPostReported: removeReportedPostFromLists
-                            )
-                            .onAppear {
-                                if post.id == postList.items.last?.id {
-                                    Task { await loadNextPage() }
+                    VStack(alignment: .leading, spacing: 24) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            avatar(size: 56)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(userManager.currentUser.displayName).font(.title2.weight(.semibold))
+                                if !userManager.currentUser.bio.isEmpty {
+                                    Text(userManager.currentUser.bio).font(.subheadline).foregroundStyle(.secondary)
+                                        .lineLimit(2)
                                 }
                             }
+                            if let profileStats {
+                                HStack(spacing: 20) {
+                                    Text("\(profileStats.followingCount) " + L10n.tr("content.drawer.following", languageCode: language))
+                                    Text("\(profileStats.followerCount) " + L10n.tr("content.drawer.followers", languageCode: language))
+                                }.font(.footnote).foregroundStyle(.secondary)
+                            }
                         }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .padding(.bottom, 94)
-                }
-                .refreshable {
-                    await refreshFeed()
-                }
-                .simultaneousGesture(scrollChromeGesture)
-            }
-        }
-    }
-}
-
-extension ContentView {
-    private var floatingNewPostButton: some View {
-        VStack {
-            Spacer()
-            HStack {
-                Spacer()
-                Button(action: {
-                    if authManager.isAuthenticated {
-                        showNewPost = true
-                    } else {
-                        showLoginSheet = true
-                    }
-                }) {
-                    if authManager.isAuthenticated {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.accentColor,
-                                            Color.accentColor.opacity(0.78)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 62, height: 62)
-                                .shadow(color: Color.accentColor.opacity(0.28), radius: 18, y: 10)
-
-                            Image(systemName: "plus")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.white)
+                        VStack(spacing: 0) {
+                            drawerLink(.profile, title: "プロフィール", icon: "person")
+                            drawerAction(title: "通知", icon: unreadNotificationCount > 0 ? "bell.badge" : "bell", id: "drawer-notifications") {
+                                if authManager.isAuthenticated || isOfflineReview { navigateFromDrawer(to: .notifications) }
+                                else { closeDrawer(); login = true }
+                            }
+                            drawerLink(.models, title: "モデル管理", icon: "cpu")
                         }
-                    } else {
-                        HStack(spacing: 8) {
-                            Image(systemName: "lock.fill")
-                            Text(l("content.sign_in_to_post"))
-                                .fontWeight(.semibold)
+                        Divider()
+                        VStack(spacing: 0) {
+                            drawerLink(.settings, title: "設定", icon: "gearshape")
+                            drawerAction(title: authManager.isAuthenticated || isOfflineReview ? "ログアウト" : "ログイン",
+                                         icon: "rectangle.portrait.and.arrow.right", id: "drawer-session") {
+                                if authManager.isAuthenticated || isOfflineReview { logoutConfirmation = true }
+                                else { closeDrawer(); login = true }
+                            }
                         }
-                        .font(.footnote)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color.accentColor)
-                        .foregroundColor(.white)
-                        .clipShape(Capsule())
-                        .shadow(radius: 3)
-                    }
+                    }.padding(20)
+                    .frame(maxWidth: .infinity, minHeight: drawerGeometry.size.height, alignment: .topLeading)
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(DragGesture(minimumDistance: 12)
+                    .onEnded { value in
+                        closeDrawerIfSwiped(value)
+                    })
                 }
-                .padding(.trailing, 20)
-                .padding(.bottom, isChromeHidden ? 24 : 74)
+                .accessibilityIdentifier("profile-drawer")
             }
-        }
-    }
-
-    private var bottomOverlay: some View {
-        VStack(spacing: 0) {
-            if selectedTab == .timeline,
-               isStableDiffusionPreparingForImagePosts || showStableDiffusionReadyNotice {
-                stableDiffusionLoadStatusBanner
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-
-            if !isChromeHidden {
-                customTabBar
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 2)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .ignoresSafeArea(edges: .bottom)
-        .animation(.easeInOut(duration: 0.18), value: isChromeHidden)
-        .animation(.easeInOut(duration: 0.2), value: isStableDiffusionPreparingForImagePosts)
-        .animation(.easeInOut(duration: 0.2), value: showStableDiffusionReadyNotice)
-    }
-
-    private var stableDiffusionLoadStatusBanner: some View {
-        let isReady = showStableDiffusionReadyNotice && !isStableDiffusionPreparingForImagePosts
-        return HStack(spacing: 8) {
-            if isReady {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-            } else {
-                ProgressView()
-                    .controlSize(.small)
-                Image(systemName: "wand.and.sparkles")
-                    .foregroundColor(.secondary)
-            }
-
-            Text(isReady ? l("content.sd_load.ready") : l("content.sd_load.preparing"))
-                .font(.caption.weight(.semibold))
-                .foregroundColor(isReady ? .green : .primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(
-            Capsule()
-                .stroke(isReady ? Color.green.opacity(0.38) : Color.white.opacity(0.4), lineWidth: 0.8)
-        )
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.08), radius: 12, y: 6)
-    }
-
-    private var customTabBar: some View {
-        HStack(spacing: 0) {
-            customTabBarButton(for: .timeline, systemImage: "house", title: l("content.tab.home"))
-            customTabBarButton(for: .following, systemImage: "person.2", title: l("content.tab.following"))
-            customTabBarButton(for: .myPosts, systemImage: "person.text.rectangle", title: l("content.tab.posts"))
-            customTabBarButton(for: .liked, systemImage: "heart", title: l("content.tab.liked"))
-        }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 3)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(
-            Capsule()
-                .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.45), lineWidth: 0.8)
-        )
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.32 : 0.08), radius: 16, y: 8)
-    }
-
-    private func customTabBarButton(for tab: HomeTab, systemImage: String, title: String) -> some View {
-        let isSelected = selectedTab == tab
-
-        return Button {
-            withAnimation(.easeInOut(duration: 0.18)) {
-                selectedTab = tab
-                isChromeHidden = false
-            }
-        } label: {
-            VStack(spacing: 3) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 18, weight: .semibold))
-                Text(title)
-                    .font(.caption2.weight(.semibold))
-            }
-            .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 7)
-            .background(
-                Capsule()
-                    .fill(isSelected ? Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.08) : .clear)
-            )
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    @ToolbarContentBuilder
-    private var timelineLogo: some ToolbarContent {
-        ToolbarItem(placement: .principal) {
-            Image("AppLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 22)
-                .accessibilityHidden(true)
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var profileToolbarButton: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
-                    showProfileDrawer = true
-                }
-            } label: {
-                if !userManager.currentUser.avatarUrl.isEmpty {
-                    CachedAvatarView(urlString: userManager.currentUser.avatarUrl) {
-                        profileToolbarFallback
-                    }
-                    .frame(width: 30, height: 30)
-                    .clipShape(Circle())
-                } else {
-                    profileToolbarFallback
+            .background(MimStyle.paper)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { closeDrawer() } label: { Image(systemName: "xmark") }
+                        .accessibilityLabel(mt("メニューを閉じる"))
                 }
             }
+            .task {
+                guard authManager.isAuthenticated, !isOfflineReview else { return }
+                profileStats = try? await FollowService.fetchPublicProfile(userId: userManager.currentUser.id)
+            }
+        }
+        .mimLogoutConfirmation(isPresented: $logoutConfirmation) {
+            returnToDrawer = false
+            closeDrawer()
+            Task { await authManager.logout() }
+        }
+    }
+    private func drawerLink(_ destination: DrawerDestination, title: String, icon: String) -> some View {
+        drawerAction(title: title, icon: icon, id: "drawer-" + destination.rawValue) { navigateFromDrawer(to: destination) }
+    }
+    private func navigateFromDrawer(to destination: DrawerDestination) {
+        returnToDrawer = true
+        closeDrawer()
+        navigationPath.append(destination)
+    }
+    private func drawerAction(title: String, icon: String, id: String, perform: @escaping () -> Void) -> some View {
+        Button(action: perform) { drawerRow(title, icon: icon) }
             .buttonStyle(.plain)
-            .accessibilityLabel(l("content.accessibility.open_profile"))
-        }
+            .highPriorityGesture(DragGesture(minimumDistance: 10)
+                .onEnded { closeDrawerIfSwiped($0) })
+            .accessibilityLabel(mt(title))
+            .accessibilityIdentifier(id)
     }
-
-    private var profileToolbarFallback: some View {
-        Circle()
-            .fill(Color.secondary.opacity(0.14))
-            .frame(width: 30, height: 30)
-            .overlay(
-                Image(systemName: "person.fill")
-                    .font(.caption.weight(.bold))
-                    .foregroundColor(.secondary)
-            )
+    private func closeDrawerIfSwiped(_ value: DragGesture.Value) {
+        if value.translation.width < -70,
+           abs(value.translation.width) > abs(value.translation.height) * 1.5 { closeDrawer() }
     }
-
-    @ToolbarContentBuilder
-    private var notificationsToolbarButton: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                if authManager.isAuthenticated {
-                    showNotifications = true
-                } else {
-                    showLoginSheet = true
-                }
-            } label: {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: unreadNotificationCount > 0 ? "bell.fill" : "bell")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(unreadNotificationCount > 0 ? Color.accentColor : Color.primary)
-                        .padding(6)
-                        .background(
-                            unreadNotificationCount > 0
-                            ? Color.accentColor.opacity(0.14)
-                            : Color.clear,
-                            in: Circle()
-                        )
-                    if unreadNotificationCount > 0 {
-                        Text(unreadBadgeText)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, unreadNotificationCount > 9 ? 5 : 4)
-                            .padding(.vertical, 2)
-                            .background(Color.accentColor, in: Capsule())
-                            .offset(x: 12, y: -10)
-                    }
-                }
-                .frame(width: 40, height: 40)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(
-                authManager.isAuthenticated
-                ? l("content.accessibility.open_notifications")
-                : l("content.accessibility.sign_in_notifications")
-            )
-        }
-    }
-
-    private var unreadBadgeText: String {
-        unreadNotificationCount > 99 ? "99+" : String(unreadNotificationCount)
-    }
-
-    private var profileDrawerOverlay: some View {
-        ZStack(alignment: .leading) {
-            Color.black.opacity(showProfileDrawer ? 0.4 : 0)
-                .ignoresSafeArea()
-                .allowsHitTesting(showProfileDrawer)
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
-                        showProfileDrawer = false
-                    }
-                }
-
-            NavigationStack {
-                profileDrawerMenu
-            }
-            .frame(width: min(UIScreen.main.bounds.width * 0.82, 340))
-            .frame(maxHeight: .infinity)
-            .background(drawerBackgroundColor)
-            .offset(x: drawerOffsetX)
-            // Keep the drawer's close swipe without stealing vertical drags from
-            // nested ScrollViews such as the AI Models screen.
-            .simultaneousGesture(profileDrawerSwipeGesture)
-            .shadow(color: Color.black.opacity(showProfileDrawer ? 0.18 : 0), radius: 18, x: 8, y: 0)
-        }
-        .allowsHitTesting(showProfileDrawer)
-        .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.88), value: showProfileDrawer)
-        .animation(.interactiveSpring(response: 0.22, dampingFraction: 0.92), value: profileDrawerDragTranslation)
-    }
-
-    private var profileDrawerMenu: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                profileDrawerHeader
-
-                profileDrawerPrimarySection
-                    .padding(.top, 24)
-
-                Divider()
-                    .overlay(Color(.separator))
-                    .padding(.vertical, 24)
-
-                profileDrawerSecondarySection
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 32)
-        }
-        .background(drawerBackgroundColor.ignoresSafeArea())
-        .tint(drawerPrimaryTextColor)
-    }
-
-    private var profileDrawerHeader: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
-                Group {
-                    if !userManager.currentUser.avatarUrl.isEmpty {
-                        CachedAvatarView(urlString: userManager.currentUser.avatarUrl) {
-                            Circle().fill(drawerSecondaryFillColor)
-                        }
-                    } else {
-                        Circle()
-                            .fill(drawerSecondaryFillColor)
-                            .overlay(
-                                Image(systemName: "person.fill")
-                                    .font(.title3.weight(.bold))
-                                    .foregroundColor(drawerPrimaryTextColor.opacity(0.8))
-                            )
-                    }
-                }
-                .frame(width: 58, height: 58)
-                .clipShape(Circle())
-
-                Spacer()
-
-                Button {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
-                        showProfileDrawer = false
-                    }
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundColor(drawerPrimaryTextColor)
-                        .frame(width: 36, height: 36)
-                        .background(drawerSecondaryFillColor, in: Circle())
-                }
-                .buttonStyle(.plain)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(userManager.currentUser.displayName)
-                    .font(.title2.weight(.bold))
-                    .foregroundColor(drawerPrimaryTextColor)
-                    .lineLimit(2)
-
-                if !userManager.currentUser.id.isEmpty {
-                    Text("@\(userManager.currentUser.id)")
-                        .font(.subheadline)
-                        .foregroundColor(drawerSecondaryTextColor)
-                        .textSelection(.enabled)
-                }
-
-                if let email = userManager.currentUser.email, !email.isEmpty {
-                    Text(email)
-                        .font(.caption)
-                        .foregroundColor(drawerTertiaryTextColor)
-                        .lineLimit(1)
-                }
-            }
-
-            HStack(spacing: 24) {
-                profileStatText(
-                    value: currentProfileStats?.followingCount ?? 0,
-                    label: l("content.drawer.following")
-                )
-                profileStatText(
-                    value: currentProfileStats?.followerCount ?? 0,
-                    label: l("content.drawer.followers")
-                )
-            }
-            .padding(.top, 4)
-        }
-    }
-
-    private var profileDrawerPrimarySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            profileDrawerLink(
-                title: l("content.drawer.profile"),
-                systemImage: "person"
-            ) {
-                UserProfileView(showsCloseButton: false, showAppSettings: false)
-            }
-
-            profileDrawerLink(
-                title: l("content.drawer.ai_models"),
-                systemImage: "cpu"
-            ) {
-                ModelManagementView()
-            }
-
-            profileDrawerLink(
-                title: l("content.drawer.blocked_users"),
-                systemImage: "person.2.slash"
-            ) {
-                BlockedUsersView()
-            }
-        }
-    }
-
-    private var profileDrawerSecondarySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            profileDrawerLink(
-                title: l("content.drawer.settings"),
-                systemImage: "gearshape"
-            ) {
-                SettingsView()
-            }
-
-            if authManager.isAuthenticated {
-                Button {
-                    showLogoutConfirm = true
-                } label: {
-                    profileDrawerRow(
-                        title: l("content.drawer.log_out"),
-                        systemImage: "rectangle.portrait.and.arrow.right",
-                        isDestructive: true
-                    )
-                }
-                .buttonStyle(.plain)
-            } else {
-                Button {
-                    showLoginSheet = true
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
-                        showProfileDrawer = false
-                    }
-                } label: {
-                    profileDrawerRow(
-                        title: l("content.drawer.sign_in_email"),
-                        systemImage: "envelope"
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private func profileDrawerLink<Destination: View>(
-        title: String,
-        systemImage: String,
-        @ViewBuilder destination: () -> Destination
-    ) -> some View {
-        NavigationLink {
-            destination()
-        } label: {
-            profileDrawerRow(title: title, systemImage: systemImage)
-        }
-        .simultaneousGesture(TapGesture().onEnded {
-            profileDrawerDragTranslation = 0
-        })
-    }
-
-    private func profileDrawerRow(title: String, systemImage: String, isDestructive: Bool = false) -> some View {
+    private func drawerRow(_ title: String, icon: String) -> some View {
         HStack(spacing: 16) {
-            Image(systemName: systemImage)
-                .font(.system(size: 21, weight: .medium))
-                .frame(width: 28)
-                .foregroundColor(isDestructive ? .red.opacity(0.9) : drawerPrimaryTextColor.opacity(0.95))
-
-            Text(title)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(isDestructive ? .red.opacity(0.9) : drawerPrimaryTextColor)
-
-            Spacer()
+            Image(systemName: icon).font(.body).frame(width: 24)
+            Text(mt(title)).font(.body)
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 14)
+        .foregroundStyle(.primary)
+        .frame(minHeight: 52)
         .contentShape(Rectangle())
     }
-
-    private func profileStatText(value: Int, label: String) -> some View {
-        HStack(spacing: 4) {
-            Text("\(value)")
-                .font(.headline.weight(.semibold))
-                .foregroundColor(drawerPrimaryTextColor)
-            Text(label)
-                .font(.subheadline)
-                .foregroundColor(drawerSecondaryTextColor)
+    private func loadReviewPosts() {
+        #if DEBUG
+        posts.items = UIReviewFixtures.posts()
+        following.items = Array(posts.items.prefix(1))
+        mine.items = Array(posts.items.suffix(1))
+        liked.items = Array(posts.items.prefix(1))
+        exhausted = Set(Tab.allCases.map(\.rawValue))
+        #endif
+    }
+    private func feedView(_ list: PostList) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                if let feedError {
+                    VStack(spacing: 8) {
+                        Text(mt(feedError)).foregroundStyle(.secondary)
+                        Button(mt("再試行")) { Task { await refresh() } }
+                    }.padding()
+                }
+                if loading && list.items.isEmpty { ProgressView().padding(40) }
+                if !loading && list.items.isEmpty {
+                    ContentUnavailableView(mt("まだ投稿がありません"), systemImage: "photo.on.rectangle")
+                }
+                ForEach(blockManager.filterBlocked(from: list.items).filter { !hiddenPostIDs.contains($0.id) }) { post in
+                    PostCardView(post: post, isModelInstalled: modelManager.canGenerateImages,
+                                 priorityContextPostIDs: list.items.map(\.id),
+                                 onUserBlocked: { _ in queue = blockManager.filterBlocked(from: queue) },
+                                 onPostReported: removePost, onPostDeleted: removePost)
+                        .padding(.vertical, 16)
+                        .onAppear { enqueue([post]) }
+                    MimStyle.line.frame(height: 0.5)
+                }
+                if !exhausted.contains(listKey), !list.items.isEmpty {
+                    Button(mt("さらに読み込む")) { Task { await loadNext() } }.disabled(loading).padding(20)
+                }
+            }
         }
-    }
-
-    private var drawerBackgroundColor: Color {
-        Color(.systemBackground)
-    }
-
-    private var drawerPrimaryTextColor: Color {
-        Color.primary
-    }
-
-    private var drawerSecondaryTextColor: Color {
-        Color.secondary
-    }
-
-    private var drawerTertiaryTextColor: Color {
-        Color.secondary.opacity(0.82)
-    }
-
-    private var drawerSecondaryFillColor: Color {
-        Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.08)
-    }
-
-    private var drawerWidth: CGFloat {
-        min(UIScreen.main.bounds.width * 0.82, 340)
-    }
-
-    private var drawerOffsetX: CGFloat {
-        if showProfileDrawer {
-            return min(profileDrawerDragTranslation, 0)
+        .accessibilityIdentifier("feed-scroll-view")
+        .onScrollPhaseChange { _, phase in
+            userIsScrolling = phase == .interacting || phase == .decelerating
+            if phase == .tracking || phase == .idle { directionalScrollDistance = 0 }
         }
-        return -drawerWidth
-    }
-
-    private var profileDrawerEdgeGesture: some Gesture {
-        DragGesture(minimumDistance: 18, coordinateSpace: .global)
-            .onChanged { value in
-                guard !showProfileDrawer else { return }
-                guard value.startLocation.x <= 28 else { return }
-                guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                if value.translation.width > 0 {
-                    profileDrawerDragTranslation = max(value.translation.width - drawerWidth, -drawerWidth)
-                }
-            }
-            .onEnded { value in
-                defer { profileDrawerDragTranslation = 0 }
-                guard value.startLocation.x <= 28 else { return }
-                guard value.translation.width > 70 else { return }
-                withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.88)) {
-                    showProfileDrawer = true
-                }
-            }
-    }
-
-    private var profileDrawerSwipeGesture: some Gesture {
-        DragGesture(minimumDistance: 18, coordinateSpace: .global)
-            .onChanged { value in
-                guard showProfileDrawer else { return }
-                guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                if value.translation.width < 0 {
-                    profileDrawerDragTranslation = value.translation.width
-                }
-            }
-            .onEnded { value in
-                defer { profileDrawerDragTranslation = 0 }
-
-                let horizontal = value.translation.width
-                let vertical = abs(value.translation.height)
-                guard abs(horizontal) > vertical else { return }
-
-                if showProfileDrawer {
-                    guard horizontal < -70 else { return }
-                    withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.88)) {
-                        showProfileDrawer = false
-                    }
-                    return
-                }
-
-                guard value.startLocation.x <= 28, horizontal > 70 else { return }
-                withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.88)) {
-                    showProfileDrawer = true
-                }
-            }
-    }
-
-    private var guestLoginBanner: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(l("content.guest.title"))
-                .font(.subheadline.weight(.bold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-            Text(
-                l("content.guest.description")
-            )
-            .font(.caption)
-            .foregroundColor(.secondary)
-            Button {
-                showLoginSheet = true
-            } label: {
-                Text(l("content.drawer.sign_in_email"))
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
+        .onScrollGeometryChange(for: FeedScrollMetrics.self) { geometry in
+            let maximum = max(0, geometry.contentSize.height - geometry.containerSize.height
+                + geometry.contentInsets.top + geometry.contentInsets.bottom)
+            return FeedScrollMetrics(offset: min(maximum, max(0, geometry.contentOffset.y + geometry.contentInsets.top)),
+                                     canScroll: maximum > 100)
+        } action: { _, metrics in
+            updateTabBar(for: metrics)
         }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.white.opacity(0.5), lineWidth: 0.8)
-        )
+        .refreshable { await refresh() }.background(MimStyle.paper)
     }
-
-    private var scrollChromeGesture: some Gesture {
-        DragGesture(minimumDistance: 8)
-            .onChanged { value in
-                guard !showProfileDrawer else { return }
-                guard abs(value.translation.height) > abs(value.translation.width) else { return }
-
-                if value.translation.height < -14, !isChromeHidden {
-                    withAnimation(.easeInOut(duration: 0.18)) {
-                        isChromeHidden = true
-                    }
-                } else if value.translation.height > 14, isChromeHidden {
-                    withAnimation(.easeInOut(duration: 0.18)) {
-                        isChromeHidden = false
-                    }
-                }
-            }
+    private func setTabBarHidden(_ hidden: Bool) {
+        guard tabBarHidden != hidden else { return }
+        withAnimation(.easeInOut(duration: 0.18)) { tabBarHidden = hidden }
     }
-
-    @MainActor
-    private func refreshCurrentProfileStats() async {
-        guard authManager.isAuthenticated else {
-            currentProfileStats = nil
+    private func updateTabBar(for metrics: FeedScrollMetrics) {
+        defer { lastScrollOffset = metrics.offset }
+        guard metrics.canScroll, metrics.offset > 24 else {
+            directionalScrollDistance = 0
+            setTabBarHidden(false)
             return
         }
-        let userId = userManager.currentUser.id
-        guard !userId.isEmpty else {
-            currentProfileStats = nil
-            return
-        }
-
-        do {
-            currentProfileStats = try await FollowService.fetchPublicProfile(userId: userId)
-        } catch {
-            if currentProfileStats == nil {
-                currentProfileStats = PublicUserProfile(
-                    id: userId,
-                    displayName: userManager.currentUser.displayName,
-                    avatarUrl: userManager.currentUser.avatarUrl,
-                    bio: userManager.currentUser.bio,
-                    followerCount: 0,
-                    followingCount: 0,
-                    postCount: 0,
-                    isFollowing: false
-                )
-            }
-        }
+        guard userIsScrolling, !showDrawer, navigationPath.isEmpty else { return }
+        let delta = metrics.offset - lastScrollOffset
+        guard abs(delta) > 0.5 else { return }
+        if delta * directionalScrollDistance < 0 { directionalScrollDistance = delta }
+        else { directionalScrollDistance += delta }
+        if directionalScrollDistance > 36, metrics.offset > 80 { setTabBarHidden(true) }
+        else if directionalScrollDistance < -20 { setTabBarHidden(false) }
     }
 
-    @ViewBuilder
-    private func postsListContent(
-        posts: [Post],
-        isLoading: Bool,
-        emptyText: String,
-        onRefresh: @escaping () async -> Void,
-        onLoadNext: @escaping () async -> Void
-    ) -> some View {
-        if posts.isEmpty && isLoading {
-            ProgressView(l("content.loading"))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if posts.isEmpty {
-            Text(emptyText)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    ForEach(posts) { post in
-                        PostCardView(
-                            post: post,
-                            isModelInstalled: modelManager.canGenerateImages,
-                            onUserBlocked: removeBlockedUserFromLists,
-                            onPostReported: removeReportedPostFromLists
-                        )
-                            .onAppear {
-                                if post.id == posts.last?.id {
-                                    Task { await onLoadNext() }
-                                }
-                            }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .padding(.bottom, 88)
-            }
-            .refreshable {
-                await onRefresh()
-            }
-            .simultaneousGesture(scrollChromeGesture)
-        }
-    }
-
-    @ViewBuilder
-    private func loginRequiredView(title: String, description: String) -> some View {
-        VStack(spacing: 14) {
-            Image(systemName: "person.crop.circle.badge.exclamationmark")
-                .font(.system(size: 44))
-                .foregroundColor(.secondary)
-            Text(title)
-                .font(.headline)
-            Text(description)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
-            Button {
-                showLoginSheet = true
-            } label: {
-                Text(l("content.sign_in"))
-                    .frame(maxWidth: 240)
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, 24)
-    }
-
-    private var timelineBackground: some View {
-        Color(.systemBackground)
-            .ignoresSafeArea()
-    }
-
-    private func removeBlockedUserFromLists(_ blockedUserId: String) {
-        postList.items.removeAll { $0.userId == blockedUserId }
-        followingPostList.items.removeAll { $0.userId == blockedUserId }
-        myPostList.items.removeAll { $0.userId == blockedUserId }
-        likedPostList.items.removeAll { $0.userId == blockedUserId }
-        showBlockToast = true
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_600_000_000)
-            showBlockToast = false
-        }
-    }
-
-    private func removeReportedPostFromLists(_ postId: String) {
-        postList.items.removeAll { $0.id == postId }
-        followingPostList.items.removeAll { $0.id == postId }
-        myPostList.items.removeAll { $0.id == postId }
-        likedPostList.items.removeAll { $0.id == postId }
-        showReportToast = true
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_600_000_000)
-            showReportToast = false
-        }
-    }
-
-    private func removeDeletedPostFromLists(_ postId: String) {
-        postList.items.removeAll { $0.id == postId }
-        followingPostList.items.removeAll { $0.id == postId }
-        myPostList.items.removeAll { $0.id == postId }
-        likedPostList.items.removeAll { $0.id == postId }
-        generationQueue.removeAll { $0.id == postId }
-        ImageCacheManager.shared.remove(for: postId, namespace: .originalImages)
-        Task { await PostStore.shared.remove(postId: postId) }
-    }
-
-    @MainActor
-    private func refreshUnreadNotificationsIfNeeded(force: Bool = false) async {
-        guard authManager.isAuthenticated else {
-            unreadNotificationCount = 0
-            PushNotificationManager.shared.clearBadges()
-            return
-        }
-
-        if showNotifications && !force {
-            unreadNotificationCount = 0
-            PushNotificationManager.shared.clearBadges()
-            return
-        }
-
-        do {
-            let notifications = try await NotificationService.fetchNotifications(limit: 30)
-            unreadNotificationCount = notifications.filter { !$0.isRead }.count
-            PushNotificationManager.shared.setBadgeCount(unreadNotificationCount)
-        } catch {
-            if force {
-                unreadNotificationCount = 0
-                PushNotificationManager.shared.clearBadges()
-            }
-        }
-    }
-}
-
-extension ContentView {
-
-    func loadInitialPage() async {
-        isLoadingFeed = true
-        do {
-            let firstPage = try await FeedLoader.fetchPage(page: 0, pageSize: pageSize)
-            let filtered = uniquePosts(blockManager.filterBlocked(from: firstPage))
-            postList.items = filtered
-            currentPage = 0
-            isLoadingFeed = false
-
-            enqueueImages(for: filtered)
-        } catch {
-            genLogKey = "content.genlog.feed_failed"
-            isLoadingFeed = false
-        }
-    }
-
-    func loadFollowingFeed() async {
-        guard authManager.isAuthenticated else {
-            followingPostList.items = []
-            hasLoadedFollowingFeed = true
-            return
-        }
-        guard !isLoadingFollowingFeed else { return }
-        isLoadingFollowingFeed = true
-        defer { isLoadingFollowingFeed = false }
-        hasLoadedFollowingFeed = true
-
-        do {
-            let firstPage = try await FeedLoader.fetchFollowingFeed(page: 0, pageSize: pageSize)
-            let filtered = uniquePosts(blockManager.filterBlocked(from: firstPage))
-            followingPostList.items = filtered
-            currentFollowingPage = 0
-
-            enqueueImages(for: filtered)
-        } catch {
-            genLogKey = "content.genlog.following_failed"
-        }
-    }
-
-    func loadNextFollowingPage() async {
-        guard authManager.isAuthenticated else { return }
-        guard !isLoadingFollowingFeed else { return }
-        isLoadingFollowingFeed = true
-        defer { isLoadingFollowingFeed = false }
-
-        do {
-            let next = try await FeedLoader.fetchFollowingFeed(
-                page: currentFollowingPage + 1,
-                pageSize: pageSize
-            )
-            guard !next.isEmpty else { return }
-
-            let filtered = uniquePosts(blockManager.filterBlocked(from: next))
-            followingPostList.items = mergeUniquePosts(existing: followingPostList.items, incoming: filtered)
-            currentFollowingPage += 1
-
-            enqueueImages(for: filtered)
-        } catch {
-            genLogKey = "content.genlog.following_page_failed"
-        }
-    }
-
-    func loadNextPage() async {
-        guard !isLoadingFeed else { return }
-        isLoadingFeed = true
-
-        do {
-            let next = try await FeedLoader.fetchPage(
-                page: currentPage + 1,
-                pageSize: pageSize
-            )
-            guard !next.isEmpty else {
-                isLoadingFeed = false
-                return
-            }
-
-            let filtered = uniquePosts(blockManager.filterBlocked(from: next))
-            postList.items = mergeUniquePosts(existing: postList.items, incoming: filtered)
-            currentPage += 1
-
-            enqueueImages(for: filtered)
-        } catch {
-            genLogKey = "content.genlog.page_failed"
-        }
-
-        isLoadingFeed = false
-    }
-
-    func refreshFeed() async {
-        do {
-            let latest = try await FeedLoader.fetchPage(page: 0, pageSize: pageSize)
-            let existing = Set(postList.items.map { $0.id })
-            let newPosts = uniquePosts(blockManager.filterBlocked(from: latest))
-                .filter { !existing.contains($0.id) }
-
-            guard !newPosts.isEmpty else { return }
-            postList.items.insert(contentsOf: newPosts, at: 0)
-            postList.items = uniquePosts(postList.items)
-
-            enqueueImages(for: newPosts)
-        } catch {
-            genLogKey = "content.genlog.refresh_failed"
-        }
-    }
-
-    func loadMyPosts() async {
-        guard !isLoadingMyPosts else { return }
-        let userId = userManager.currentUser.id
-        guard !userId.isEmpty else {
-            myPostList.items = []
-            hasLoadedMyPosts = true
-            return
-        }
-        isLoadingMyPosts = true
-        defer { isLoadingMyPosts = false }
-        hasLoadedMyPosts = true
-
-        do {
-            let first = try await FeedLoader.fetchMyPosts(
-                userId: userId,
-                page: 0,
-                pageSize: pageSize
-            )
-            let filtered = uniquePosts(filterMyPosts(blockManager.filterBlocked(from: first)))
-            myPostList.items = filtered
-            currentMyPage = 0
-
-            enqueueImages(for: filtered)
-        } catch {
-            genLogKey = "content.genlog.my_posts_failed"
-            let userId = userManager.currentUser.id
-            myPostList.items = blockManager.filterBlocked(from: postList.items.filter { $0.userId == userId })
-        }
-    }
-
-    func loadNextMyPage() async {
-        guard !isLoadingMyPosts else { return }
-        let userId = userManager.currentUser.id
-        guard !userId.isEmpty else { return }
-        isLoadingMyPosts = true
-        defer { isLoadingMyPosts = false }
-
-        do {
-            let next = try await FeedLoader.fetchMyPosts(
-                userId: userId,
-                page: currentMyPage + 1,
-                pageSize: pageSize
-            )
-            guard !next.isEmpty else { return }
-            let filtered = uniquePosts(filterMyPosts(blockManager.filterBlocked(from: next)))
-            myPostList.items = mergeUniquePosts(existing: myPostList.items, incoming: filtered)
-            currentMyPage += 1
-
-            enqueueImages(for: filtered)
-        } catch {
-            genLogKey = "content.genlog.my_posts_page_failed"
-        }
-    }
-
-    func loadLikedPosts() async {
-        guard !isLoadingLikedPosts else { return }
-        let userId = userManager.currentUser.id
-        guard !userId.isEmpty else {
-            likedPostList.items = []
-            hasLoadedLikedPosts = true
-            return
-        }
-        isLoadingLikedPosts = true
-        defer { isLoadingLikedPosts = false }
-        hasLoadedLikedPosts = true
-
-        do {
-            let first = try await FeedLoader.fetchLikedPosts(
-                userId: userId,
-                page: 0,
-                pageSize: pageSize
-            )
-            let filtered = uniquePosts(blockManager.filterBlocked(from: first))
-            likedPostList.items = filtered
-            currentLikedPage = 0
-
-            enqueueImages(for: filtered)
-        } catch {
-            genLogKey = "content.genlog.liked_failed"
-            likedPostList.items = blockManager.filterBlocked(from: postList.items.filter { $0.isLikedByCurrentUser == true })
-        }
-    }
-
-    func loadNextLikedPage() async {
-        guard !isLoadingLikedPosts else { return }
-        let userId = userManager.currentUser.id
-        guard !userId.isEmpty else { return }
-        isLoadingLikedPosts = true
-        defer { isLoadingLikedPosts = false }
-
-        do {
-            let next = try await FeedLoader.fetchLikedPosts(
-                userId: userId,
-                page: currentLikedPage + 1,
-                pageSize: pageSize
-            )
-            guard !next.isEmpty else { return }
-            let filtered = uniquePosts(blockManager.filterBlocked(from: next))
-            likedPostList.items = mergeUniquePosts(existing: likedPostList.items, incoming: filtered)
-            currentLikedPage += 1
-
-            enqueueImages(for: filtered)
-        } catch {
-            genLogKey = "content.genlog.liked_page_failed"
-        }
-    }
-
-    @MainActor
-    func enqueueImages(for posts: [Post]) {
-        guard !isGenerationSuspendedForPosting else { return }
-        let canGenerate = canGenerateImagesNow
-        let modelID = modelManager.activeImageGenerationCacheKey
-        for post in posts {
-            guard post.hasImage else {
-                post.previewImage = nil
-                post.clearRegenerationEvaluation()
-                continue
-            }
-            let evaluationKey = regenerationEvaluationCacheKey(postID: post.id, modelID: modelID)
-            if let savedEvaluation = ImageCacheManager.shared.loadRegenerationEvaluation(for: evaluationKey) {
-                post.regenerationEvaluation = savedEvaluation
-            }
-            let cacheKey = post.effectivePrompt.map { generatedCacheKey(for: post, modelID: modelID, prompt: $0) }
-            if let cacheKey,
-               let cached = ImageCacheManager.shared.load(for: cacheKey) {
-                post.localImage = cached
-                post.imageGenerationFailed = false
-                post.imageGenerationFailureReason = nil
-                scheduleRegenerationEvaluationUpdateIfNeeded(for: post, generatedImage: cached, modelID: modelID)
-            } else {
-                post.semanticFidelityScore = nil
-                post.lpipsDistance = nil
-                post.imageGenerationFailed = false
-                post.imageGenerationFailureReason = nil
-                if post.previewImage == nil {
-                    post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
-                }
-                if post.localImage == nil,
-                   canGenerate,
-                   !generationQueue.contains(where: { $0.id == post.id }) {
-                    generationQueue.append(post)
-                }
-            }
-        }
-
-        prioritizeGenerationForCurrentContext()
-
-        guard canGenerate else { return }
-        guard !isGenerating else { return }
-        isGenerating = true
-        generationTask = Task { await processQueue() }
-    }
-
-    @MainActor
-    func processQueue() async {
-        defer {
-            isGenerating = false
-            generationTask = nil
-        }
-
-        while !generationQueue.isEmpty {
-            if isGenerationSuspendedForPosting { return }
-            if Task.isCancelled { return }
-            let post = generationQueue.removeFirst()
-            guard let prompt = post.effectivePrompt else { continue }
-            guard let backend = modelManager.resolvedImageGenerationBackend else { continue }
-            if backend == .stableDiffusion && (!isGeneratorReady || generator == nil) {
-                await maybeReloadGeneratorForSelectedModel()
-                guard isGeneratorReady, generator != nil else {
-                    generationQueue.insert(post, at: 0)
-                    return
-                }
-            }
-            if backend == .stableDiffusion {
-                await QwenVisionLanguageService.shared.releaseResources()
-                try? await Task.sleep(nanoseconds: 250_000_000)
-            }
-            let modelID = modelManager.activeImageGenerationCacheKey
-            let rawInitImage = post.makeInitImage()
-            let shouldDisableInitImage = backend == .stableDiffusion &&
-                (modelManager.selectedSDModelID == ModelManager.sd15LCMModelID || forceSDTextToImage)
-            let initImage: UIImage? = shouldDisableInitImage ? nil : rawInitImage
-            let cacheKey = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
-            let generationStart = Date()
-
-            do {
-                let img = try await generateImage(for: post, prompt: prompt, initImage: initImage, backend: backend)
-                post.localImage = img
-                post.previewImage = nil
-                post.imageGenerationFailed = false
-                post.imageGenerationFailureReason = nil
-                ImageCacheManager.shared.save(img, for: cacheKey)
-                ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
-                scheduleRegenerationEvaluationUpdateIfNeeded(for: post, generatedImage: img, modelID: modelID)
-                updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
-            } catch {
-                #if DEBUG
-                print("⚠️ Image generation failed:", error)
-                #endif
-                updateImageGenerationDiagnosticsIfNeeded(for: post, generationStart: generationStart, modelID: modelID)
-                post.previewImage = nil
-                post.imageGenerationFailed = true
-                post.imageGenerationFailureReason = localizedImageGenerationFailureReason(error: error, backend: backend)
-            }
-
-            let cooldown = generationCooldownNanoseconds(for: backend)
-            if cooldown > 0 {
-                try? await Task.sleep(nanoseconds: cooldown)
-            }
-        }
-    }
-
-    private func generateImage(
-        for post: Post,
-        prompt: String,
-        initImage: UIImage?,
-        backend: ImageGenerationBackend
-    ) async throws -> UIImage {
-        switch backend {
-        case .stableDiffusion:
-            guard let generator else {
-                throw NSError(
-                    domain: "ContentView",
-                    code: -41,
-                    userInfo: [NSLocalizedDescriptionKey: "Stable Diffusion generator is not loaded."]
-                )
-            }
-
-            let hasInit = (initImage != nil)
-            let enhancedPrompt = hasInit
-                ? "\(prompt), sharp focus, fine detail, highly detailed, crisp texture, high clarity"
-                : prompt
-            let negativePrompt = hasInit
-                ? "blurry, soft focus, low detail, lowres, out of focus"
-                : ""
-            let profile = SDModeProfile.forMode(post.privacyMode, modelID: modelManager.selectedSDModelID)
-            let seed = deterministicSeed(for: post, modelID: modelManager.selectedSDModelID, prompt: prompt)
-
-            do {
-                return try await generator.generateImage(
-                    from: enhancedPrompt,
-                    negativePrompt: negativePrompt,
-                    initImage: initImage,
-                    strength: profile.denoiseStrength,
-                    steps: profile.stepCount,
-                    guidance: profile.guidanceScale,
-                    seed: seed
-                )
-            } catch {
-                guard shouldRetryStableDiffusionAsTextToImage(error: error) else {
-                    throw error
-                }
-                #if DEBUG
-                print("⚠️ SD img2img failed, retrying with txt2img:", error)
-                #endif
-                return try await generator.generateImage(
-                    from: enhancedPrompt,
-                    negativePrompt: negativePrompt,
-                    initImage: nil,
-                    steps: profile.stepCount,
-                    guidance: profile.guidanceScale,
-                    seed: seed
-                )
-            }
-        case .imagePlayground:
-            return try await ImagePlaygroundGenerator.shared.generateImageIfAvailable(
-                from: prompt,
-                tags: post.tags,
-                sourceImage: nil,
-                styleOption: modelManager.selectedImagePlaygroundStyle
-            )
-        case .automatic:
-            throw NSError(
-                domain: "ContentView",
-                code: -42,
-                userInfo: [NSLocalizedDescriptionKey: "Image generation backend is unresolved."]
-            )
-        }
-    }
-
-    private func generationCooldownNanoseconds(for backend: ImageGenerationBackend) -> UInt64 {
-        switch backend {
-        case .stableDiffusion:
-            return modelManager.selectedSDModelID == ModelManager.sd15LCMModelID
-                ? 80_000_000
-                : 150_000_000
-        case .imagePlayground, .automatic:
-            return 0
-        }
-    }
-
-    private func shouldRetryStableDiffusionAsTextToImage(error: Error) -> Bool {
-        let message = "\(String(describing: error)) \((error as NSError).localizedDescription)".lowercased()
-        let retryFragments = [
-            "starting",
-            "init",
-            "image",
-            "dimension",
-            "size",
-            "shape",
-            "latent"
-        ]
-        return retryFragments.contains { message.contains($0) }
-    }
-
-    private func l(_ key: String, _ arguments: CVarArg...) -> String {
-        L10n.tr(key, languageCode: selectedLanguage, arguments: arguments)
-    }
-
-    private func filterMyPosts(_ posts: [Post]) -> [Post] {
-        posts.filter { post in
-            if post.hasImage {
-                let promptEmpty = (post.effectivePrompt?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-                if post.status != .completed && promptEmpty {
-                    return false
-                }
-            }
-            return true
-        }
-    }
-
-    @MainActor
-    private func regenerateImagesForSelectedModel() async {
-        let modelID = modelManager.activeImageGenerationCacheKey
-        let allPosts = allKnownPosts
-
-        for post in allPosts {
-            guard let prompt = post.effectivePrompt else { continue }
-            let key = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
-            ImageCacheManager.shared.remove(for: key)
-            ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
-            post.localImage = nil
-            post.clearRegenerationEvaluation()
-            if post.hasImage {
-                post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
-            } else {
-                post.previewImage = nil
-            }
-        }
-
-        generationQueue.removeAll()
-        enqueueImages(for: allPosts)
-    }
-}
-
-extension ContentView {
-    private var allKnownPosts: [Post] {
-        var seen: Set<String> = []
-        var result: [Post] = []
-        for post in postList.items + followingPostList.items + myPostList.items + likedPostList.items {
-            if seen.insert(post.id).inserted {
-                result.append(post)
-            }
-        }
-        return result
-    }
-
-    private var postsForSelectedTab: [Post] {
-        switch selectedTab {
-        case .timeline:
-            return postList.items
+    private func fetch(page: Int) async throws -> [Post] {
+        switch tab {
+        case .home: return try await FeedLoader.fetchPage(page: page)
         case .following:
-            return followingPostList.items
-        case .myPosts:
-            return myPostList.items
-        case .liked:
-            return likedPostList.items
+            guard authManager.isAuthenticated else { return [] }
+            return try await FeedLoader.fetchFollowingFeed(page: page)
+        case .posts:
+            guard authManager.isAuthenticated else { return [] }
+            return try await FeedLoader.fetchMyPosts(userId: userManager.currentUser.id, page: page)
+        case .likes:
+            guard authManager.isAuthenticated else { return [] }
+            return try await FeedLoader.fetchLikedPosts(userId: userManager.currentUser.id, page: page)
         }
     }
-
-    private func isCurrentUsersPost(_ post: Post) -> Bool {
-        guard let userID = post.userId, !userID.isEmpty else { return false }
-        return userID == userManager.currentUser.id
-    }
-
-    private func uniquePosts(_ posts: [Post]) -> [Post] {
-        var seen = Set<String>()
-        return posts.filter { seen.insert($0.id).inserted }
-    }
-
-    private func mergeUniquePosts(existing: [Post], incoming: [Post]) -> [Post] {
-        var merged = existing
-        let existingIDs = Set(existing.map(\.id))
-        merged.append(contentsOf: incoming.filter { !existingIDs.contains($0.id) })
-        return merged
-    }
-
-    @MainActor
-    private func prioritizeGenerationForCurrentContext(using supplementalPosts: [Post] = []) {
-        let ids = externallyPrioritizedPostIDs.isEmpty
-            ? postsForSelectedTab.map(\.id)
-            : externallyPrioritizedPostIDs
-        let prioritizedIDs = Set(ids)
-        guard !prioritizedIDs.isEmpty else { return }
-
-        let supplementalByID = Dictionary(uniqueKeysWithValues: supplementalPosts.map { ($0.id, $0) })
-        for id in ids.reversed() {
-            guard let post = supplementalByID[id] else { continue }
-            guard post.hasImage, post.effectivePrompt != nil else { continue }
-            guard post.localImage == nil else { continue }
-            if !generationQueue.contains(where: { $0.id == id }) {
-                generationQueue.insert(post, at: 0)
-            }
-        }
-
-        let prioritized = generationQueue.filter { prioritizedIDs.contains($0.id) }
-        let remaining = generationQueue.filter { !prioritizedIDs.contains($0.id) }
-        generationQueue = prioritized + remaining
-
-        if !generationQueue.isEmpty, !isGenerating, canGenerateImagesNow {
-            isGenerating = true
-            generationTask = Task { await processQueue() }
-        }
-    }
-
-    @MainActor
-    private func regenerateImage(for postID: String, post explicitPost: Post? = nil) async {
-        let post = explicitPost ?? allKnownPosts.first(where: { $0.id == postID })
-        guard let post else { return }
-        guard let prompt = post.effectivePrompt else { return }
-
-        let modelID = modelManager.activeImageGenerationCacheKey
-        let key = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
-        ImageCacheManager.shared.remove(for: key)
-        ImageCacheManager.shared.removeSemanticScore(for: semanticScoreKey(for: post, modelID: modelID))
-        post.localImage = nil
-        post.imageGenerationFailed = false
-        post.imageGenerationFailureReason = nil
-        post.clearRegenerationEvaluation()
-        post.previewImage = post.hasImage
-            ? post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
-            : nil
-
-        generationQueue.removeAll { $0.id == postID }
-        generationQueue.insert(post, at: 0)
-
-        if !isGenerating, canGenerateImagesNow {
-            isGenerating = true
-            generationTask = Task { await processQueue() }
-        }
-    }
-
-    private func semanticScoreKey(for post: Post, modelID: String) -> String {
-        regenerationEvaluationCacheKey(postID: post.id, modelID: modelID)
-    }
-
-    private func generatedCacheKey(for post: Post, modelID: String, prompt: String) -> String {
-        "\(modelID)::\(post.mode)::\(post.id)::\(prompt)"
-    }
-
-    private func localizedImageGenerationFailureReason(
-        error: Error,
-        backend: ImageGenerationBackend
-    ) -> String {
-        let message = (error as NSError).localizedDescription
-        let normalized = "\(message) \(String(describing: error))".lowercased()
-
-        if backend == .imagePlayground {
-            if normalized.contains("unsupportedlanguage") {
-                return l("content.image_generation.unsupported_prompt")
-            }
-
-            if normalized.contains("person") || normalized.contains("people") {
-                return l("content.image_generation.people_restricted")
-            }
-
-            if normalized.contains("unavailable") {
-                return l("content.image_generation.unavailable")
-            }
-
-            return l("content.image_generation.prompt_failed")
-        }
-
-        return l("content.image_generation.failed")
-    }
-
-    private var canGenerateImagesNow: Bool {
-        guard let backend = modelManager.resolvedImageGenerationBackend else {
-            return false
-        }
-        switch backend {
-        case .stableDiffusion:
-            return isGeneratorReady && generator != nil
-        case .imagePlayground:
-            return true
-        case .automatic:
-            return false
-        }
-    }
-
-    private func deterministicSeed(for post: Post, modelID: String, prompt: String) -> UInt32 {
-        let key = generatedCacheKey(for: post, modelID: modelID, prompt: prompt)
-        let digest = SHA256.hash(data: Data(key.utf8))
-        let bytes = Array(digest.prefix(4))
-        guard bytes.count == 4 else { return 0 }
-        return (UInt32(bytes[0]) << 24)
-            | (UInt32(bytes[1]) << 16)
-            | (UInt32(bytes[2]) << 8)
-            | UInt32(bytes[3])
-    }
-
-    @MainActor
-    private func scheduleRegenerationEvaluationUpdateIfNeeded(for post: Post, generatedImage: UIImage, modelID: String) {
-        guard post.hasImage, isCurrentUsersPost(post) else {
-            post.semanticFidelityScore = nil
-            post.lpipsDistance = nil
-            return
-        }
-
-        guard let originalImage = ImageCacheManager.shared.load(for: post.id, namespace: .originalImages) else {
-            post.semanticFidelityScore = nil
-            post.lpipsDistance = nil
-            return
-        }
-
-        let evaluationKey = semanticScoreKey(for: post, modelID: modelID)
-        if let cachedEvaluation = ImageCacheManager.shared.loadRegenerationEvaluation(for: evaluationKey) {
-            post.regenerationEvaluation = cachedEvaluation
-        }
-
-        if post.regenerationEvaluation?.semanticScore != nil && post.regenerationEvaluation?.lpipsDistance != nil {
-            return
-        }
-
-        guard !semanticScoreTasks.contains(evaluationKey) else { return }
-        semanticScoreTasks.insert(evaluationKey)
-
-        Task {
-            let metrics = await computeRegenerationEvaluationMetrics(original: originalImage, regenerated: generatedImage)
-            await MainActor.run {
-                semanticScoreTasks.remove(evaluationKey)
-                post.semanticFidelityScore = metrics.semanticScore
-                post.lpipsDistance = metrics.lpipsDistance
-                persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
-            }
-        }
-    }
-
-    @MainActor
-    private func persistRegenerationEvaluationIfAvailable(for post: Post, modelID: String) {
-        let key = regenerationEvaluationCacheKey(postID: post.id, modelID: modelID)
-        if let evaluation = post.regenerationEvaluation {
-            ImageCacheManager.shared.saveRegenerationEvaluation(evaluation, for: key)
-        } else {
-            ImageCacheManager.shared.removeSemanticScore(for: key)
-        }
-    }
-
-    private func computeRegenerationEvaluationMetrics(
-        original: UIImage,
-        regenerated: UIImage
-    ) async -> (semanticScore: Double?, lpipsDistance: Double?) {
-        async let semanticScore = computeSemanticFidelityScore(original: original, regenerated: regenerated)
-        async let lpipsDistance = computeLPIPSDistance(original: original, regenerated: regenerated)
-        return await (semanticScore, lpipsDistance)
-    }
-
-    private func computeSemanticFidelityScore(original: UIImage, regenerated: UIImage) async -> Double? {
+    private func refresh() async {
+        guard !loading else { return }
+        if isOfflineReview { return }
+        let list = currentList; let key = listKey
+        loading = true; feedError = nil
+        defer { loading = false }
         do {
-            let originalEmbedding = try await SigLIP2Service.shared.embed(image: original)
-            let regeneratedEmbedding = try await SigLIP2Service.shared.embed(image: regenerated)
-            return cosineSimilarity(originalEmbedding, regeneratedEmbedding)
-        } catch {
-            #if DEBUG
-            print("⚠️ Semantic fidelity scoring failed:", error)
-            #endif
-            return nil
-        }
+            let received = try await fetch(page: 0)
+            let local = (tab == .home || tab == .posts) && authManager.isAuthenticated ? await photoPosts.localPosts() : []
+            let receivedIDs = Set(received.map(\.id))
+            list.items = (local.filter { !receivedIDs.contains($0.id) } + received).filter { !hiddenPostIDs.contains($0.id) }
+            pages[key] = 0
+            if received.count < 10 { exhausted.insert(key) } else { exhausted.remove(key) }
+            enqueue(received)
+        } catch { feedError = "投稿を読み込めませんでした。再試行してください。" }
     }
-
-    private func computeLPIPSDistance(original: UIImage, regenerated: UIImage) async -> Double? {
+    private func loadNext() async {
+        guard !loading, !isOfflineReview else { return }
+        let list = currentList; let key = listKey
+        let next = (pages[key] ?? 0) + 1
+        loading = true
+        defer { loading = false }
         do {
-            return try await LPIPSService.shared.evaluateDistance(original: original, generated: regenerated)
-        } catch {
-            #if DEBUG
-            print("⚠️ LPIPS scoring failed:", error)
-            #endif
-            return nil
-        }
+            let received = try await fetch(page: next)
+            let existing = Set(list.items.map(\.id))
+            list.items += received.filter { !existing.contains($0.id) && !hiddenPostIDs.contains($0.id) }
+            pages[key] = next
+            if received.count < 10 { exhausted.insert(key) }
+            enqueue(received)
+        } catch { feedError = "追加の投稿を読み込めませんでした。" }
     }
-
-    private var isProModeEnabled: Bool {
-        UserDefaults.standard.bool(forKey: AppPreferences.proModeEnabledKey)
-    }
-
-    @MainActor
-    private func updateImageGenerationDiagnosticsIfNeeded(
-        for post: Post,
-        generationStart: Date,
-        modelID: String
-    ) {
-        guard isProModeEnabled else { return }
-        post.updateImageGenerationDiagnostics(
-            duration: Date().timeIntervalSince(generationStart),
-            memoryMB: currentMemoryFootprintMB()
-        )
-        persistRegenerationEvaluationIfAvailable(for: post, modelID: modelID)
-    }
-
-    private func cosineSimilarity(_ lhs: [Float], _ rhs: [Float]) -> Double? {
-        guard lhs.count == rhs.count, !lhs.isEmpty else { return nil }
-
-        var dot: Double = 0
-        var lhsNorm: Double = 0
-        var rhsNorm: Double = 0
-
-        for index in lhs.indices {
-            let a = Double(lhs[index])
-            let b = Double(rhs[index])
-            dot += a * b
-            lhsNorm += a * a
-            rhsNorm += b * b
-        }
-
-        let denom = lhsNorm.squareRoot() * rhsNorm.squareRoot()
-        guard denom > 0 else { return nil }
-        return max(0, min(dot / denom, 1))
-    }
-
-    @MainActor
-    private func clearAllImageCachesAndRegenerate() async {
-        ImageCacheManager.shared.clearAllCaches()
-
-        for post in allKnownPosts {
-            post.localImage = nil
-            post.clearRegenerationEvaluation()
-            if post.hasImage {
-                post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
-            } else {
-                post.previewImage = nil
+    private func pollPendingPosts() async {
+        guard !isOfflineReview else { return }
+        for _ in 0..<24 {
+            let pending = currentList.items.filter { $0.hasImage && $0.recipe == nil && ($0.status == .pending || $0.status == .processing) }
+            guard !pending.isEmpty, !Task.isCancelled else { return }
+            do { try await Task.sleep(for: .seconds(5)) } catch { return }
+            guard scenePhase == .active else { return }
+            for post in pending.prefix(10) {
+                if let updated = try? await FeedLoader.fetchPost(id: post.id) { enqueue([updated]) }
             }
         }
-
-        generationQueue.removeAll()
-        semanticScoreTasks.removeAll()
-        enqueueImages(for: allKnownPosts)
     }
-
-    @MainActor
-    private func maybeReloadGeneratorForSelectedModel() async {
-        guard !isGenerationSuspendedForPosting else { return }
-        let activeKey = modelManager.activeImageGenerationCacheKey
-
-        if modelManager.resolvedImageGenerationBackend == .stableDiffusion {
-            if deferStableDiffusionReloadUntilRestart {
-                genLogKey = "content.genlog.sd_restart_required"
-                isStableDiffusionPreparingForImagePosts = false
-                return
-            }
-            guard loadedGenerationCacheKey != activeKey || generator == nil else {
-                isStableDiffusionPreparingForImagePosts = false
-                return
-            }
-            await reloadGeneratorForSelectedModel()
-            return
+    private func enqueue(_ incoming: [Post], priority: Bool = false) {
+        let candidates = blockManager.filterBlocked(from: incoming).filter { post in
+            guard post.hasImage, post.recipe != nil, post.recipeReadError == nil,
+                  post.localImage == nil, !post.imageGenerationFailed, !post.imageIsGenerating,
+                  !hiddenPostIDs.contains(post.id) else { return false }
+            return !queue.contains { $0.id == post.id }
         }
-
-        deferStableDiffusionReloadUntilRestart = false
-        isStableDiffusionPreparingForImagePosts = false
-        generationTask?.cancel()
-        generationTask = nil
-        generationQueue.removeAll()
-        isGenerating = false
-
-        if let current = generator {
-            await current.unloadResources()
-            generator = nil
-            isGeneratorReady = false
-        }
-
-        loadedGenerationCacheKey = activeKey
-        genLogKey = "content.genlog.ready"
-        try? await Task.sleep(nanoseconds: 250_000_000)
-        enqueueImages(for: allKnownPosts)
+        if priority { queue.insert(contentsOf: candidates, at: 0) } else { queue.append(contentsOf: candidates) }
+        startGenerationQueue()
     }
-
-    @MainActor
-    private func reloadGeneratorForSelectedModel() async {
-        guard !isGenerationSuspendedForPosting else { return }
-        guard !isGeneratorLoading else { return }
-        isGeneratorLoading = true
-        isStableDiffusionPreparingForImagePosts = true
-        defer {
-            isGeneratorLoading = false
-            isStableDiffusionPreparingForImagePosts = false
+    private func startGenerationQueue() {
+        guard generationTask == nil, !pausedForComposer, !pausedForScene,
+              !photoPosts.isProcessing, scenePhase == .active, !isOfflineReview else { return }
+        generationTask = Task {
+            defer {
+                generationTask = nil
+                if !queue.isEmpty { startGenerationQueue() }
+            }
+            while !queue.isEmpty && !Task.isCancelled && !pausedForComposer && !pausedForScene && scenePhase == .active {
+                let post = queue.removeFirst()
+                guard let recipe = post.recipe, !hiddenPostIDs.contains(post.id) else { continue }
+                generatingPost = post
+                defer { post.imageIsGenerating = false; generatingPost = nil }
+                do {
+                    try recipe.validate()
+                    let seed = try ViewerSeedStore.shared.seed(for: recipe, postID: post.id)
+                    let key = try recipe.renderCacheKey(seed: seed)
+                    let installed = try await modelManager.manifest(for: recipe.model.modelID)
+                    try recipe.validate(installedManifest: installed)
+                    if let cached = try await ImageCacheManager.shared.load(for: key) {
+                        post.localImage = cached; post.localImageRecipeKey = key
+                        continue
+                    }
+                    post.imageIsGenerating = true
+                    let image = try await RecipeImageRenderer.shared.render(recipe, seed: seed)
+                    try Task.checkCancellation()
+                    guard post.recipe == recipe,
+                          seed == (try ViewerSeedStore.shared.seed(for: recipe, postID: post.id)) else { continue }
+                    post.localImage = image; post.localImageRecipeKey = key
+                    ImageCacheManager.shared.save(image, for: key)
+                } catch is CancellationError {
+                    if !hiddenPostIDs.contains(post.id) { queue.insert(post, at: 0) }
+                } catch {
+                    post.imageGenerationFailed = true
+                    post.imageGenerationFailureReason = error.localizedDescription
+                }
+            }
         }
-
-        let activeKey = modelManager.activeImageGenerationCacheKey
-        let sdDirectory = modelManager.selectedSDModelDirectory
-
-        generationTask?.cancel()
-        generationTask = nil
-        generationQueue.removeAll()
-        isGenerating = false
-
-        if let current = generator {
-            await current.unloadResources()
-            generator = nil
-            isGeneratorReady = false
+    }
+    private func retry(_ post: Post, newVariation: Bool = false) {
+        if let recipe = post.recipe, let seed = try? ViewerSeedStore.shared.seed(for: recipe, postID: post.id),
+           let key = try? recipe.renderCacheKey(seed: seed) {
+            ImageCacheManager.shared.remove(for: key)
+            if newVariation { _ = try? ViewerSeedStore.shared.seed(for: recipe, postID: post.id, replacing: true) }
         }
-
-        guard modelManager.resolvedImageGenerationBackend == .stableDiffusion else {
-            loadedGenerationCacheKey = activeKey
-            enqueueImages(for: allKnownPosts)
-            return
+        if generatingPost?.id == post.id { generationTask?.cancel() }
+        post.imageGenerationFailed = false; post.imageGenerationFailureReason = nil
+        post.localImage = nil; post.localImageRecipeKey = nil
+        enqueue([post], priority: true)
+    }
+    private func retryVisible() { for post in currentList.items where post.localImage == nil { retry(post) } }
+    private func removePost(_ id: String) {
+        hiddenPostIDs.insert(id)
+        photoPosts.remove(id)
+        for list in [posts, following, mine, liked] { list.items.removeAll { $0.id == id } }
+        queue.removeAll { $0.id == id }
+        if generatingPost?.id == id { generationTask?.cancel() }
+        if case .post(let post) = selectedDetail, post.id == id { selectedDetail = nil }
+        Task { await PostStore.shared.remove(postId: id) }
+    }
+    private func refreshUnreadNotifications() async {
+        guard authManager.isAuthenticated, !isOfflineReview else { unreadNotificationCount = 0; return }
+        if let items = try? await NotificationService.fetchNotifications(limit: 30) {
+            unreadNotificationCount = items.filter { !$0.isRead }.count
         }
-
+    }
+    private func openPost(_ id: String) async {
+        guard !isOfflineReview, !hiddenPostIDs.contains(id) else { return }
         do {
-            let gen = try await Task.detached(priority: .low) {
-                try ImageGenerator(modelsDirectory: sdDirectory)
-            }.value
-
-            guard modelManager.resolvedImageGenerationBackend == .stableDiffusion,
-                  modelManager.activeImageGenerationCacheKey == activeKey else {
-                await gen.unloadResources()
-                return
-            }
-
-            generator = gen
-            isGeneratorReady = true
-            loadedGenerationCacheKey = activeKey
-
-            guard !isGenerationSuspendedForPosting else {
-                genLogKey = "content.genlog.paused_during_posting"
-                return
-            }
-
-            genLogKey = "content.genlog.ready"
-
-            enqueueImages(for: allKnownPosts)
-            try? await Task.sleep(nanoseconds: 1_500_000_000)
-            showStableDiffusionReadyNoticeIfNeeded()
-        } catch {
-            #if DEBUG
-            print("❌ SD re-init failed:", error)
-            #endif
-            generator = nil
-            isGeneratorReady = false
-            loadedGenerationCacheKey = nil
-            genLogKey = "content.genlog.model_switch_failed"
-        }
-    }
-
-    @MainActor
-    private func showStableDiffusionReadyNoticeIfNeeded() {
-        guard !hasShownStableDiffusionReadyNotice else { return }
-        hasShownStableDiffusionReadyNotice = true
-        showStableDiffusionReadyNotice = true
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 2_200_000_000)
-            showStableDiffusionReadyNotice = false
-        }
-    }
-
-    @MainActor
-    private func clearDisplayedImagesForModelSwitch() {
-        let allPosts = allKnownPosts
-        for post in allPosts {
-            guard post.hasImage else {
-                post.localImage = nil
-                post.previewImage = nil
-                post.clearRegenerationEvaluation()
-                continue
-            }
-            post.localImage = nil
-            post.previewImage = post.makePreviewImage(targetSize: CGSize(width: 32, height: 32))
-            post.clearRegenerationEvaluation()
-        }
-    }
-
-    @MainActor
-    private func suspendImageGenerationForPosting() async {
-        guard !isGenerationSuspendedForPosting else { return }
-        isGenerationSuspendedForPosting = true
-
-        generationTask?.cancel()
-        generationTask = nil
-        generationQueue.removeAll()
-        semanticScoreTasks.removeAll()
-        isGenerating = false
-
-        while isGeneratorLoading, !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 100_000_000)
-        }
-
-        try? await Task.sleep(nanoseconds: 250_000_000)
-
-        genLogKey = "content.genlog.paused_during_posting"
-    }
-
-    @MainActor
-    private func resumeImageGenerationAfterPosting() async {
-        guard isGenerationSuspendedForPosting else { return }
-        isGenerationSuspendedForPosting = false
-
-        if modelManager.resolvedImageGenerationBackend == .stableDiffusion,
-           generator == nil {
-            await maybeReloadGeneratorForSelectedModel()
-        }
-        enqueueImages(for: allKnownPosts)
-        if canGenerateImagesNow {
-            genLogKey = "content.genlog.ready"
-        }
-    }
-}
-
-private extension View {
-    func toastStyle() -> some View {
-        self.font(.footnote)
-            .foregroundColor(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Color.black.opacity(0.78))
-            .clipShape(Capsule())
+            let post = try await FeedLoader.fetchPost(id: id)
+            guard !hiddenPostIDs.contains(post.id), !blockManager.filterBlocked(from: [post]).isEmpty else { return }
+            tab = .home
+            selectedDetail = .post(post)
+            enqueue([post], priority: true)
+        } catch { destinationError = "投稿を開けませんでした。再試行してください。" }
     }
 }
