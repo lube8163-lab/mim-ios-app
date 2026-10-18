@@ -155,7 +155,7 @@ struct FeedLoader {
 }
 
 enum PostActionService {
-    static func deletePost(postId: String) async throws {
+    static func deletePost(postId: String, allowMissing: Bool = false) async throws {
         guard let url = URL(string: FeedAPI.base + "/deletePost") else {
             throw URLError(.badURL)
         }
@@ -167,6 +167,7 @@ enum PostActionService {
         ])
 
         let (_, response) = try await URLSession.shared.data(for: request)
+        if allowMissing, (response as? HTTPURLResponse)?.statusCode == 404 { return }
         guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
             throw URLError(.badServerResponse)
         }

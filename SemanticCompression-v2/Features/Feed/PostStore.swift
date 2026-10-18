@@ -17,13 +17,14 @@ actor PostStore {
     /// サーバーから decode された Post を受け取り、
     /// 既存の Post があればそれを更新して返す。
     func resolve(_ incoming: Post) async -> Post {
-        if let existing = map[incoming.id] {
+        let id = await MainActor.run { incoming.id }
+        if let existing = map[id] {
             await MainActor.run {
                 Self.applyUpdate(existing, with: incoming)
             }
             return existing
         } else {
-            map[incoming.id] = incoming
+            map[id] = incoming
             return incoming
         }
     }
@@ -37,6 +38,16 @@ actor PostStore {
     private static func applyUpdate(_ target: Post, with incoming: Post) {
         target.caption = incoming.caption
         target.semanticPrompt = incoming.semanticPrompt
+        if target.recipe != incoming.recipe {
+            target.localImage = nil
+            target.localImageRecipeKey = nil
+            target.imageGenerationFailed = false
+            target.imageGenerationFailureReason = nil
+        }
+        target.recipe = incoming.recipe
+        target.recipeReadError = incoming.recipeReadError
+        target.imageUnderstandingBackend = incoming.imageUnderstandingBackend
+        target.localPreparationMessage = incoming.localPreparationMessage
         target.regionTags = incoming.regionTags
         target.tags = incoming.tags
         //target.userText = incoming.userText

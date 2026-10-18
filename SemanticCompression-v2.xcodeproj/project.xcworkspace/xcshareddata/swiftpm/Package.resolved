@@ -1,33 +1,6 @@
 {
-  "originHash" : "d508d43da1862f4256d8c280a7739e7e248923253415c30b38cb9885ef0760e3",
+  "originHash" : "a1d165ef78df29da9625273f4b1481e0ba5a3519c7ab5b7cce18f82767939ce6",
   "pins" : [
-    {
-      "identity" : "coremlpipelines",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/finnvoor/CoreMLPipelines.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "d0506042ff753509b88a8e2ff15429072602c0bb"
-      }
-    },
-    {
-      "identity" : "ml-stable-diffusion",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/ml-stable-diffusion",
-      "state" : {
-        "branch" : "main",
-        "revision" : "e12202c1f6405b83918b58a5d097cd61e3e1f702"
-      }
-    },
-    {
-      "identity" : "swift-argument-parser",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-argument-parser.git",
-      "state" : {
-        "revision" : "cdd0ef3755280949551dc26dee5de9ddeda89f54",
-        "version" : "1.6.2"
-      }
-    },
     {
       "identity" : "swift-collections",
       "kind" : "remoteSourceControl",
@@ -51,17 +24,16 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/huggingface/swift-transformers.git",
       "state" : {
-        "branch" : "main",
         "revision" : "91286f231bffb9d01998c7e99a8cc760b9e41546"
       }
     },
     {
-      "identity" : "swifttui",
+      "identity" : "xgrammar",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/finnvoor/SwiftTUI.git",
+      "location" : "https://github.com/mlc-ai/xgrammar",
       "state" : {
-        "branch" : "main",
-        "revision" : "7f5581eb7ef8e658f8a2889942a440c578ba72a8"
+        "revision" : "4d145cc13d878c751ebeed36af1c013074be76bc",
+        "version" : "0.2.2"
       }
     },
     {

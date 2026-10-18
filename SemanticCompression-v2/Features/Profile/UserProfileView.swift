@@ -68,17 +68,6 @@ struct UserProfileView: View {
         } message: {
             Text(accountAlertMessage)
         }
-        .alert(
-            l("profile.alert.logout.title"),
-            isPresented: $showLogoutConfirm
-        ) {
-            Button(l("profile.log_out"), role: .destructive) {
-                Task { await authManager.logout() }
-            }
-            Button(l("common.cancel"), role: .cancel) {}
-        } message: {
-            Text(l("content.alert.logout.message"))
-        }
         .confirmationDialog(
             l("profile.alert.delete_account.title"),
             isPresented: $showDeleteConfirm,
@@ -124,24 +113,18 @@ struct UserProfileView: View {
 
             HStack(spacing: 16) {
 
-                AsyncImage(
-                    url: URL(string: userManager.currentUser.avatarUrl)
-                ) { phase in
-                    if let img = phase.image {
-                        img.resizable().scaledToFill()
-                    } else {
+                CachedAvatarView(urlString: userManager.currentUser.avatarUrl) {
                         Circle()
                             .fill(Color.gray.opacity(0.2))
-                    }
                 }
                 .frame(width: 72, height: 72)
                 .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(userManager.currentUser.displayName)
+                    Text(ContentSafetyPolicy.displayText(userManager.currentUser.displayName))
                         .font(.headline)
                     if !userManager.currentUser.bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(userManager.currentUser.bio)
+                        Text(ContentSafetyPolicy.displayText(userManager.currentUser.bio))
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -245,6 +228,9 @@ struct UserProfileView: View {
                 } label: {
                     Text(l("profile.log_out"))
                 }
+                .mimLogoutConfirmation(isPresented: $showLogoutConfirm) {
+                    Task { await authManager.logout() }
+                }
 
                 Button(role: .destructive) {
                     showDeleteConfirm = true
@@ -275,6 +261,7 @@ struct UserProfileView: View {
             let original = UIImage(data: data)
         else { return nil }
 
+        try await ImageSafetyService.check(original)
         let resized = original.resizedSquare(to: 256)
         guard let jpeg = resized.jpegData(compressionQuality: 0.75)
         else { return nil }
@@ -319,18 +306,23 @@ struct UserProfileView: View {
         }
 
         do {
+            let policy = try ContentSafetyPolicy.bundled()
+            try policy.validate(updated.displayName)
+            try policy.validate(updated.bio)
+            guard updated.displayName.utf16.count <= 80 else { throw ContentSafetyError.tooLong }
             if let newAvatarURL = try await uploadAvatarIfSelected() {
                 updated.avatarUrl = newAvatarURL
             }
 
+            updated = try await UserService.registerChecked(updated)
+            guard userManager.currentUser.id == updated.id else { throw CancellationError() }
             userManager.saveUser(updated)
-            await UserService.register(updated)
             selectedPhoto = nil
             accountAlertMessage = l("profile.alert.saved")
             showAccountAlert = true
             if showsCloseButton { dismiss() }
         } catch {
-            accountAlertMessage = l("profile.alert.save_failed")
+            accountAlertMessage = mt(error.localizedDescription)
             showAccountAlert = true
         }
     }

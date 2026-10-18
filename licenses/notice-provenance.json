@@ -1,0 +1,96 @@
+[
+  {
+    "file": "Qwen3-4B-LICENSE.txt",
+    "url": "https://huggingface.co/Qwen/Qwen3-4B/resolve/main/LICENSE",
+    "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+    "bytes": 11343,
+    "retrievedAtUTC": "2026-10-12T04:38:40.204805+00:00"
+  },
+  {
+    "file": "Apple-StableDiffusion-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/apple-aiml-research/ml-stable-diffusion/e12202c1f6405b83918b58a5d097cd61e3e1f702/LICENSE.md",
+    "sha256": "4f7eae00de7a3b4ea1d6b3d26f64c113b999dda4e7d3269f3278caac66575fc3",
+    "bytes": 1067,
+    "retrievedAtUTC": "2026-10-12T04:38:40.483179+00:00"
+  },
+  {
+    "file": "SigLIP2-Apache-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/google-research/big_vision/main/LICENSE",
+    "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+    "bytes": 11356,
+    "retrievedAtUTC": "2026-10-12T04:38:40.383286+00:00"
+  },
+  {
+    "file": "SwiftFormer-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/Amshaker/SwiftFormer/main/LICENSE",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "bytes": 11357,
+    "retrievedAtUTC": "2026-10-12T04:38:40.361927+00:00"
+  },
+  {
+    "file": "LFM-Open-License-v1.0.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "4d28ca14dedc0b3d0fcc2b3339f0e79931faa33874f3d24f522183a8fc70068c",
+    "bytes": 10574
+  },
+  {
+    "file": "LFM-upstream-NOTICE.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "ae03cabc60d27790a35d29bec6e5ac68ea2a1bd7320aa3d93df8e6e89b8c8b3d",
+    "bytes": 491
+  },
+  {
+    "file": "xgrammar-NOTICE.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "769c6907073c65801bfcfe3ce1c0e80bf0ae4e124e2769d4f026c038ad583c0f",
+    "bytes": 54
+  },
+  {
+    "file": "ZIPFoundation-LICENSE.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "93a5b6f4c4fcfbca71aaf17f5758d249cf205d5d1c237becc37f14e43af09f6b",
+    "bytes": 1105
+  },
+  {
+    "file": "swift-collections-LICENSE.txt.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55",
+    "bytes": 11751
+  },
+  {
+    "file": "LFM-MIM-NOTICE.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "b37d12ac017ecce28a36c90a408f9b45e4a151884b10432c921c824722d60a5a",
+    "bytes": 947
+  },
+  {
+    "file": "FLUX2-MIM-MODIFICATIONS.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "f42cfd4a67d293307c79d5aa84e9316988fed65eac8859ea3b040a319e52caeb",
+    "bytes": 1107
+  },
+  {
+    "file": "swift-transformers-LICENSE.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "648b81e6c6f9975c3b6cf6d630229b6c8d6f1ddaef55f5770f576adda19f3495",
+    "bytes": 11347
+  },
+  {
+    "file": "xgrammar-LICENSE.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "bytes": 11357
+  },
+  {
+    "file": "swift-jinja-LICENSE.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "648b81e6c6f9975c3b6cf6d630229b6c8d6f1ddaef55f5770f576adda19f3495",
+    "bytes": 11347
+  },
+  {
+    "file": "FLUX2-LICENSE.txt",
+    "source": "Adopted local model package or pinned SourcePackages checkout; retained text",
+    "sha256": "ca02bc51900ab07789d1b70283329e7137f5af98f5161c23a1c81fc38a4af1fe",
+    "bytes": 9584
+  }
+]

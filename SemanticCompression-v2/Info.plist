@@ -2,17 +2,34 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
 		<string>ja</string>
+		<string>ko</string>
+		<string>es</string>
+		<string>pt-BR</string>
 		<string>zh-Hans</string>
+		<string>zh-Hant</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>mim.post</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>mim</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

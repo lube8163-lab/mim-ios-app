@@ -1,0 +1,494 @@
+{
+  "coreAIModels": {
+    "repository": "https://github.com/john-rocky/coreai-models",
+    "tag": "0.2.8-zoo",
+    "revision": "3dc4ceb5ec9d2e488b9c995d53a415b9e22fe7ba"
+  },
+  "coreAIKit": {
+    "repository": "https://github.com/john-rocky/coreai-kit",
+    "tag": "0.7.3",
+    "revision": "f32626037741222c17042cd1bc0301185c077e8e"
+  },
+  "files": [
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/ToolCallParser.swift",
+      "destination": "Sources/CoreAILanguageModels/ToolCallParser.swift",
+      "originalSHA256": "55ab92d3ebaf4f95491296ebac8c0600b6bfccf286d2b948fcb5bc12714f2708",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/StreamingMarkerMatcher.swift",
+      "destination": "Sources/CoreAILanguageModels/StreamingMarkerMatcher.swift",
+      "originalSHA256": "fac94b3110dcda710901616e295f7ae51b46dcf924ba5e728bb3c3987789314d",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/DecodingStrategies/ConstrainedDecodingStrategy.swift",
+      "destination": "Sources/CoreAILanguageModels/DecodingStrategies/ConstrainedDecodingStrategy.swift",
+      "originalSHA256": "35a205b68fe24c375115ec655760b9600991ebd5707522d2eb2a500bb1ca2fc7",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/DecodingStrategies/ContinuationEvaluation.swift",
+      "destination": "Sources/CoreAILanguageModels/DecodingStrategies/ContinuationEvaluation.swift",
+      "originalSHA256": "60e3026d46f79eb5d9571e2ff1fe80781a00153b6691e2ea351b56582c86a1e1",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/DecodingStrategies/PipelinedConstrainedDecodingStrategy.swift",
+      "destination": "Sources/CoreAILanguageModels/DecodingStrategies/PipelinedConstrainedDecodingStrategy.swift",
+      "originalSHA256": "702f72308ff14b438bb9b3a98ed109e6ddd3711111fdae14dac61d20574a4740",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/DecodingStrategies/ConstrainedGenerator.swift",
+      "destination": "Sources/CoreAILanguageModels/DecodingStrategies/ConstrainedGenerator.swift",
+      "originalSHA256": "600cc2f1b476fc691d131ddbf6751f5c35a079372669ab1f86463f9fa4540d2d",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/DecodingStrategies/DecodingStrategy.swift",
+      "destination": "Sources/CoreAILanguageModels/DecodingStrategies/DecodingStrategy.swift",
+      "originalSHA256": "3e4945ddd46aa1926ff3ccce495b3192b2f33ac871c37d8f0bc2d70adb602286",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/DecodingStrategies/VanillaDecodingStrategy.swift",
+      "destination": "Sources/CoreAILanguageModels/DecodingStrategies/VanillaDecodingStrategy.swift",
+      "originalSHA256": "df7972b17408251e9dd39ab88c65e445f3946741c77740d8ffcba9fef89a19a9",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/TextGeneration/PromptProcessing.swift",
+      "destination": "Sources/CoreAILanguageModels/TextGeneration/PromptProcessing.swift",
+      "originalSHA256": "8e92f220ca2829fe033681436840efbb66fc3bb80db8bf90cf3798c46db57383",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/TextGeneration/LogProbabilities.swift",
+      "destination": "Sources/CoreAILanguageModels/TextGeneration/LogProbabilities.swift",
+      "originalSHA256": "adb1a82d271f192a9ce9cb795afe88278ef4d3cbf7fd47c22010659b16f9bda1",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/TextGeneration/TextGenerator.swift",
+      "destination": "Sources/CoreAILanguageModels/TextGeneration/TextGenerator.swift",
+      "originalSHA256": "8ed63e82db549d8de5e7eb59b6b641afc56d3b01c3670556bfe1cc2d2a3f70a0",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/InferenceOutputSequence.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/InferenceOutputSequence.swift",
+      "originalSHA256": "56df5c8caa8ed2282df08e8895220b5d9c6fa694682ccd524d24e6b826b69a47",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/CoreAIPipelinedEngine.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/CoreAIPipelinedEngine.swift",
+      "originalSHA256": "05262e7046f3d4891ff6d5cc7c56c10c334b5265cf06cc31fc0c56f439aed043",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/CoreAISequentialVLMEngine.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/CoreAISequentialVLMEngine.swift",
+      "originalSHA256": "8dcc5cf293fa2fa0db5e783188e9a0ca106dfc221bb231dc1dece214989aa958",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/TensorStorage+CoreAI.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/TensorStorage+CoreAI.swift",
+      "originalSHA256": "fb4caaa5d93263a1ac376e0c0d6814a794ae4c178cba3b5447f5b9840cdc6654",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/InputEmbeddings.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/InputEmbeddings.swift",
+      "originalSHA256": "25b1bd18901c7c79c25f5a89680280230360839e8f1ac5af883665119cc4cf4c",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/KVCache+CoreAI.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/KVCache+CoreAI.swift",
+      "originalSHA256": "7441c1103a90d1a353e26bbdfd3e20a1ab57b23365dee836edfecd6ea34cdc79",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/InferenceEngine.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/InferenceEngine.swift",
+      "originalSHA256": "6ae539f9456ffb4efe2e3576668be6f78f653e9e1ec7678b9528b417a734be05",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/TokenHistory.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/TokenHistory.swift",
+      "originalSHA256": "7257012f2d55305ab5f0d284f3ad034d6a6fff99800e7fb5fd26e2b8e91e38e1",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/EngineFactory.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/EngineFactory.swift",
+      "originalSHA256": "f55459062bd463cd936eb393041d94c8fc6126f9233ef55f5e43dfff0d4f6517",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/InferenceTokenSequence.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/InferenceTokenSequence.swift",
+      "originalSHA256": "012c37663a6408684912c568450733a86711b40f001fa135af43214c85cfb39d",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/GenerationToken.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/GenerationToken.swift",
+      "originalSHA256": "a6356617e03def250a447a26f77583b5dfdc9f8a5b8850f37ea1dfd7a06508f0",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/CoreAISequentialEngine.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/CoreAISequentialEngine.swift",
+      "originalSHA256": "08d2774003c5d0b17eb2ba306acbd2a67ea290f913f5ca91228553dcf16f6175",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/CoreAIStaticShapeEngine.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/CoreAIStaticShapeEngine.swift",
+      "originalSHA256": "a59cf0162b6a8b8ef8c49a2b8722cb21f89272b88341c2d739ab82dfe61e97a1",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/ConstrainedGenerationCapable.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/ConstrainedGenerationCapable.swift",
+      "originalSHA256": "ee70014df176797bcb9d52af1167aa2d7a103dddd6defc7f9e8a735c54575866",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/KVCacheShared.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/KVCacheShared.swift",
+      "originalSHA256": "09d605b0516cd27b8cf63cd41314abc19ded5a92a5bda5fbf59db60a4f9776b3",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/InferenceEngines/ModelConfig.swift",
+      "destination": "Sources/CoreAILanguageModels/InferenceEngines/ModelConfig.swift",
+      "originalSHA256": "52363d375bb95a1059960e05db86b30a83d2342d036af12456f9664c5430bde2",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Output/LogitsWriter.swift",
+      "destination": "Sources/CoreAILanguageModels/Output/LogitsWriter.swift",
+      "originalSHA256": "4985585160909ed568b7d82a4752c019db5fcf24dc4ff136c4b81e5aefb759da",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Bundle/ModelBundle+Language.swift",
+      "destination": "Sources/CoreAILanguageModels/Bundle/ModelBundle+Language.swift",
+      "originalSHA256": "63db3408d533e05c70762a701d383f9b58a611beb980ef33dc0ce48a90c314bf",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Bundle/LanguageBundle.swift",
+      "destination": "Sources/CoreAILanguageModels/Bundle/LanguageBundle.swift",
+      "originalSHA256": "0802bb484fac59db7869b90414cbd85b69e5d21346dee6be38540eeddf1e398c",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Bundle/LanguageConfig.swift",
+      "destination": "Sources/CoreAILanguageModels/Bundle/LanguageConfig.swift",
+      "originalSHA256": "8876c5ef805c88a7150f4502343d941d70bf242fb2e84d29c57241df26c92945",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/LanguageModel/ModelResources.swift",
+      "destination": "Sources/CoreAILanguageModels/LanguageModel/ModelResources.swift",
+      "originalSHA256": "16bb50d3c65057c438b1dc25847278265b16a1c60179f85f74aedb1c899f8d66",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/LanguageModel/CoreAILanguageModel.swift",
+      "destination": "Sources/CoreAILanguageModels/LanguageModel/CoreAILanguageModel.swift",
+      "originalSHA256": "2a02b05efe50b95ff5ff7568b77e0f81bccc37ec99950cf9e8a3d3223a7845d1",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/LanguageModel/ThinkTagParser.swift",
+      "destination": "Sources/CoreAILanguageModels/LanguageModel/ThinkTagParser.swift",
+      "originalSHA256": "05dfd81bfec216eb8b1d7d590813a4685a1213f1ed7f5a3fb3fa432e26ac1870",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/LanguageModel/CoreAIRunner.swift",
+      "destination": "Sources/CoreAILanguageModels/LanguageModel/CoreAIRunner.swift",
+      "originalSHA256": "45c16739ea9590caa3b363e644184ff2c36a5f8fada972bd8335ba4328cd12e2",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/VLM/CoreAIVisionLanguageModel.swift",
+      "destination": "Sources/CoreAILanguageModels/VLM/CoreAIVisionLanguageModel.swift",
+      "originalSHA256": "76e527d7b68b5b4629cdb096e42638de7ff6942372132d05cc2aa0a617d9a773",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Profiling/PerformanceMetrics.swift",
+      "destination": "Sources/CoreAILanguageModels/Profiling/PerformanceMetrics.swift",
+      "originalSHA256": "3b1d70dd5951b2fffdfd6a2abf87b653703dd66cae80a851c8732b55c1408618",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Profiling/InstrumentsProfiler.swift",
+      "destination": "Sources/CoreAILanguageModels/Profiling/InstrumentsProfiler.swift",
+      "originalSHA256": "17f49cd3d39689287d57481fcc142961f53a9f822f3ea232015ecaa40b3a4fef",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Samplers/RepetitionPenaltyGPUState.swift",
+      "destination": "Sources/CoreAILanguageModels/Samplers/RepetitionPenaltyGPUState.swift",
+      "originalSHA256": "b5b5e8e62a0528e121b0e1ddedec4f9fd70baa5f96a590918e35c0554ce78167",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Samplers/SamplingConfiguration.swift",
+      "destination": "Sources/CoreAILanguageModels/Samplers/SamplingConfiguration.swift",
+      "originalSHA256": "570d8cef326b2d75e28cd8abe214a191d31f27d487e3209d0b3689b38f3917f6",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Samplers/MPSGraphSamplers.swift",
+      "destination": "Sources/CoreAILanguageModels/Samplers/MPSGraphSamplers.swift",
+      "originalSHA256": "e5063ce11faaacfc3bfed33b4365a96494e37da9b61820da7c3d9e7139744e0e",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Samplers/RepetitionPenaltyProcessor.swift",
+      "destination": "Sources/CoreAILanguageModels/Samplers/RepetitionPenaltyProcessor.swift",
+      "originalSHA256": "8e6aa36f433e93ea583c6810806b7b25be8079c65ad1728cbf33d2ede33e7d48",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Samplers/CompositeSampler.swift",
+      "destination": "Sources/CoreAILanguageModels/Samplers/CompositeSampler.swift",
+      "originalSHA256": "cb6ac99d96ac40bda928d023bdc97e3839c825b55a02a76b15bf51bb16623865",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/GuidedGeneration/XGrammarWrapper.swift",
+      "destination": "Sources/CoreAILanguageModels/GuidedGeneration/XGrammarWrapper.swift",
+      "originalSHA256": "120bbda57c71fdb571b13d04e3f9770c2b4751a548af5139568080aa0fa00298",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/GuidedGeneration/TokenizerInfo.swift",
+      "destination": "Sources/CoreAILanguageModels/GuidedGeneration/TokenizerInfo.swift",
+      "originalSHA256": "9342d3d754383dadf3b0ef0eb863e302213db4d08e10e8cd4261768fd8e3ebfe",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/GuidedGeneration/ConstrainedSessionHandle.swift",
+      "destination": "Sources/CoreAILanguageModels/GuidedGeneration/ConstrainedSessionHandle.swift",
+      "originalSHA256": "69e0bffcd7326a2f4a1968c68b8a94e2f7dcec1541432f1d69b486293fbb9cfe",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/GuidedGeneration/ConstrainedGenerationSession.swift",
+      "destination": "Sources/CoreAILanguageModels/GuidedGeneration/ConstrainedGenerationSession.swift",
+      "originalSHA256": "8ee95884d339d05e192cd3cf94513e0569eb771f8954cdad842e0e07a2c49521",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Assets/ModelPaths.swift",
+      "destination": "Sources/CoreAILanguageModels/Assets/ModelPaths.swift",
+      "originalSHA256": "870fe048d22f26d72c07047bb306f7a123d29db277700cbdd61e99459a07ba4d",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Handlers/InputHandler.swift",
+      "destination": "Sources/CoreAILanguageModels/Handlers/InputHandler.swift",
+      "originalSHA256": "8690c27384efa34f0973f6902493d693c5644a3fde90574f2d36bc0b92c75c82",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Handlers/StateHandler+NDArray.swift",
+      "destination": "Sources/CoreAILanguageModels/Handlers/StateHandler+NDArray.swift",
+      "originalSHA256": "71fa412ca1975996319c25f9b55b57721dc4ec65921bbfc1080606dcdae03224",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Handlers/StateHandlerFactory.swift",
+      "destination": "Sources/CoreAILanguageModels/Handlers/StateHandlerFactory.swift",
+      "originalSHA256": "c9b955ab15f93c380ae152539d1cb5e2c2b5fe347136a702d44d7a90495bbbc2",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Handlers/StateHandler+MTLBuffer.swift",
+      "destination": "Sources/CoreAILanguageModels/Handlers/StateHandler+MTLBuffer.swift",
+      "originalSHA256": "4740298d8ecd76f65e400383ed22d1416c9e865080956da4353554a65323c73f",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Handlers/StateHandler+Encode.swift",
+      "destination": "Sources/CoreAILanguageModels/Handlers/StateHandler+Encode.swift",
+      "originalSHA256": "ae8e40ddae5d8f578d4aba211ce3f6e0d63e1772c1f7d7aa7bbc704669dc01dc",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Handlers/StateHandler.swift",
+      "destination": "Sources/CoreAILanguageModels/Handlers/StateHandler.swift",
+      "originalSHA256": "43c19dd56c291864b219a6bf61a4ff48ceb44216b4b46ee46af5027c2a721bfe",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Handlers/InputHandler+Token.swift",
+      "destination": "Sources/CoreAILanguageModels/Handlers/InputHandler+Token.swift",
+      "originalSHA256": "1456febc870a0a58c5f80bd0e9a573f0c59037a7fd856a58c4ac9ed6f8260200",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Handlers/InputHandler+Pipelined.swift",
+      "destination": "Sources/CoreAILanguageModels/Handlers/InputHandler+Pipelined.swift",
+      "originalSHA256": "af72ca2c919211939031bc840689e67941dd924b26b976f61a83ca2ea59e30c9",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Handlers/StateHandler+Run.swift",
+      "destination": "Sources/CoreAILanguageModels/Handlers/StateHandler+Run.swift",
+      "originalSHA256": "5f75e08ae960c94cac343430edf8253ca894e179cb9c0b3500862338407ff53a",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAILanguageModels/Session/TokenizerLoader.swift",
+      "destination": "Sources/CoreAILanguageModels/Session/TokenizerLoader.swift",
+      "originalSHA256": "1caea3027668333a945e366a0d1b524c1879affe3dc7648c0053527d821847c7",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Video/VideoFrameExtractor.swift",
+      "destination": "Sources/CoreAIShared/Video/VideoFrameExtractor.swift",
+      "originalSHA256": "4566ae9e409ae4b86c8cfdd7318e0a6e3a16a15d577f5ca767df2d4f0cf4a42f",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Video/VideoInput.swift",
+      "destination": "Sources/CoreAIShared/Video/VideoInput.swift",
+      "originalSHA256": "c882b3ac629274ecb0ce8e4c86505daa3608d8a024ce104ef99eb50be282b93e",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Video/FrameSamplingStrategy.swift",
+      "destination": "Sources/CoreAIShared/Video/FrameSamplingStrategy.swift",
+      "originalSHA256": "feafbd73db6f25d46e5a6db92a831b89152b66717cc797dd2667f01816919c68",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Logger/Logger.swift",
+      "destination": "Sources/CoreAIShared/Logger/Logger.swift",
+      "originalSHA256": "4d1210ce8b0be66cfb5f520145ea02960762cd24c95101f35a7fbec2f18be998",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Runtime/ResourceManaging.swift",
+      "destination": "Sources/CoreAIShared/Runtime/ResourceManaging.swift",
+      "originalSHA256": "fc6ef51a126128c9cad46adde0ab234c96c968812d858dc5dc0f7b48f991b00f",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Runtime/NDArray+Helpers.swift",
+      "destination": "Sources/CoreAIShared/Runtime/NDArray+Helpers.swift",
+      "originalSHA256": "5620ea076b330ff06b07a142373492fab83904ffaf7b214e2f34cc0bb958ac82",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Runtime/Duration+Time.swift",
+      "destination": "Sources/CoreAIShared/Runtime/Duration+Time.swift",
+      "originalSHA256": "be55c9c2bc163c1b36cc549ac006bbaee01d517bde803eb559c5117b9cd1b628",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Runtime/FileSize.swift",
+      "destination": "Sources/CoreAIShared/Runtime/FileSize.swift",
+      "originalSHA256": "a66765c59b25872dde9eb5000894be4c71440197c95434a2e558399c7f52993d",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Runtime/ModelIONameResolver.swift",
+      "destination": "Sources/CoreAIShared/Runtime/ModelIONameResolver.swift",
+      "originalSHA256": "f6107be020eeb73f072640a2bc4605cecd511e0dee12724f9e5f951663eacc05",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Runtime/ModelStructure.swift",
+      "destination": "Sources/CoreAIShared/Runtime/ModelStructure.swift",
+      "originalSHA256": "c16887e899247949e8e9e6837e308d7561b998064581d8795c8756aac84fad9f",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Bundle/BundleKind.swift",
+      "destination": "Sources/CoreAIShared/Bundle/BundleKind.swift",
+      "originalSHA256": "801e87abc59155845a53af285e36b5c870d618b366ae2f6f1cdb889d7401568e",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Bundle/ModelBundle.swift",
+      "destination": "Sources/CoreAIShared/Bundle/ModelBundle.swift",
+      "originalSHA256": "b9a3928c1e0189ea5b4ed974c450e2937bfca56c2efdc39ac45055062cbe4fe5",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Bundle/FunctionMap.swift",
+      "destination": "Sources/CoreAIShared/Bundle/FunctionMap.swift",
+      "originalSHA256": "71d5da856dd9f4be9b2b59711bd7ee16065cdf71f5bd6b761857d2a02e736847",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Image/CGImageUtils.swift",
+      "destination": "Sources/CoreAIShared/Image/CGImageUtils.swift",
+      "originalSHA256": "5edc8e347e7bd0cdbd78f186258cd113943f46000d3fee50d728344e25d837a4",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-models/swift/Sources/CoreAIShared/Image/ImagePreprocessor.swift",
+      "destination": "Sources/CoreAIShared/Image/ImagePreprocessor.swift",
+      "originalSHA256": "d9c1107fc730d5e4eb906f53971edaa9c59fc6db479050e1a719f689043dacd8",
+      "modification": "Conditional compilation for unavailable CoreAI framework on Simulator"
+    },
+    {
+      "source": "coreai-kit/Sources/CoreAIKit/Vision/VLArchitecture.swift",
+      "destination": "Sources/MimCoreAIVision/VLArchitecture.swift",
+      "originalSHA256": "fe1f0acc502b5c5f5d6238d2bb655f50adf04261f5e1a50852b1b8d7b0976aa2",
+      "modification": "Simulator guard; local target names; pipelined engine selection"
+    },
+    {
+      "source": "coreai-kit/Sources/CoreAIKit/Vision/VLImagePreprocessor.swift",
+      "destination": "Sources/MimCoreAIVision/VLImagePreprocessor.swift",
+      "originalSHA256": "873be13503b57c4c16885c7d41c2f648bea68a047c1d1ef71bbe26050148164a",
+      "modification": "Simulator guard; local target names; pipelined engine selection"
+    },
+    {
+      "source": "coreai-kit/Sources/CoreAIKit/Vision/VLRuntime.swift",
+      "destination": "Sources/MimCoreAIVision/VLRuntime.swift",
+      "originalSHA256": "ba0e38bc41dae986d974bfec709fc52f3f441397f4d851c0481c6655cab0d635",
+      "modification": "Simulator guard; local target names; pipelined engine selection"
+    },
+    {
+      "source": "coreai-kit/Sources/CoreAIKitVision/GraphModel.swift",
+      "destination": "Sources/MimCoreAIVision/GraphModel.swift",
+      "originalSHA256": "fe0134463114921053e1095b8296b3d08b6b1c42a6ad22841ee6de92060f372e",
+      "modification": "Simulator guard; local target names; pipelined engine selection"
+    },
+    {
+      "source": "coreai-kit/Sources/CoreAIKitVision/TensorValue.swift",
+      "destination": "Sources/MimCoreAIVision/TensorValue.swift",
+      "originalSHA256": "eab97249c3240165438bd3d21753915a6e8d2f7ae302b405d76a6ace24f6bb9f",
+      "modification": "Simulator guard; local target names; pipelined engine selection"
+    },
+    {
+      "source": "coreai-kit/Sources/CoreAIKit/GraphBundle.swift",
+      "destination": "Sources/MimCoreAIVision/GraphBundle.swift",
+      "originalSHA256": "9b7a3409185808de478cfe01969e96ffcd326cdfc7ebe00ea3b89d6bd51205bc",
+      "modification": "Simulator guard; local target names; pipelined engine selection"
+    },
+    {
+      "source": "coreai-kit/Sources/CoreAIKitVision/CoreAIKitVision.swift",
+      "destination": "Sources/MimCoreAIVision/VisionError.swift",
+      "originalSHA256": "e00255f10e5ebc0b7d593e836c115c216db27442beac52a49e69734b28a04eab",
+      "modification": "Simulator guard; remove unused package export"
+    }
+  ]
+}

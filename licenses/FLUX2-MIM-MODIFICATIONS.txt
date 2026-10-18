@@ -1,0 +1,9 @@
+FLUX.2 Klein 4B / Qwen3 text encoder
+Original FLUX model by Black Forest Labs: https://huggingface.co/black-forest-labs/FLUX.2-klein-4B
+Qwen3 by Alibaba Cloud: https://huggingface.co/Qwen/Qwen3-4B
+CoreAI conversion by dushandz: https://huggingface.co/dushandz/FLUX.2-klein-4B-CoreAI
+Conversion revision: a7f65cdd6b2c8e2616dab3887efd0ae6ce983e44
+Mim installed asset revision: coreai-512-4bit-a7f65cd-v1
+Mim modifications (2026-10-10): extracted the existing 512px half Transformer graph and its required helpers, renamed that entrypoint to main, and saved a dedicated CoreAI bytecode module. Kept the converted 4bit weights. The text encoder and half VAE decoder were retained; 1024px and image-to-image assets were omitted. This is a derivative of the third-party CoreAI conversion, not a fresh export from the original PyTorch model, retraining or a new quantization.
+The original Qwen checkpoint revision is not independently pinned in the supplied conversion metadata; the conversion revision above pins the distributed encoder bytes.
+Copyright and license terms remain those of their respective owners.

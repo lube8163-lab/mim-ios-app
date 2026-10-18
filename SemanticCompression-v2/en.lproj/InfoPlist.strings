@@ -1,2 +1,3 @@
 "CFBundleDisplayName" = "Mim";
 "CFBundleName" = "Mim";
+"NSPhotoLibraryUsageDescription" = "Mim uses selected photos to prepare posts on your device and to upload the profile photo you choose.";

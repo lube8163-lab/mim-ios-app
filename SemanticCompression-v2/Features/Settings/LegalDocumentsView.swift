@@ -44,6 +44,8 @@ struct LegalDocumentsView: View {
             }
         }
         .navigationTitle(l("legal.title"))
+        .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.hidden).background(MimStyle.paper)
     }
 
     private func statusText(_ version: String) -> String {

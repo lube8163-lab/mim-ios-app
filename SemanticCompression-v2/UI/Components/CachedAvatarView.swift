@@ -3,6 +3,7 @@ import CryptoKit
 import SwiftUI
 import UIKit
 
+@MainActor
 final class AvatarImageStore {
     static let shared = AvatarImageStore()
 
@@ -12,13 +13,15 @@ final class AvatarImageStore {
 
     private init() {
         let base = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        cacheDirectory = base.appendingPathComponent("AvatarCache", isDirectory: true)
+        // The old cache may contain bytes that have never been classified.
+        cacheDirectory = base.appendingPathComponent("AvatarCache-safe-v2", isDirectory: true)
         try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
     }
 
-    func image(for urlString: String) -> UIImage? {
+    func image(for urlString: String) async throws -> UIImage? {
         let key = urlString as NSString
         if let cached = memoryCache.object(forKey: key) {
+            try await ImageSafetyService.check(cached)
             return cached
         }
 
@@ -28,17 +31,25 @@ final class AvatarImageStore {
             return nil
         }
 
+        do { try await ImageSafetyService.check(image) }
+        catch { remove(for: urlString); throw error }
         memoryCache.setObject(image, forKey: key)
         return image
     }
 
-    func store(_ image: UIImage, for urlString: String) {
+    func store(_ image: UIImage, for urlString: String) async throws {
+        try await ImageSafetyService.check(image)
         let key = urlString as NSString
         memoryCache.setObject(image, forKey: key)
 
         let fileURL = cacheDirectory.appendingPathComponent(cacheFileName(for: urlString))
         guard let data = image.jpegData(compressionQuality: 0.9) else { return }
         try? data.write(to: fileURL, options: .atomic)
+    }
+
+    func remove(for urlString: String) {
+        memoryCache.removeObject(forKey: urlString as NSString)
+        try? fileManager.removeItem(at: cacheDirectory.appendingPathComponent(cacheFileName(for: urlString)))
     }
 
     private func cacheFileName(for urlString: String) -> String {
@@ -60,25 +71,31 @@ final class CachedAvatarLoader: ObservableObject {
             return
         }
 
-        if currentURLString != urlString {
-            image = AvatarImageStore.shared.image(for: urlString)
-            currentURLString = urlString
-        }
-
-        guard image == nil, let url = URL(string: urlString) else { return }
-
-        var request = URLRequest(url: url)
-        request.cachePolicy = .returnCacheDataElseLoad
-
+        image = nil
+        currentURLString = urlString
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            if let cached = try await AvatarImageStore.shared.image(for: urlString) {
+                guard currentURLString == urlString, !Task.isCancelled else { return }
+                image = cached
+                return
+            }
+            guard let url = URL(string: urlString), url.scheme == "https" else { return }
+            var request = URLRequest(url: url)
+            request.cachePolicy = .returnCacheDataElseLoad
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+                  data.count <= 5 * 1024 * 1024 else { throw URLError(.badServerResponse) }
             guard currentURLString == urlString,
                   let fetched = UIImage(data: data) else { return }
-            AvatarImageStore.shared.store(fetched, for: urlString)
+            try await AvatarImageStore.shared.store(fetched, for: urlString)
+            guard currentURLString == urlString, !Task.isCancelled else { return }
             image = fetched
         } catch {
-            if image == nil {
-                image = AvatarImageStore.shared.image(for: urlString)
+            // Neither a blocked cached image nor a classifier error may fall back to
+            // unverified bytes. Keep the placeholder and allow a future retry.
+            if currentURLString == urlString {
+                image = nil
+                AvatarImageStore.shared.remove(for: urlString)
             }
         }
     }

@@ -1,0 +1,7 @@
+LFM2.5-VL-450M by Liquid AI, Inc.
+Original: https://huggingface.co/LiquidAI/LFM2.5-VL-450M
+CoreAI conversion by Daisuke Majima: https://huggingface.co/mlboydaisuke/LFM2.5-VL-450M-CoreAI
+Conversion revision: f6648f9c65402a4d5c280cae41b672f977e74e3a
+Decoder INT8, vision FP16. Portable .aimodel assets, not device-specific AOT.
+The original weights were converted by the upstream converter. MiM packages these assets byte-for-byte.
+Models remain subject to the included LFM Open License v1.0.

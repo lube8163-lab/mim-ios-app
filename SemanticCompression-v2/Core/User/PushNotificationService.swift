@@ -1,7 +1,7 @@
 import Foundation
 
 enum PushNotificationService {
-    static func registerDeviceToken(_ token: String) async throws {
+    static func registerDeviceToken(_ token: String, language: String) async throws {
         guard let url = URL(string: FeedAPI.base + "/devices/register") else {
             throw URLError(.badURL)
         }
@@ -10,7 +10,9 @@ enum PushNotificationService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "deviceToken": token,
-            "platform": "ios"
+            "platform": "ios",
+            "pushEnvironment": PushEnvironment.current.rawValue,
+            "language": language
         ])
 
         let (_, response) = try await URLSession.shared.data(for: request)

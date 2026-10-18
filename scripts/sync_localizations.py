@@ -15,6 +15,7 @@ def run(script_name: str) -> None:
 
 
 def main() -> None:
+    run("check_localization_coverage.py")
     run("export_strings_from_xcstrings.py")
     run("check_xcstrings_sync.py")
 

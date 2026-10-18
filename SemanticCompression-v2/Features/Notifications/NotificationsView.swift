@@ -6,6 +6,12 @@ struct NotificationsView: View {
     private var selectedLanguage = AppLanguage.preferred.rawValue
 
     let onNotificationsLoaded: ([AppNotification]) -> Void
+    var showsCloseButton = true
+
+    init(showsCloseButton: Bool = true, onNotificationsLoaded: @escaping ([AppNotification]) -> Void) {
+        self.showsCloseButton = showsCloseButton
+        self.onNotificationsLoaded = onNotificationsLoaded
+    }
 
     @State private var items: [AppNotification] = []
     @State private var isLoading = false
@@ -15,8 +21,14 @@ struct NotificationsView: View {
     @State private var isOpeningDestination = false
 
     var body: some View {
-        NavigationStack {
-            Group {
+        Group {
+            if showsCloseButton { NavigationStack { content } }
+            else { content }
+        }
+    }
+
+    private var content: some View {
+        Group {
                 if items.isEmpty && isLoading {
                     ProgressView(l("notifications.loading"))
                 } else if items.isEmpty {
@@ -27,7 +39,6 @@ struct NotificationsView: View {
                             Task { await openDestination(for: item) }
                         }
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                            .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
                     }
                     .listStyle(.plain)
@@ -38,8 +49,10 @@ struct NotificationsView: View {
             .navigationTitle(l("notifications.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(l("notifications.close")) { dismiss() }
+                if showsCloseButton {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(l("notifications.close")) { dismiss() }
+                    }
                 }
             }
             .task {
@@ -78,7 +91,6 @@ struct NotificationsView: View {
                     }
                 }
             }
-        }
     }
 
     private var emptyView: some View {
@@ -98,6 +110,9 @@ struct NotificationsView: View {
 
     @MainActor
     private func loadNotifications() async {
+        #if DEBUG
+        guard !ProcessInfo.processInfo.arguments.contains("--mim-ui-review") else { return }
+        #endif
         isLoading = true
         defer { isLoading = false }
         errorMessage = nil
@@ -161,18 +176,14 @@ private struct NotificationRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 12) {
-                AsyncImage(url: URL(string: item.actorAvatarUrl ?? "")) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
+                CachedAvatarView(urlString: item.actorAvatarUrl ?? "") {
                         Circle().fill(Color.secondary.opacity(0.14))
-                    }
                 }
                 .frame(width: 42, height: 42)
                 .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(message)
+                    Text(ContentSafetyPolicy.displayText(message))
                         .font(.subheadline)
                         .multilineTextAlignment(.leading)
                     Text(relativeTime)
@@ -193,8 +204,9 @@ private struct NotificationRow: View {
                         .padding(.top, 8)
                 }
             }
-            .padding(14)
-            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

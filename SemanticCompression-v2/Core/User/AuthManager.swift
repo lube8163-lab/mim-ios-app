@@ -96,6 +96,13 @@ final class AuthManager: ObservableObject {
         )
     }
 
+    #if DEBUG
+    func applyValidationSession(_ payload: AuthSessionPayload) {
+        guard !isAuthenticated, payload.user.id.hasPrefix("mim-validation-") else { return }
+        applySessionPayload(payload)
+    }
+    #endif
+
     func validAccessToken() async throws -> String {
         guard var tokens else { throw AuthError.unauthorized }
 
@@ -119,6 +126,7 @@ final class AuthManager: ObservableObject {
     }
 
     func logout(allDevices: Bool = false) async {
+        await PushNotificationManager.shared.prepareForLogout()
         let access = tokens?.accessToken
         let refresh = tokens?.refreshToken
         await AuthService.logout(accessToken: access, refreshToken: refresh, allDevices: allDevices)
